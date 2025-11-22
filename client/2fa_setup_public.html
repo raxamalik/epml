@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA Setup - Google Authenticator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .qr-code {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        .secret-code {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .current-token {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Google Authenticator Setup</h1>
+        
+        <div class="warning">
+            <strong>Important:</strong> You must first DELETE any existing entry for ghalib@icloud.com in your Google Authenticator app before adding this new one.
+        </div>
+
+        <h2>Step 1: Scan QR Code</h2>
+        <div class="qr-code">
+            <img src="data:image/png;base64,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" alt="2FA QR Code" style="max-width: 300px; border: 2px solid #ddd;">
+        </div>
+
+        <h2>Step 2: Manual Entry (Alternative)</h2>
+        <p>If QR code doesn't work, manually enter these details in Google Authenticator:</p>
+        <div class="step">
+            <strong>Account:</strong> ghalib@icloud.com
+        </div>
+        <div class="step">
+            <strong>Secret Key:</strong>
+            <div class="secret-code">HA5C4OKPOMQWY52QI5CC6RJ6ONKFEMKSJAZWI52YMFTTQL2XJMSA</div>
+        </div>
+
+        <div class="current-token" id="currentToken">
+            <strong>Current Expected Token: Loading...</strong>
+        </div>
+
+        <h2>Step 3: Verification</h2>
+        <div class="step">
+            1. Delete any existing ghalib@icloud.com entry from Google Authenticator
+        </div>
+        <div class="step">
+            2. Add the account using QR code or manual entry above
+        </div>
+        <div class="step">
+            3. Wait for your Google Authenticator to show the same 6-digit code as displayed above
+        </div>
+        <div class="step">
+            4. Go back to the login page and enter that code
+        </div>
+
+        <div class="warning">
+            <strong>Note:</strong> The expected token changes every 30 seconds. Make sure your Google Authenticator shows the same number as displayed above before trying to login.
+        </div>
+    </div>
+
+    <script>
+        // Update current token every 5 seconds
+        function updateCurrentToken() {
+            fetch('/api/auth/current-2fa-token')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('currentToken').innerHTML = 
+                        `<strong>Current Expected Token: ${data.token}</strong><br><small>Updated: ${new Date().toLocaleTimeString()}</small>`;
+                })
+                .catch(error => {
+                    document.getElementById('currentToken').innerHTML = 
+                        '<strong>Current Expected Token: Unable to fetch</strong>';
+                });
+        }
+
+        // Update immediately and then every 5 seconds
+        updateCurrentToken();
+        setInterval(updateCurrentToken, 5000);
+    </script>
+</body>
+</html>

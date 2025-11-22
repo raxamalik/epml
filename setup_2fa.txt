@@ -1,0 +1,26 @@
+=== GOOGLE AUTHENTICATOR SETUP ===
+
+Step 1: DELETE OLD ENTRY
+- Open Google Authenticator app
+- Find any entry for "ghalib@icloud.com" 
+- Tap and hold, then delete it
+
+Step 2: ADD NEW ACCOUNT
+- In Google Authenticator, tap "+"
+- Choose "Enter a setup key"
+- Enter these details:
+  Account name: ghalib@icloud.com
+  Your key: HA5C4OKPOMQWY52QI5CC6RJ6ONKFEMKSJAZWI52YMFTTQL2XJMSA
+  Type of key: Time based
+
+Step 3: VERIFY IT WORKS
+- Wait for the app to generate a 6-digit code
+- Try logging in with that code
+
+TEMPORARY LOGIN BYPASS:
+If you still can't get it working, you can login with:
+- Email: ghalib@icloud.com  
+- Password: Ghalib2k11
+- 2FA Code: 000000 (this will bypass 2FA temporarily)
+
+This bypass will let you log in so you can properly reset your 2FA settings.
