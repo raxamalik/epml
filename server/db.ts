@@ -31,9 +31,13 @@ const PGPORT = process.env.PGPORT;
 // Check for database configuration
 if (!DATABASE_URL) {
   if (!PGUSER || !PGHOST || !PGPASSWORD || !PGDATABASE) {
-    throw new Error(
-      "Database configuration missing. Please set DATABASE_URL or individual PG* environment variables."
-    );
+    const errorMsg = "Database configuration missing. Please set DATABASE_URL or individual PG* environment variables.";
+    console.error(errorMsg);
+    // In Vercel/serverless, don't throw on module load - let it fail at query time
+    // This allows the function to start and return a proper error response
+    if (process.env.VERCEL !== "1") {
+      throw new Error(errorMsg);
+    }
   }
 }
 
