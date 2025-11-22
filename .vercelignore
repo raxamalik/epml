@@ -8,4 +8,5 @@ Archive
 dist
 .vscode
 .idea
+api/index.ts
 
