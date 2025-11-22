@@ -152,14 +152,32 @@ async function store2FASecret(email: string, secret: string): Promise<void> {
 export { store2FASecret, check2FAStatus, get2FASecret };
 
 export function setupAuth(app: Express) {
+  // Check for SESSION_SECRET
+  const sessionSecret = process.env.SESSION_SECRET;
+  if (!sessionSecret) {
+    console.error("⚠️  WARNING: SESSION_SECRET not set! Sessions may not work properly.");
+    console.error("⚠️  Set SESSION_SECRET in Vercel environment variables.");
+  }
+
   // Setup PostgreSQL session store for persistent sessions across deployments
-  app.use(session({
-    store: new PgSession({
+  // Fallback to memory store if database connection fails
+  let sessionStore;
+  try {
+    sessionStore = new PgSession({
       pool: pool,
       tableName: 'sessions',
       createTableIfMissing: true
-    }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key-change-in-production',
+    });
+    console.log("✅ PostgreSQL session store initialized");
+  } catch (error) {
+    console.error("⚠️  Failed to initialize PostgreSQL session store:", error);
+    console.error("⚠️  Falling back to memory store (sessions will not persist across deployments)");
+    sessionStore = undefined; // Will use default memory store
+  }
+
+  app.use(session({
+    store: sessionStore,
+    secret: sessionSecret || 'fallback-secret-change-in-production-' + Date.now(),
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -400,7 +418,19 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Email and password are required" });
       }
 
-      const existingUser = await storage.getUserByEmail(email);
+      console.log("Checking for existing user...");
+      let existingUser;
+      try {
+        existingUser = await storage.getUserByEmail(email);
+      } catch (error: any) {
+        console.error("Error checking existing user:", error);
+        console.error("Error message:", error?.message);
+        console.error("Error code:", error?.code);
+        return res.status(500).json({ 
+          message: "Database error while checking user",
+          error: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        });
+      }
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
       }
@@ -432,14 +462,29 @@ export function setupAuth(app: Express) {
 
       console.log("Creating user with ID:", userId);
 
-      const newUser = await storage.createUser({
-        id: userId,
-        email,
-        firstName,
-        lastName,
-        passwordHash,
-        role
-      } as any); // Type assertion needed because InsertUser omits id
+      let newUser;
+      try {
+        newUser = await storage.createUser({
+          id: userId,
+          email,
+          firstName,
+          lastName,
+          passwordHash,
+          role
+        } as any); // Type assertion needed because InsertUser omits id
+        console.log("User created successfully in database");
+      } catch (error: any) {
+        console.error("Error creating user in database:", error);
+        console.error("Error message:", error?.message);
+        console.error("Error code:", error?.code);
+        console.error("Error detail:", error?.detail);
+        console.error("Error hint:", error?.hint);
+        return res.status(500).json({ 
+          message: "Failed to create user in database",
+          error: process.env.NODE_ENV === 'development' ? error?.message : undefined,
+          hint: process.env.NODE_ENV === 'development' ? error?.hint : undefined
+        });
+      }
 
       // Create session using express-session
       req.session.userId = newUser.id;
@@ -747,33 +792,43 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
     let user = null;
     
-    if (req.session.userType === 'company') {
-      // For company sessions, reconstruct the user object
-      const companyId = String(req.session.userId).replace('company_', '');
-      const companies = await storage.getAllCompanies();
-      const company = companies.find(c => c.id === parseInt(companyId));
-      
-      if (company) {
-        user = {
-          id: req.session.userId,
-          email: company.email,
-          role: 'company_admin',
-          firstName: company.contactPerson.split(' ')[0] || 'Company',
-          lastName: company.contactPerson.split(' ').slice(1).join(' ') || 'Admin',
-          companyId: company.id,
-          companyName: company.name,
-          type: 'company'
-        };
+    try {
+      if (req.session.userType === 'company') {
+        // For company sessions, reconstruct the user object
+        const companyId = String(req.session.userId).replace('company_', '');
+        const companies = await storage.getAllCompanies();
+        const company = companies.find(c => c.id === parseInt(companyId));
+        
+        if (company) {
+          user = {
+            id: req.session.userId,
+            email: company.email,
+            role: 'company_admin',
+            firstName: company.contactPerson.split(' ')[0] || 'Company',
+            lastName: company.contactPerson.split(' ').slice(1).join(' ') || 'Admin',
+            companyId: company.id,
+            companyName: company.name,
+            type: 'company'
+          };
+        }
+      } else {
+        // For regular user sessions
+        const dbUser = await storage.getUserById(String(req.session.userId));
+        if (dbUser) {
+          user = {
+            ...dbUser,
+            type: 'user'
+          };
+        }
       }
-    } else {
-      // For regular user sessions
-      const dbUser = await storage.getUserById(String(req.session.userId));
-      if (dbUser) {
-        user = {
-          ...dbUser,
-          type: 'user'
-        };
-      }
+    } catch (dbError: any) {
+      console.error("Database error during authentication:", dbError);
+      console.error("Error stack:", dbError?.stack);
+      // Database errors should return 500, not 401
+      return res.status(500).json({ 
+        message: "Database error during authentication",
+        error: process.env.NODE_ENV === 'development' ? dbError?.message : undefined
+      });
     }
     
     if (!user) {
@@ -784,8 +839,16 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     console.log("User authenticated successfully:", user.email);
     (req as any).user = user;
     return next();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Authentication error:", error);
-    return res.status(401).json({ message: "Authentication failed" });
+    console.error("Error stack:", error?.stack);
+    // Distinguish between auth failures and server errors
+    const errorMessage = error?.message || "Authentication failed";
+    const isServerError = errorMessage.includes('database') || errorMessage.includes('connection') || errorMessage.includes('query');
+    
+    return res.status(isServerError ? 500 : 401).json({ 
+      message: isServerError ? "Server error during authentication" : "Authentication failed",
+      error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+    });
   }
 };

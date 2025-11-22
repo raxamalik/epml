@@ -197,8 +197,15 @@ export class DatabaseStorage implements IStorage {
   async createUser(userData: InsertUser & { id?: string }): Promise<User> {
     // Generate ID if not provided
     if (!userData.id) {
-      const { nanoid } = await import("nanoid");
-      userData.id = nanoid();
+      try {
+        const { nanoid } = await import("nanoid");
+        userData.id = nanoid();
+      } catch (error) {
+        // Fallback to crypto.randomUUID if nanoid is not available
+        console.warn("nanoid not available in createUser, using crypto.randomUUID");
+        const crypto = await import("crypto");
+        userData.id = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+      }
     }
     
     const [user] = await db
