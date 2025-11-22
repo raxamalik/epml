@@ -6,7 +6,7 @@ import { existsSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin to resolve TypeScript path aliases and relative imports
+// Plugin to resolve TypeScript path aliases
 const aliasPlugin = {
   name: 'alias',
   setup(build) {
@@ -30,26 +30,8 @@ const aliasPlugin = {
         path: path.resolve(__dirname, 'client', 'src', relativePath),
       };
     });
-    // Handle relative imports (../server/*, ./server/*, etc.)
-    build.onResolve({ filter: /^\.\.\/server/ }, (args) => {
-      const relativePath = args.path.replace('../server/', '');
-      let resolvedPath = path.resolve(__dirname, 'server', relativePath);
-      // Try adding .ts extension if needed
-      if (!resolvedPath.match(/\.(ts|tsx|js|jsx)$/)) {
-        const withExt = resolvedPath + '.ts';
-        if (existsSync(withExt)) {
-          resolvedPath = withExt;
-        } else {
-          // Try .js extension
-          const withJsExt = resolvedPath + '.js';
-          if (existsSync(withJsExt)) {
-            resolvedPath = withJsExt;
-          }
-        }
-      }
-      // Mark as not external so it gets bundled
-      return { path: resolvedPath, external: false };
-    });
+    // Let esbuild handle relative imports (../server/*) naturally
+    // It should bundle them automatically with bundle: true
   },
 };
 
@@ -69,18 +51,17 @@ try {
   await esbuild.build({
     entryPoints: [entryPoint],
     platform: 'node',
-    bundle: true,
+    bundle: true, // This should bundle all local imports
     format: 'esm',
     outfile: 'api/index.js',
-    // Keep node_modules external, but bundle all local files
+    // Only externalize node_modules packages
     packages: 'external',
     plugins: [aliasPlugin],
     logLevel: 'info',
-    // Resolve .ts extensions
+    // Resolve .ts extensions for TypeScript files
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
-    // Ensure all local imports are bundled
-    external: [],
     // Don't mark any local files as external
+    external: [],
     banner: {
       js: '// Bundled for Vercel serverless function'
     }
