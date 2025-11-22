@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "vite build && node build-vercel.js",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
