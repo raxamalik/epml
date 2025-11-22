@@ -1,11 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
+
 import sgMail from '@sendgrid/mail';
 
-// Configure SendGrid API key
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
+// Configure SendGrid API key (optional - email service will log to console if not configured)
+if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY !== 'your-sendgrid-api-key') {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 }
-
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const FROM_EMAIL = 'noreply@epml.cz';
 
@@ -221,22 +222,22 @@ This is an automated message. Please do not reply to this email.
 export async function verifySendGridConfiguration() {
   try {
     // Test if we have the required SendGrid API key
-    if (!process.env.SENDGRID_API_KEY) {
-      console.log("Missing SENDGRID_API_KEY - email service will use console fallback");
+    const apiKey = process.env.SENDGRID_API_KEY;
+    if (!apiKey || apiKey === 'your-sendgrid-api-key') {
+      console.log("Missing or placeholder SENDGRID_API_KEY - email service will use console fallback");
       return false;
     }
-    
-    console.log("SendGrid configuration verified successfully");
-    console.log(`From Email: ${FROM_EMAIL}`);
-    console.log("SendGrid API key is configured");
     
     // Test the SendGrid connection with a simple validation
     try {
       // Just verify the API key format (SendGrid keys start with 'SG.')
-      if (!process.env.SENDGRID_API_KEY.startsWith('SG.')) {
-        throw new Error('Invalid SendGrid API key format');
+      if (!apiKey.startsWith('SG.')) {
+        console.warn("Warning: SendGrid API key format appears invalid (should start with 'SG.')");
+        return false;
       }
-      console.log("SendGrid connection test successful");
+      console.log("SendGrid configuration verified successfully");
+      console.log(`From Email: ${FROM_EMAIL}`);
+      console.log("SendGrid API key is configured");
       return true;
     } catch (testError) {
       console.error("SendGrid API key validation failed:", testError);

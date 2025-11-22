@@ -1,8 +1,9 @@
-// Simple localStorage-based auth to bypass server issues
+// Session-based auth (server uses express-session with cookies)
 export async function login(email: string, password: string): Promise<boolean> {
   try {
     const response = await fetch("/api/auth/login", {
       method: "POST",
+      credentials: 'include', // Important: Include cookies for session
       headers: {
         "Content-Type": "application/json",
       },
@@ -11,9 +12,24 @@ export async function login(email: string, password: string): Promise<boolean> {
 
     if (response.ok) {
       const data = await response.json();
-      localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('auth_user', JSON.stringify(data.user));
-      return true;
+      
+      // Handle 2FA requirement
+      if (data.requires2FA) {
+        throw new Error("2FA_REQUIRED");
+      }
+      
+      // Handle profile completion requirement
+      if (data.requiresProfileCompletion) {
+        throw new Error("PROFILE_COMPLETION_REQUIRED");
+      }
+      
+      // Server uses sessions, so we just store user data in localStorage for client-side access
+      if (data.user) {
+        localStorage.setItem('auth_user', JSON.stringify(data.user));
+        return true;
+      }
+      
+      throw new Error('Login response missing user data');
     } else {
       const errorData = await response.json();
       throw new Error(errorData.message || 'Login failed');
@@ -55,9 +71,8 @@ export async function logout(): Promise<void> {
 }
 
 export function getUser() {
-  const token = localStorage.getItem('auth_token');
   const user = localStorage.getItem('auth_user');
-  if (token && user) {
+  if (user) {
     try {
       return JSON.parse(user);
     } catch {
@@ -68,5 +83,7 @@ export function getUser() {
 }
 
 export function isAuthenticated(): boolean {
-  return !!localStorage.getItem('auth_token');
+  // Check if we have user data in localStorage
+  // Note: Actual auth is handled by server sessions, this is just for client-side state
+  return !!localStorage.getItem('auth_user');
 }

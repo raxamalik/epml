@@ -58,14 +58,57 @@ export function useAuth() {
   const registerMutation = useMutation({
     mutationFn: async (userData: { email: string; password: string; firstName: string; lastName: string }) => {
       setIsLoading(true);
-      // For demo, just use same login logic
-      const success = await login(userData.email, userData.password);
-      if (success) {
-        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-        return true;
-      } else {
-        throw new Error("Registration failed");
+      try {
+        const response = await apiRequest('POST', '/api/auth/register', {
+          email: userData.email,
+          password: userData.password,
+          firstName: userData.firstName,
+          lastName: userData.lastName
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Registration failed');
+        }
+        
+        const data = await response.json();
+        
+        // Registration creates a session automatically, so store user data
+        if (data.user) {
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+          toast({
+            title: "Registration successful",
+            description: "Your account has been created! Welcome!",
+          });
+          // Redirect to dashboard on successful registration
+          window.location.href = "/";
+          return true;
+        } else {
+          // Fallback: try to login if user data not in response
+          const loginSuccess = await login(userData.email, userData.password);
+          if (loginSuccess) {
+            queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+            toast({
+              title: "Registration successful",
+              description: "Your account has been created! Welcome!",
+            });
+            window.location.href = "/";
+            return true;
+          } else {
+            throw new Error("Registration successful but login failed");
+          }
+        }
+      } catch (error: any) {
+        throw error;
       }
+    },
+    onError: (error) => {
+      toast({
+        title: "Registration failed",
+        description: error.message || "Please check your information and try again",
+        variant: "destructive",
+      });
     },
     onSettled: () => {
       setIsLoading(false);

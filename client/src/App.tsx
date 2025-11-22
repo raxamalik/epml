@@ -21,6 +21,7 @@ import Products from "@/pages/manager/Products";
 import Inventory from "@/pages/manager/Inventory";
 import SalesHistory from "@/pages/manager/SalesHistory";
 import Login from "@/pages/Login";
+import AuthLanding from "@/pages/AuthLanding";
 import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import CompanyActivation from "@/pages/CompanyActivation";
@@ -51,7 +52,8 @@ function Router() {
         <Route path="/reset-password" component={ResetPassword} />
         <Route path="/company-activation" component={CompanyActivation} />
         <Route path="/complete-profile" component={CompleteProfile} />
-        <Route component={Login} />
+        <Route path="/login" component={Login} />
+        <Route component={AuthLanding} />
       </Switch>
     );
   }

@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export default function AuthLanding() {
   const { isAuthenticated, loginMutation, registerMutation } = useAuth();
+  const [activeTab, setActiveTab] = useState("login");
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -103,7 +104,7 @@ export default function AuthLanding() {
             </CardHeader>
             
             <CardContent>
-              <Tabs defaultValue="login" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 mb-6">
                   <TabsTrigger value="login" className="data-[state=active]:bg-primary data-[state=active]:text-white">
                     Sign In
