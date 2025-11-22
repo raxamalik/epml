@@ -34,8 +34,20 @@ const aliasPlugin = {
 };
 
 try {
+  const entryPoint = path.resolve(__dirname, 'api', 'index.ts');
+  
+  // Verify entry point exists
+  if (!existsSync(entryPoint)) {
+    console.error(`✘ Entry point not found: ${entryPoint}`);
+    console.error(`Current directory: ${__dirname}`);
+    console.error(`Looking for: api/index.ts`);
+    process.exit(1);
+  }
+  
+  console.log(`Building API from: ${entryPoint}`);
+  
   await esbuild.build({
-    entryPoints: ['api/index.ts'],
+    entryPoints: [entryPoint],
     platform: 'node',
     bundle: true,
     format: 'esm',
@@ -48,6 +60,11 @@ try {
   console.log('✓ API build successful');
 } catch (error) {
   console.error('✘ Build failed:', error);
+  if (error.errors) {
+    error.errors.forEach((err: any) => {
+      console.error(`  ${err.text} at ${err.location?.file}:${err.location?.line}`);
+    });
+  }
   process.exit(1);
 }
 
