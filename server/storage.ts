@@ -194,10 +194,16 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createUser(userData: InsertUser): Promise<User> {
+  async createUser(userData: InsertUser & { id?: string }): Promise<User> {
+    // Generate ID if not provided
+    if (!userData.id) {
+      const { nanoid } = await import("nanoid");
+      userData.id = nanoid();
+    }
+    
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values(userData as any) // Type assertion needed because InsertUser omits id
       .returning();
     return user;
   }

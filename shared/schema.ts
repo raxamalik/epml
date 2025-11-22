@@ -55,7 +55,7 @@ export const companies = pgTable("companies", {
   maxBranches: integer("max_branches").default(1),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  createdBy: integer("created_by").references(() => users.id),
+  createdBy: varchar("created_by").references(() => users.id),
 });
 
 export const users = pgTable("users", {

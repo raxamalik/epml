@@ -407,13 +407,20 @@ export function setupAuth(app: Express) {
       const allUsers = await storage.getAllUsers();
       const role = allUsers.length === 0 ? "super_admin" : "manager";
 
+      // Generate unique user ID
+      const { nanoid } = await import("nanoid");
+      const userId = nanoid();
+
+      console.log("Creating user with ID:", userId);
+
       const newUser = await storage.createUser({
+        id: userId,
         email,
         firstName,
         lastName,
         passwordHash,
         role
-      });
+      } as any); // Type assertion needed because InsertUser omits id
 
       // Create session using express-session
       req.session.userId = newUser.id;
@@ -421,7 +428,20 @@ export function setupAuth(app: Express) {
 
       console.log("Registration successful for user:", newUser.id);
       console.log("Session created with userId:", req.session.userId);
-      res.json({ message: "Registration successful", user: { id: newUser.id, email: newUser.email, role: newUser.role } });
+      
+      // Return user data matching login response format
+      res.json({ 
+        message: "Registration successful", 
+        user: { 
+          id: newUser.id, 
+          email: newUser.email, 
+          firstName: newUser.firstName,
+          lastName: newUser.lastName,
+          role: newUser.role,
+          type: 'user',
+          companyId: newUser.companyId || null
+        } 
+      });
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ message: "Registration failed" });
