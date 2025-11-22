@@ -61,7 +61,7 @@ try {
 } catch (error) {
   console.error('✘ Build failed:', error);
   if (error.errors) {
-    error.errors.forEach((err: any) => {
+    error.errors.forEach((err) => {
       console.error(`  ${err.text} at ${err.location?.file}:${err.location?.line}`);
     });
   }
