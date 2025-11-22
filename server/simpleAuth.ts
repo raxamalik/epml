@@ -396,6 +396,10 @@ export function setupAuth(app: Express) {
       console.log("Register route hit with body:", req.body);
       const { email, password, firstName, lastName } = req.body;
 
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email and password are required" });
+      }
+
       const existingUser = await storage.getUserByEmail(email);
       if (existingUser) {
         return res.status(400).json({ message: "User already exists" });
@@ -404,12 +408,27 @@ export function setupAuth(app: Express) {
       const bcrypt = await import("bcrypt");
       const passwordHash = await bcrypt.hash(password, 10);
 
-      const allUsers = await storage.getAllUsers();
+      let allUsers: any[] = [];
+      try {
+        allUsers = await storage.getAllUsers();
+      } catch (error) {
+        console.error("Error fetching all users:", error);
+        // If we can't fetch users, assume this is the first user (super_admin)
+        allUsers = [];
+      }
+      
       const role = allUsers.length === 0 ? "super_admin" : "manager";
 
-      // Generate unique user ID
-      const { nanoid } = await import("nanoid");
-      const userId = nanoid();
+      // Generate unique user ID - use crypto.randomUUID if nanoid is not available
+      let userId: string;
+      try {
+        const { nanoid } = await import("nanoid");
+        userId = nanoid();
+      } catch (error) {
+        // Fallback to crypto.randomUUID if nanoid is not available
+        console.warn("nanoid not available, using crypto.randomUUID");
+        userId = crypto.randomUUID ? crypto.randomUUID() : crypto.randomBytes(16).toString('hex');
+      }
 
       console.log("Creating user with ID:", userId);
 
@@ -442,9 +461,15 @@ export function setupAuth(app: Express) {
           companyId: newUser.companyId || null
         } 
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Registration failed" });
+      console.error("Error stack:", error?.stack);
+      console.error("Error message:", error?.message);
+      const errorMessage = error?.message || "Registration failed";
+      res.status(500).json({ 
+        message: "Registration failed",
+        error: process.env.NODE_ENV === 'development' ? errorMessage : undefined
+      });
     }
   });
 

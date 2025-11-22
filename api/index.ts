@@ -38,26 +38,61 @@ app.use((req, res, next) => {
 
 // Register all API routes (only once)
 let routesRegistered = false;
+let setupError: Error | null = null;
 
 async function setupApp() {
   if (!routesRegistered) {
-    // registerRoutes creates and returns a Server, but we don't need it for Vercel
-    await registerRoutes(app);
-    routesRegistered = true;
+    try {
+      // registerRoutes creates and returns a Server, but we don't need it for Vercel
+      await registerRoutes(app);
+      
+      // Error handler must be registered AFTER routes
+      app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+        console.error("Express error:", err);
+        if (!res.headersSent) {
+          res.status(status).json({ message, error: process.env.NODE_ENV === 'development' ? err.stack : undefined });
+        }
+      });
+      
+      routesRegistered = true;
+    } catch (error) {
+      console.error("Failed to setup app:", error);
+      setupError = error as Error;
+      throw error;
+    }
   }
 }
 
-// Error handler
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
-
 // Vercel serverless function handler
 export default async function handler(req: Request, res: Response) {
-  await setupApp();
-  // Handle the request through Express
-  app(req, res);
+  try {
+    // If setup failed previously, return error immediately
+    if (setupError) {
+      console.error("App setup failed previously:", setupError);
+      if (!res.headersSent) {
+        return res.status(500).json({ 
+          message: "Server initialization failed", 
+          error: process.env.NODE_ENV === 'development' ? setupError.message : undefined 
+        });
+      }
+      return;
+    }
+
+    await setupApp();
+    
+    // Handle the request through Express
+    app(req, res);
+  } catch (error) {
+    console.error("Handler error:", error);
+    if (!res.headersSent) {
+      const err = error as Error;
+      return res.status(500).json({ 
+        message: err.message || "Internal Server Error",
+        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+      });
+    }
+  }
 }
 
