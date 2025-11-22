@@ -11,11 +11,6 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ],
-  "functions": {
-    "api/index.ts": {
-      "runtime": "nodejs20.x"
-    }
-  }
+  ]
 }
 
