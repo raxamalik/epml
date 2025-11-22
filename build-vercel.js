@@ -6,7 +6,7 @@ import { existsSync } from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Plugin to resolve TypeScript path aliases
+// Plugin to resolve TypeScript path aliases and ensure local files are bundled
 const aliasPlugin = {
   name: 'alias',
   setup(build) {
@@ -30,8 +30,34 @@ const aliasPlugin = {
         path: path.resolve(__dirname, 'client', 'src', relativePath),
       };
     });
-    // Let esbuild handle relative imports (../server/*) naturally
-    // It should bundle them automatically with bundle: true
+    
+    // CRITICAL: Handle ../server/* imports and ensure they're bundled
+    build.onResolve({ filter: /^\.\.\/server/ }, (args) => {
+      const importPath = args.path;
+      const relativePath = importPath.replace('../server/', '');
+      let resolvedPath = path.resolve(__dirname, 'server', relativePath);
+      
+      // Add .ts extension if no extension present
+      if (!resolvedPath.match(/\.(ts|tsx|js|jsx)$/)) {
+        const withTsExt = resolvedPath + '.ts';
+        if (existsSync(withTsExt)) {
+          resolvedPath = withTsExt;
+        } else {
+          const withJsExt = resolvedPath + '.js';
+          if (existsSync(withJsExt)) {
+            resolvedPath = withJsExt;
+          }
+        }
+      }
+      
+      console.log(`Resolving server import: ${importPath} -> ${resolvedPath}`);
+      
+      // Return the resolved path - esbuild will bundle it because external is not set
+      return {
+        path: resolvedPath,
+        namespace: 'file'
+      };
+    });
   },
 };
 
@@ -51,17 +77,22 @@ try {
   await esbuild.build({
     entryPoints: [entryPoint],
     platform: 'node',
-    bundle: true, // This should bundle all local imports
+    bundle: true, // Bundle all imports
     format: 'esm',
     outfile: 'api/index.js',
-    // Only externalize node_modules packages
+    // Only externalize node_modules packages, NOT local files
     packages: 'external',
     plugins: [aliasPlugin],
     logLevel: 'info',
     // Resolve .ts extensions for TypeScript files
     resolveExtensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
-    // Don't mark any local files as external
+    // Explicitly don't mark local files as external
     external: [],
+    // Loader for TypeScript files
+    loader: {
+      '.ts': 'ts',
+      '.tsx': 'tsx',
+    },
     banner: {
       js: '// Bundled for Vercel serverless function'
     }
