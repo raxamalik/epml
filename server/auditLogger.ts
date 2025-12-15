@@ -176,6 +176,32 @@ export class AuditLogger {
     }, req);
   }
 
+  static async logCompanySuspension(user: any, companyId: number, company: any, suspendedStores: number, suspendedUsers: number, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "company_suspend",
+      entityType: "company",
+      entityId: companyId.toString(),
+      description: `Company "${company.name}" suspended. Cascaded to ${suspendedStores} stores and ${suspendedUsers} users`,
+      oldValues: { ...company, password: "[REDACTED]" },
+      newValues: { isActive: false, licenseStatus: "suspended" },
+      metadata: { suspendedStores, suspendedUsers },
+      severity: "warning",
+    }, req);
+  }
+
+  static async logCompanyUnsuspension(user: any, companyId: number, company: any, reactivatedStores: number, reactivatedUsers: number, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "company_unsuspend",
+      entityType: "company",
+      entityId: companyId.toString(),
+      description: `Company "${company.name}" unsuspended. Cascaded to ${reactivatedStores} stores and ${reactivatedUsers} users`,
+      oldValues: { ...company, password: "[REDACTED]" },
+      newValues: { isActive: true, licenseStatus: "active" },
+      metadata: { reactivatedStores, reactivatedUsers },
+      severity: "info",
+    }, req);
+  }
+
   static async logSettingsUpdate(user: any, settingsType: string, oldSettings: any, newSettings: any, req: Request): Promise<void> {
     await this.log(user, {
       action: "settings_update",

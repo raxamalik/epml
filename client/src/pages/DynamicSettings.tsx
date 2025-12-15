@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   User,
   Building,
@@ -31,11 +31,16 @@ import {
   Smartphone,
   Key,
   Copy,
-  Download
+  Download,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // Settings form schema
 const settingsSchema = z.object({
@@ -88,6 +93,7 @@ export default function DynamicSettings() {
   // 2FA States
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [is2FASetupModalOpen, setIs2FASetupModalOpen] = useState(false);
+  const [is2FADisableModalOpen, setIs2FADisableModalOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [manualEntryKey, setManualEntryKey] = useState<string | null>(null);
   const [twoFactorSecret, setTwoFactorSecret] = useState<string | null>(null);
@@ -95,6 +101,8 @@ export default function DynamicSettings() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isLoading2FA, setIsLoading2FA] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [showDisablePassword, setShowDisablePassword] = useState(false);
 
   // Get current user info
   const { data: user } = useQuery({
@@ -102,8 +110,12 @@ export default function DynamicSettings() {
     retry: false,
   });
 
-  // Check 2FA status from localStorage
+  // Check 2FA status from user data and localStorage
   useEffect(() => {
+    if (user && (user as any).twoFactorEnabled !== undefined) {
+      setIs2FAEnabled((user as any).twoFactorEnabled || false);
+    } else {
+      // Fallback to localStorage
     const stored2FA = localStorage.getItem('user2FA');
     if (stored2FA) {
       try {
@@ -114,7 +126,8 @@ export default function DynamicSettings() {
         console.warn('Failed to parse 2FA settings:', error);
       }
     }
-  }, []);
+    }
+  }, [user]);
 
   // 2FA Setup Functions
   const setup2FA = async () => {
@@ -127,10 +140,10 @@ export default function DynamicSettings() {
       setManualEntryKey(data.manualEntryKey);
       setTwoFactorSecret(data.secret);
       setIs2FASetupModalOpen(true);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to setup 2FA. Please try again.",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -142,7 +155,7 @@ export default function DynamicSettings() {
     if (!twoFactorSecret || !verificationCode) {
       toast({
         title: "Error",
-        description: "Please enter the verification code.",
+        description: "Secret and token are required",
         variant: "destructive",
       });
       return;
@@ -168,15 +181,18 @@ export default function DynamicSettings() {
         setBackupCodes(data.backupCodes);
         setIsSetupComplete(true);
         
+        // Refresh user data
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
           title: "Success",
-          description: "Two-Factor Authentication has been enabled successfully!",
+          description: data.message || "2FA setup successful",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Invalid verification code. Please try again.",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -184,32 +200,58 @@ export default function DynamicSettings() {
     }
   };
 
-  const disable2FA = async () => {
+  const handleDisable2FA = async () => {
+    if (!disablePassword) {
+      toast({
+        title: "Error",
+        description: "Password is required to disable 2FA",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading2FA(true);
     try {
+      const response = await apiRequest("POST", "/api/2fa/disable", {
+        password: disablePassword,
+      });
+      const data = await response.json();
+
+      if (data.success) {
       // Remove from localStorage
       localStorage.removeItem('user2FA');
       
       setIs2FAEnabled(false);
       setTwoFactorSecret(null);
+        setIs2FADisableModalOpen(false);
       setIs2FASetupModalOpen(false);
       setIsSetupComplete(false);
       setBackupCodes([]);
       setVerificationCode("");
+        setDisablePassword("");
+        
+        // Refresh user data
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
       toast({
         title: "Success",
-        description: "Two-Factor Authentication has been disabled.",
+          description: data.message || "2FA disabled successfully",
       });
-    } catch (error) {
+      }
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to disable 2FA. Please try again.",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
     } finally {
       setIsLoading2FA(false);
     }
+  };
+
+  const closeDisableModal = () => {
+    setIs2FADisableModalOpen(false);
+    setDisablePassword("");
   };
 
   const closeSetupModal = () => {
@@ -222,19 +264,20 @@ export default function DynamicSettings() {
     setBackupCodes([]);
   };
 
-  // Get settings (temporarily use localStorage until backend is ready)
+  // Get settings from backend
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/settings"],
     queryFn: async () => {
-      // For now, return default settings from localStorage or defaults
-      const stored = localStorage.getItem('userSettings');
-      let parsedSettings = null;
-      if (stored) {
-        parsedSettings = JSON.parse(stored);
-        // Force loginAuditTrail to always be true for security compliance
-        parsedSettings.loginAuditTrail = true;
+      try {
+        const response = await apiRequest("GET", "/api/settings");
+        const data = await response.json();
+        
+        // Ensure loginAuditTrail is always true for security compliance
+        if (data) {
+          data.loginAuditTrail = true;
       }
-      return parsedSettings || {
+        
+        return data || {
         timezone: "Europe/Prague",
         language: "en",
         currency: "EUR",
@@ -250,6 +293,26 @@ export default function DynamicSettings() {
         loginAuditTrail: true,
         dataRetention: 365,
       };
+      } catch (error: any) {
+        console.error("Error fetching settings:", error);
+        // Return defaults on error
+        return {
+          timezone: "Europe/Prague",
+          language: "en",
+          currency: "EUR",
+          emailNotifications: true,
+          smsAlerts: false,
+          weeklyReports: true,
+          storeAlerts: true,
+          sessionTimeout: 30,
+          requireUppercase: true,
+          requireNumbers: true,
+          requireSymbols: false,
+          twoFactorEnabled: false,
+          loginAuditTrail: true,
+          dataRetention: 365,
+        };
+      }
     },
     retry: false,
   });
@@ -275,27 +338,42 @@ export default function DynamicSettings() {
     },
   });
 
-  // Update form when settings are loaded
+  // Update form when settings are loaded, merging with user data for profile fields
   useEffect(() => {
-    if (settings) {
-      form.reset(settings);
+    if (settings || user) {
+      const userData = user as any;
+      const mergedData = {
+        ...settings,
+        // Prefill profile fields from user object if not in settings
+        firstName: settings?.firstName || userData?.firstName || "",
+        lastName: settings?.lastName || userData?.lastName || "",
+        phone: settings?.phone || userData?.phone || "",
+        profileImageUrl: settings?.profileImageUrl || userData?.profileImageUrl || "",
+      };
+      form.reset(mergedData);
     }
-  }, [settings, form]);
+  }, [settings, user, form]);
 
-  // Determine user type from the user data
+  // Determine user type from the user data and set profile image preview
   useEffect(() => {
     if (user) {
+      const userData = user as any;
       setUserInfo({
-        id: user.id,
-        email: user.email,
-        role: user.role || 'manager',
-        type: user.type || 'user',
-        companyId: user.companyId,
+        id: userData.id,
+        email: userData.email,
+        role: userData.role || 'manager',
+        type: userData.type || 'user',
+        companyId: userData.companyId,
       });
+      
+      // Set profile image preview if user has profileImageUrl
+      if (userData.profileImageUrl && !profileImagePreview) {
+        setProfileImagePreview(userData.profileImageUrl);
+      }
     }
   }, [user]);
 
-  // Settings mutation (temporarily use localStorage)
+  // Settings mutation - save to backend
   const settingsMutation = useMutation({
     mutationFn: async (data: SettingsFormData) => {
       // Force loginAuditTrail to always be true for security compliance
@@ -303,9 +381,11 @@ export default function DynamicSettings() {
         ...data,
         loginAuditTrail: true,
       };
-      // Store in localStorage for now
-      localStorage.setItem('userSettings', JSON.stringify(safeData));
-      return safeData;
+      
+      // Save to backend
+      const response = await apiRequest("PUT", "/api/settings", safeData);
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       toast({
@@ -313,11 +393,14 @@ export default function DynamicSettings() {
         description: "Your settings have been successfully updated.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Invalidate user query to refresh profile image in header
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = error.message || "An error occurred";
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update settings. Please try again.",
+        title: "Error",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -355,27 +438,43 @@ export default function DynamicSettings() {
     setIsUploadingImage(true);
 
     try {
-      // Create a preview URL
+      // Create a preview URL for immediate display
       const previewUrl = URL.createObjectURL(file);
       setProfileImagePreview(previewUrl);
 
-      // Convert to base64 for storage
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64String = e.target?.result as string;
-        form.setValue('profileImageUrl', base64String);
+      // Upload file to backend
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetchWithAuth('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.message || errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      const imageUrl = data.imageUrl;
+
+      // Set the image URL in the form (this will be saved when user clicks Save Settings)
+      form.setValue('profileImageUrl', imageUrl);
+      
         toast({
           title: "Image Uploaded",
-          description: "Profile image has been updated. Remember to save your settings.",
+        description: "Profile image has been uploaded. Remember to save your settings.",
         });
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
         title: "Upload Failed",
-        description: "Failed to upload image. Please try again.",
+        description: error.message || "An error occurred",
         variant: "destructive",
       });
+      // Reset preview on error
+      setProfileImagePreview(null);
     } finally {
       setIsUploadingImage(false);
     }
@@ -422,7 +521,7 @@ export default function DynamicSettings() {
     tabs.push({ id: 'security', label: 'Security', icon: Shield });
     
     // System settings only for admins and company admins
-    if (userInfo.role === 'super_admin' || userInfo.role === 'company_admin') {
+    if (userInfo.role === 'super_admin' || userInfo.role === 'portal_admin' || userInfo.role === 'company_admin') {
       tabs.push({ id: 'system', label: 'System', icon: Database });
     }
     
@@ -874,10 +973,17 @@ export default function DynamicSettings() {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={disable2FA}
+                                onClick={() => setIs2FADisableModalOpen(true)}
                                 disabled={isLoading2FA}
                               >
-                                {isLoading2FA ? "Disabling..." : "Disable"}
+                                {isLoading2FA ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Disabling...
+                                  </>
+                                ) : (
+                                  "Disable"
+                                )}
                               </Button>
                             </div>
                           ) : (
@@ -979,7 +1085,7 @@ export default function DynamicSettings() {
             </TabsContent>
 
             {/* System Settings Tab (Admin Only) */}
-            {(userInfo.role === 'super_admin' || userInfo.role === 'company_admin') && (
+            {(userInfo.role === 'super_admin' || userInfo.role === 'portal_admin' || userInfo.role === 'company_admin') && (
               <TabsContent value="system" className="space-y-6">
                 <Card>
                   <CardHeader>
@@ -1063,7 +1169,7 @@ export default function DynamicSettings() {
 
       {/* 2FA Setup Modal */}
       <Dialog open={is2FASetupModalOpen} onOpenChange={setIs2FASetupModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center gap-3 text-lg">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -1080,6 +1186,18 @@ export default function DynamicSettings() {
             <div className="space-y-6">
               {qrCodeUrl && (
                 <div className="space-y-4">
+                  <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-400">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-900 mb-1">Important: Delete Existing Entry</p>
+                        <p className="text-amber-700 text-sm">
+                          Delete any existing email entry from Google Authenticator before scanning the new QR code.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -1265,6 +1383,71 @@ export default function DynamicSettings() {
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 2FA Disable Modal */}
+      <Dialog open={is2FADisableModalOpen} onOpenChange={setIs2FADisableModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Disable Two-Factor Authentication
+            </DialogTitle>
+            <DialogDescription className="text-base text-slate-600 mt-2">
+              For security reasons, please enter your password to disable 2FA
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>Warning:</strong> Disabling 2FA will reduce the security of your account. 
+                You'll need to set it up again if you want to re-enable it.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="disable-password">Enter Your Password</Label>
+              <div className="relative">
+                <Input
+                  id="disable-password"
+                  type={showDisablePassword ? "text" : "password"}
+                  placeholder="Enter your password"
+                  value={disablePassword}
+                  onChange={(e) => setDisablePassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDisablePassword(!showDisablePassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showDisablePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDisableModal}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDisable2FA}
+              disabled={!disablePassword || isLoading2FA}
+            >
+              {isLoading2FA ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Disabling...
+                </>
+              ) : (
+                "Disable 2FA"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

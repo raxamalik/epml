@@ -1,104 +1,19 @@
-import { useState } from "react";
-import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { UserPlus, Store, BarChart3, Settings } from "lucide-react";
+import { UserPlus, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 
 export function QuickActions() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const [storeDialogOpen, setStoreDialogOpen] = useState(false);
-  const [storeName, setStoreName] = useState("");
-  const [storeAddress, setStoreAddress] = useState("");
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-
-  // Fetch companies for super_admin to select from
-  const { data: companies } = useQuery({
-    queryKey: ["/api/companies"],
-    enabled: user?.role === "super_admin" && storeDialogOpen,
-  });
-
-  const createStoreMutation = useMutation({
-    mutationFn: async (data: { name: string; address: string; companyId?: number }) => {
-      await apiRequest("POST", "/api/stores", data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
-      setStoreDialogOpen(false);
-      setStoreName("");
-      setStoreAddress("");
-      setSelectedCompanyId("");
-      toast({
-        title: "Store created successfully",
-        description: "Your new store has been created.",
-      });
-    },
-    onError: () => {
-      toast({
-        title: "Error creating store",
-        description: "There was an error creating the store. Please try again.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleCreateStore = () => {
-    if (!storeName.trim()) {
-      toast({
-        title: "Store name required",
-        description: "Please enter a store name.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // For super_admin, require company selection
-    if (user?.role === "super_admin" && !selectedCompanyId) {
-      toast({
-        title: "Company required",
-        description: "Please select a company for this store.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const storeData: { name: string; address: string; companyId?: number } = {
-      name: storeName,
-      address: storeAddress,
-    };
-    
-    // Include companyId for super_admin
-    if (user?.role === "super_admin" && selectedCompanyId) {
-      storeData.companyId = parseInt(selectedCompanyId);
-    }
-    
-    createStoreMutation.mutate(storeData);
-  };
 
   const actions = [
     {
       title: "Add New User",
       icon: UserPlus,
-      onClick: () => setLocation("/users"),
+      onClick: () => setLocation("/portal-admins"),
       roles: ["super_admin"],
-    },
-    {
-      title: "Create Store",
-      icon: Store,
-      onClick: () => setStoreDialogOpen(true),
-      roles: ["super_admin", "store_owner"],
     },
     {
       title: "View Analytics",
@@ -110,7 +25,7 @@ export function QuickActions() {
       title: "System Settings",
       icon: Settings,
       onClick: () => setLocation("/settings"),
-      roles: ["super_admin", "store_owner", "manager"],
+      roles: ["super_admin", "portal_admin", "store_owner", "manager"],
     },
   ];
 
@@ -146,62 +61,6 @@ export function QuickActions() {
           })}
         </CardContent>
       </Card>
-
-      <Dialog open={storeDialogOpen} onOpenChange={setStoreDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Store</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            {user?.role === "super_admin" && (
-              <div>
-                <Label htmlFor="companySelect">Company *</Label>
-                <Select value={selectedCompanyId} onValueChange={setSelectedCompanyId}>
-                  <SelectTrigger id="companySelect">
-                    <SelectValue placeholder="Select a company" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {companies?.map((company: any) => (
-                      <SelectItem key={company.id} value={company.id.toString()}>
-                        {company.companyName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            <div>
-              <Label htmlFor="storeName">Store Name *</Label>
-              <Input
-                id="storeName"
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                placeholder="Enter store name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="storeAddress">Address (Optional)</Label>
-              <Input
-                id="storeAddress"
-                value={storeAddress}
-                onChange={(e) => setStoreAddress(e.target.value)}
-                placeholder="Enter store address"
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setStoreDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleCreateStore}
-                disabled={createStoreMutation.isPending}
-              >
-                {createStoreMutation.isPending ? "Creating..." : "Create Store"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

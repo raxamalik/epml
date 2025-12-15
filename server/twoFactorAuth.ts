@@ -11,7 +11,7 @@ export class TwoFactorAuthService {
   /**
    * Generate a new 2FA secret and QR code for user setup
    */
-  static async generateSecret(userEmail: string, serviceName = 'Enterprise Platform Management'): Promise<TwoFactorSetup> {
+  static async generateSecret(userEmail: string, serviceName = 'ePML.cz'): Promise<TwoFactorSetup> {
     const secret = speakeasy.generateSecret({
       name: `${serviceName} (${userEmail})`,
       issuer: serviceName,

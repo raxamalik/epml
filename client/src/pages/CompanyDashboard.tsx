@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +41,7 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface Store {
   id: number;
@@ -61,7 +64,7 @@ const storeFormSchema = z.object({
   revenue: z.number().min(0, "Revenue must be non-negative"),
   customerCount: z.number().min(0, "Customer count must be non-negative"),
   productCount: z.number().min(0, "Product count must be non-negative"),
-  isActive: z.boolean()
+  isActive: z.boolean(),
 });
 
 const managerFormSchema = z.object({
@@ -79,13 +82,13 @@ type StoreFormData = z.infer<typeof storeFormSchema>;
 type ManagerFormData = z.infer<typeof managerFormSchema>;
 
 export default function CompanyDashboard() {
+  const [, setLocation] = useLocation();
   const [stores, setStores] = useState<Store[]>([]);
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isStoreDialogOpen, setIsStoreDialogOpen] = useState(false);
   const [analytics, setAnalytics] = useState({
     totalStores: 0,
     activeStores: 0,
@@ -95,6 +98,7 @@ export default function CompanyDashboard() {
     monthlyGrowth: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('stores');
   
   // Manager Management State
   const [managers, setManagers] = useState<any[]>([]);
@@ -102,6 +106,8 @@ export default function CompanyDashboard() {
   const [isManagerDialogOpen, setIsManagerDialogOpen] = useState(false);
   const [isManagerEditMode, setIsManagerEditMode] = useState(false);
   const [managerSearchTerm, setManagerSearchTerm] = useState("");
+  const [isDeleteManagerDialogOpen, setIsDeleteManagerDialogOpen] = useState(false);
+  const [managerToDelete, setManagerToDelete] = useState<any | null>(null);
   
   // Company limits
   const [companyData, setCompanyData] = useState<any>(null);
@@ -133,7 +139,7 @@ export default function CompanyDashboard() {
       revenue: 0,
       customerCount: 0,
       productCount: 0,
-      isActive: true
+      isActive: true,
     }
   });
 
@@ -171,29 +177,29 @@ export default function CompanyDashboard() {
 
   const fetchCompanyData = async () => {
     try {
-      // Fetch stores data
-      const storesResponse = await fetch('/api/company/stores');
+      // Fetch all stores
+      const storesResponse = await fetchWithAuth('/api/company/stores');
       if (storesResponse.ok) {
         const storesData = await storesResponse.json();
         setStores(storesData);
       }
 
       // Fetch analytics data
-      const analyticsResponse = await fetch('/api/company/analytics');
+      const analyticsResponse = await fetchWithAuth('/api/company/analytics');
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
         setAnalytics(analyticsData);
       }
 
       // Fetch managers data
-      const managersResponse = await fetch('/api/managers');
+      const managersResponse = await fetchWithAuth('/api/managers');
       if (managersResponse.ok) {
         const managersData = await managersResponse.json();
-        setManagers(managersData);
+        setManagers(managersData?.managers);
       }
 
       // Fetch company data to get max branches limit
-      const companyResponse = await fetch('/api/company/profile');
+      const companyResponse = await fetchWithAuth('/api/company/profile');
       if (companyResponse.ok) {
         const companyData = await companyResponse.json();
         setCompanyData(companyData);
@@ -206,56 +212,6 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleCreateStore = async (data: StoreFormData) => {
-    if (stores.length >= maxBranches) {
-      toast({
-        title: "Limit Reached",
-        description: `You have reached the maximum number of stores (${maxBranches}) allowed for your plan.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/stores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...data,
-          isActive: true,
-          revenue: 0,
-          customerCount: 0,
-          productCount: 0
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Store created successfully",
-        });
-        setIsStoreDialogOpen(false);
-        form.reset();
-        // Refresh the data to show the new store
-        fetchCompanyData();
-      } else {
-        // Parse the error response to get the actual error message
-        const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to create store';
-        throw new Error(errorMessage);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create store",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleViewStore = (store: Store) => {
     setSelectedStore(store);
@@ -280,13 +236,8 @@ export default function CompanyDashboard() {
     if (!selectedStore) return;
 
     try {
-      const response = await fetch(`/api/stores/${selectedStore.id}`, {
+      const response = await fetchWithAuth(`/api/stores/${selectedStore.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
         body: JSON.stringify({
           ...data,
           customerCount: data.customerCount,
@@ -303,13 +254,13 @@ export default function CompanyDashboard() {
         fetchCompanyData(); // Refresh the data
       } else {
         const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to update store';
+        const errorMessage = errorData.message || errorData.error || 'An error occurred';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update store",
+        description: error.message || 'An error occurred',
         variant: "destructive",
       });
     }
@@ -318,13 +269,8 @@ export default function CompanyDashboard() {
   // Manager Handler Functions
   const handleCreateManager = async (data: ManagerFormData) => {
     try {
-      const response = await fetch('/api/managers', {
+      const response = await fetchWithAuth('/api/managers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -339,13 +285,13 @@ export default function CompanyDashboard() {
         fetchCompanyData();
       } else {
         const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to create manager';
+        const errorMessage = errorData.message || errorData.error || 'An error occurred';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create manager",
+        description: error.message || 'An error occurred',
         variant: "destructive",
       });
     }
@@ -355,11 +301,8 @@ export default function CompanyDashboard() {
     if (!selectedManager) return;
 
     try {
-      const response = await fetch(`/api/managers/${selectedManager.id}`, {
+      const response = await fetchWithAuth(`/api/managers/${selectedManager.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
 
@@ -384,22 +327,27 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleDeleteManager = async (manager: any) => {
-    if (!confirm(`Are you sure you want to delete ${manager.firstName} ${manager.lastName}?`)) {
-      return;
-    }
+  const handleDeleteManager = (manager: any) => {
+    setManagerToDelete(manager);
+    setIsDeleteManagerDialogOpen(true);
+  };
+
+  const confirmDeleteManager = async () => {
+    if (!managerToDelete) return;
 
     try {
-      const response = await fetch(`/api/managers/${manager.id}`, {
+      const response = await fetchWithAuth(`/api/managers/${managerToDelete.id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setManagers(managers.filter(m => m.id !== manager.id));
+        setManagers(managers.filter(m => m.id !== managerToDelete.id));
         toast({
           title: "Success",
           description: "Manager deleted successfully",
         });
+        setIsDeleteManagerDialogOpen(false);
+        setManagerToDelete(null);
       }
     } catch (error) {
       toast({
@@ -467,7 +415,10 @@ export default function CompanyDashboard() {
               {/* Action Button */}
               {stores.length < maxBranches ? (
                 <Button 
-                  onClick={() => setIsStoreDialogOpen(true)} 
+                  onClick={() => {
+                    setActiveTab('stores');
+                    setLocation('/stores');
+                  }} 
                   className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg backdrop-blur-sm border border-white/30 transition-all duration-200 hover:scale-105"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -627,9 +578,9 @@ export default function CompanyDashboard() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="stores" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="stores">My Stores</TabsTrigger>
+          <TabsTrigger value="stores">Stores</TabsTrigger>
           <TabsTrigger value="managers">Managers</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -1107,97 +1058,6 @@ export default function CompanyDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Store Dialog */}
-      <Dialog open={isStoreDialogOpen} onOpenChange={setIsStoreDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Store</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateStore)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Store Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter store name" {...field} data-testid="input-store-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} data-testid="input-store-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter store address" {...field} data-testid="input-store-address" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="managerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assign Manager (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-manager">
-                          <SelectValue placeholder="Select a manager" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">No manager assigned</SelectItem>
-                        {managers.map((manager) => (
-                          <SelectItem key={manager.id} value={manager.id.toString()}>
-                            {manager.firstName} {manager.lastName} - {manager.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsStoreDialogOpen(false)} data-testid="button-cancel-store">
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="button-create-store">
-                  Create Store
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
       {/* View Store Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl">
@@ -1565,6 +1425,32 @@ export default function CompanyDashboard() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Manager Dialog */}
+      <AlertDialog open={isDeleteManagerDialogOpen} onOpenChange={setIsDeleteManagerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Manager</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{managerToDelete?.firstName} {managerToDelete?.lastName}</strong>? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteManagerDialogOpen(false);
+              setManagerToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteManager}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

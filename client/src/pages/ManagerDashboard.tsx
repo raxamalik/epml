@@ -39,6 +39,7 @@ interface Product {
   id: number;
   name: string;
   price: number;
+  vatRate?: string | number;
   category: string;
   stock: number;
   barcode?: string;
@@ -186,19 +187,6 @@ export default function ManagerDashboard() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
   const [customProductDialog, setCustomProductDialog] = useState(false);
   
-  // Product Management State
-  const [productSearchTerm, setProductSearchTerm] = useState("");
-  const [productDialog, setProductDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    price: 0,
-    category: "",
-    stock: 0,
-    barcode: "",
-    description: "",
-    vatRate: 21.00
-  });
 
   // Get manager's assigned store
   const storeId = user?.storeId;
@@ -223,42 +211,47 @@ export default function ManagerDashboard() {
     queryFn: async () => {
       if (!storeId) return [];
       const res = await apiRequest('GET', `/api/stores/${storeId}/products`);
-      return await res.json();
+      const data = await res.json();
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return data.data || [];
     },
     enabled: !!storeId,
     refetchInterval: 60000, // Refetch every 60 seconds for inventory updates
     refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
-  // Fetch sales for the store
-  const { data: sales = [], isLoading: salesLoading } = useQuery({
-    queryKey: ['/api/stores', storeId, 'sales'],
+  // Normalize products to always be an array
+  const productsList: Product[] = Array.isArray(products) ? products : (products?.data || []);
+
+  // Fetch sales for the store (fetch all for analytics)
+  const { data: salesResponse, isLoading: salesLoading } = useQuery({
+    queryKey: ['/api/stores', storeId, 'sales', 'all'],
     queryFn: async () => {
-      if (!storeId) return [];
-      const res = await apiRequest('GET', `/api/stores/${storeId}/sales`);
-      return await res.json();
+      if (!storeId) return { data: [] };
+      const res = await apiRequest('GET', `/api/stores/${storeId}/sales?limit=10000`);
+      const data = await res.json();
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return { data };
+      }
+      return {
+        data: data.data || [],
+        total: data.total || 0,
+      };
     },
     enabled: !!storeId,
     refetchInterval: 30000, // Refetch every 30 seconds for real-time updates
     refetchOnWindowFocus: true, // Refetch when window gets focus
   });
 
-  // Create product mutation
-  const createProductMutation = useMutation({
-    mutationFn: async (productData: any) => {
-      const res = await apiRequest('POST', `/api/stores/${storeId}/products`, productData);
-      return await res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/stores', storeId, 'products'] });
-      toast({ title: "Product created successfully!" });
-      setProductDialog(false);
-      setNewProduct({ name: "", price: 0, category: "", stock: 0, barcode: "", description: "", vatRate: 21.00 });
-    },
-    onError: (error: any) => {
-      toast({ title: "Error creating product", description: error.message, variant: "destructive" });
-    }
-  });
+  // Normalize sales to always be an array
+  const sales: Sale[] = Array.isArray(salesResponse) 
+    ? salesResponse 
+    : (salesResponse?.data || []);
+
 
   // Create sale mutation
   const createSaleMutation = useMutation({
@@ -310,7 +303,7 @@ export default function ManagerDashboard() {
       return;
     }
     
-    const product = products.find((p: Product) => p.id === productId);
+    const product = products?.data?.find((p: Product) => p.id === productId);
     if (product && newQuantity > product.stock) {
       toast({ title: "Insufficient stock", variant: "destructive" });
       return;
@@ -375,25 +368,10 @@ export default function ManagerDashboard() {
     createSaleMutation.mutate(saleData);
   };
 
-  const handleCreateProduct = () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.category) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
-      return;
-    }
-    createProductMutation.mutate(newProduct);
-  };
-
-  // Filter products for POS
-  const filteredProducts = products.filter((product: Product) =>
+  const filteredProducts = productsList.filter((product: Product) =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (product.barcode && product.barcode.includes(searchTerm))
-  );
-
-  // Filter products for management
-  const filteredProductsManagement = products.filter((product: Product) =>
-    product.name.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(productSearchTerm.toLowerCase())
+    (product.barcode || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Ensure data is properly loaded before rendering analytics
@@ -463,7 +441,7 @@ export default function ManagerDashboard() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{Array.isArray(products) ? products.length : 0}</div>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{productsList.length}</div>
               <p className="text-sm text-blue-700 dark:text-blue-300">Items in catalog</p>
             </CardContent>
           </Card>
@@ -477,7 +455,7 @@ export default function ManagerDashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">
-                {Array.isArray(products) ? products.filter((p: Product) => p.stock <= 10 && p.stock > 0).length : 0}
+                {productsList.filter((p: Product) => p.stock <= 10 && p.stock > 0).length}
               </div>
               <p className="text-sm text-amber-700 dark:text-amber-300">Need restocking</p>
             </CardContent>
@@ -524,7 +502,7 @@ export default function ManagerDashboard() {
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
-          <TabsList className="grid w-full grid-cols-5 h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl p-1 gap-1 mb-8">
+          <TabsList className="grid w-full grid-cols-4 h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl p-1 gap-1 mb-8">
             <TabsTrigger 
               value="analytics" 
               className="tabs-trigger-analytics w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
@@ -538,13 +516,6 @@ export default function ManagerDashboard() {
             >
               <Calculator className="h-4 w-4" />
               POS
-            </TabsTrigger>
-            <TabsTrigger 
-              value="products" 
-              className="tabs-trigger-products w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-            >
-              <Package className="h-4 w-4" />
-              Products
             </TabsTrigger>
             <TabsTrigger 
               value="inventory" 
@@ -783,20 +754,13 @@ export default function ManagerDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
-              <div className="grid gap-4 md:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-3">
                 <Button 
                   onClick={() => switchToTab('pos')}
                   className="h-20 flex flex-col gap-2 bg-gradient-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white border-0 shadow-lg transform hover:scale-105 transition-all duration-200"
                 >
                   <ShoppingCart className="h-6 w-6" />
                   <span className="font-medium">New Sale</span>
-                </Button>
-                <Button 
-                  onClick={() => switchToTab('products')}
-                  className="h-20 flex flex-col gap-2 bg-gradient-to-br from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white border-0 shadow-lg transform hover:scale-105 transition-all duration-200"
-                >
-                  <Package className="h-6 w-6" />
-                  <span className="font-medium">Manage Products</span>
                 </Button>
                 <Button 
                   onClick={() => switchToTab('inventory')}
@@ -993,191 +957,6 @@ export default function ManagerDashboard() {
           </Card>
         </TabsContent>
 
-        {/* Products Tab */}
-        <TabsContent value="products" className="w-full">
-          <Card className="w-full border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-950 dark:to-pink-900 rounded-t-lg">
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-purple-900 dark:text-purple-100">
-                    <Package className="h-5 w-5" />
-                    Product Management
-                  </CardTitle>
-                  <CardDescription className="text-purple-700 dark:text-purple-300">Manage your store's product catalog</CardDescription>
-                </div>
-                <Dialog open={productDialog} onOpenChange={setProductDialog}>
-                  <DialogTrigger asChild>
-                    <Button className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white border-none shadow-lg">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Product
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Product</DialogTitle>
-                      <DialogDescription>
-                        Add a new product to your store inventory
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label htmlFor="name">Product Name *</Label>
-                        <Input
-                          id="name"
-                          value={newProduct.name}
-                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                          placeholder="Enter product name"
-                        />
-                      </div>
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <Label htmlFor="price">Price *</Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            step="0.01"
-                            value={newProduct.price}
-                            onChange={(e) => setNewProduct({ ...newProduct, price: parseFloat(e.target.value) || 0 })}
-                            placeholder="0.00"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="stock">Stock Quantity *</Label>
-                          <Input
-                            id="stock"
-                            type="number"
-                            value={newProduct.stock}
-                            onChange={(e) => setNewProduct({ ...newProduct, stock: parseInt(e.target.value) || 0 })}
-                            placeholder="0"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="vatRate">VAT Rate (%) *</Label>
-                          <Input
-                            id="vatRate"
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            max="100"
-                            value={newProduct.vatRate}
-                            onChange={(e) => setNewProduct({ ...newProduct, vatRate: parseFloat(e.target.value) || 0 })}
-                            placeholder="Enter VAT rate (e.g., 21 for 21%)"
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Enter percentage (e.g., 6 for 6%, 21 for 21%)
-                          </p>
-                        </div>
-                      </div>
-                      <div>
-                        <Label htmlFor="category">Category *</Label>
-                        <Input
-                          id="category"
-                          value={newProduct.category}
-                          onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                          placeholder="e.g., Beverages, Food, Electronics"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="barcode">Barcode</Label>
-                        <Input
-                          id="barcode"
-                          value={newProduct.barcode}
-                          onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-                          placeholder="Product barcode"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="description">Description</Label>
-                        <Input
-                          id="description"
-                          value={newProduct.description}
-                          onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                          placeholder="Product description"
-                        />
-                      </div>
-                      <Button 
-                        onClick={handleCreateProduct} 
-                        className="w-full"
-                        disabled={createProductMutation.isPending}
-                      >
-                        {createProductMutation.isPending ? 'Creating...' : 'Create Product'}
-                      </Button>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search products..."
-                    value={productSearchTerm}
-                    onChange={(e) => setProductSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price (Inc. VAT)</TableHead>
-                      <TableHead>VAT Rate</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProductsManagement.map((product: Product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{product.name}</div>
-                            {product.barcode && (
-                              <div className="text-sm text-muted-foreground">{product.barcode}</div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{product.category}</TableCell>
-                        <TableCell>${(parseFloat(product.price.toString()) || 0).toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {((parseFloat(product.vatRate) || 0) * 100).toFixed(0)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={product.stock > 10 ? "default" : product.stock > 0 ? "secondary" : "destructive"}>
-                            {product.stock}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={product.stock > 0 ? "default" : "destructive"}>
-                            {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         {/* Inventory Tab */}
         <TabsContent value="inventory" className="w-full">
           <Card className="w-full border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg">
@@ -1195,7 +974,7 @@ export default function ManagerDashboard() {
                     <CardContent className="pt-6">
                       <div className="text-center">
                         <div className="text-3xl font-bold text-green-700 dark:text-green-300">
-                          {products.filter((p: Product) => p.stock > 10).length}
+                          {productsList.filter((p: Product) => p.stock > 10).length}
                         </div>
                         <p className="text-sm text-green-600 dark:text-green-400 font-medium">Well Stocked</p>
                       </div>
@@ -1205,7 +984,7 @@ export default function ManagerDashboard() {
                     <CardContent className="pt-6">
                       <div className="text-center">
                         <div className="text-3xl font-bold text-amber-700 dark:text-amber-300">
-                          {products.filter((p: Product) => p.stock > 0 && p.stock <= 10).length}
+                          {productsList.filter((p: Product) => p.stock > 0 && p.stock <= 10).length}
                         </div>
                         <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">Low Stock</p>
                       </div>
@@ -1215,7 +994,7 @@ export default function ManagerDashboard() {
                     <CardContent className="pt-6">
                       <div className="text-center">
                         <div className="text-3xl font-bold text-red-700 dark:text-red-300">
-                          {products.filter((p: Product) => p.stock === 0).length}
+                          {productsList.filter((p: Product) => p.stock === 0).length}
                         </div>
                         <p className="text-sm text-red-600 dark:text-red-400 font-medium">Out of Stock</p>
                       </div>

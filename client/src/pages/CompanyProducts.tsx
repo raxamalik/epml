@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -76,21 +77,21 @@ export default function CompanyProducts() {
     setIsLoading(true);
     try {
       // Fetch company stores
-      const storesResponse = await fetch('/api/company/stores');
+      const storesResponse = await fetchWithAuth('/api/company/stores');
       if (storesResponse.ok) {
         const storesData = await storesResponse.json();
         setStores(storesData);
       }
 
       // Fetch categories
-      const categoriesResponse = await fetch('/api/categories');
+      const categoriesResponse = await fetchWithAuth('/api/categories');
       if (categoriesResponse.ok) {
         const categoriesData = await categoriesResponse.json();
         setCategories(categoriesData);
       }
 
       // Fetch all products with store data
-      const productsResponse = await fetch('/api/company/products-overview');
+      const productsResponse = await fetchWithAuth('/api/company/products-overview');
       if (productsResponse.ok) {
         const productsData = await productsResponse.json();
         setProducts(productsData);

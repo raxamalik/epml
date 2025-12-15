@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,10 +61,10 @@ interface Sale {
 
 export default function POS() {
   const { user } = useAuth();
+  const { storeSlug } = useParams<{ storeSlug?: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
@@ -79,6 +80,8 @@ export default function POS() {
   });
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
+  const [quantityInputs, setQuantityInputs] = useState<{ [productId: number]: string }>({});
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Determine the storeId to use
   // For managers: use their assigned storeId
@@ -86,24 +89,163 @@ export default function POS() {
   const isCompanyAdmin = user?.role === 'company_admin' || user?.role === 'store_owner';
   const storeId = isCompanyAdmin ? selectedStoreId : user?.storeId;
 
+  // Fetch user settings to get timezone
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/settings");
+      return response.json();
+    },
+  });
+
+  const timezone = settings?.timezone || 'Europe/Prague';
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Local state for manual items (temporary items not in database)
+  const [manualCartItems, setManualCartItems] = useState<CartItem[]>([]);
+
+  // Fetch cart from backend
+  const { data: cartData = [], isLoading: cartLoading } = useQuery({
+    queryKey: ['/api/cart', storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+      const response = await apiRequest('GET', `/api/cart?storeId=${storeId}`);
+      return response.json();
+    },
+    enabled: !!storeId,
+  });
+
+  // Convert backend cart format to frontend format and merge with manual items
+  const backendCart: CartItem[] = cartData.map((item: any) => ({
+    product: item.product,
+    quantity: item.quantity,
+  }));
+
+  // Combined cart: backend items + manual items
+  const cart: CartItem[] = [...backendCart, ...manualCartItems];
+
   // Fetch stores for company admins
-  const { data: stores = [] } = useQuery({
+  const { data: storesResponse, isLoading: storesLoading } = useQuery({
     queryKey: ['/api/stores'],
-    queryFn: () => apiRequest('GET', '/api/stores').then(res => res.json()),
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/stores?limit=1000'); // Get all stores (high limit for company admins)
+      const data = await res.json();
+      // Extract the data array from the paginated response
+      return data.data || [];
+    },
     enabled: isCompanyAdmin,
   });
 
+  // Extract stores array from response
+  const stores = storesResponse || [];
+
+  // Auto-select store from URL slug if provided
+  useEffect(() => {
+    if (storeSlug && stores.length > 0 && isCompanyAdmin && !selectedStoreId) {
+      // Find store by slug (convert store name to slug format)
+      const matchingStore = stores.find((store: any) => 
+        store.name.toLowerCase().replace(/\s+/g, '-') === storeSlug.toLowerCase()
+      );
+      if (matchingStore) {
+        setSelectedStoreId(matchingStore.id);
+      }
+    }
+  }, [storeSlug, stores, isCompanyAdmin, selectedStoreId]);
+
   // Fetch products for the store
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const { data: productsResponse, isLoading: productsLoading } = useQuery({
     queryKey: [`/api/stores/${storeId}/products`],
-    queryFn: () => apiRequest('GET', `/api/stores/${storeId}/products`).then(res => res.json()),
+    queryFn: async () => {
+      if (!storeId) return { data: [], total: 0 };
+      const res = await apiRequest('GET', `/api/stores/${storeId}/products`);
+      const data = await res.json();
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return { data, total: data.length };
+      }
+      return { data: data.data || [], total: data.total || 0 };
+    },
     enabled: !!storeId,
   });
+
+  // Extract products array from response
+  const products: Product[] = productsResponse?.data || [];
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: () => apiRequest('GET', '/api/categories').then(res => res.json()),
+  });
+
+  // Add to cart mutation
+  const addToCartMutation = useMutation({
+    mutationFn: async ({ productId, quantity }: { productId: number; quantity: number }) => {
+      const response = await apiRequest('POST', '/api/cart', {
+        productId,
+        quantity,
+        storeId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+      toast({ title: "Item added to cart" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error adding to cart", 
+        description: error.message || "Failed to add item to cart",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update quantity mutation
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ cartId, quantity }: { cartId: number; quantity: number }) => {
+      const response = await apiRequest('PUT', `/api/cart/${cartId}`, {
+        quantity,
+        storeId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error updating cart", 
+        description: error.message || "Failed to update cart item",
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Remove from cart mutation
+  const removeFromCartMutation = useMutation({
+    mutationFn: async (cartId: number) => {
+      const response = await apiRequest('DELETE', `/api/cart/${cartId}?storeId=${storeId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+      toast({ title: "Item removed from cart" });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error removing from cart", 
+        description: error.message || "Failed to remove item from cart",
+        variant: "destructive" 
+      });
+    },
   });
 
   // Process sale mutation
@@ -112,8 +254,18 @@ export default function POS() {
       const response = await apiRequest('POST', `/api/stores/${storeId}/sales`, saleData);
       return response.json();
     },
-    onSuccess: () => {
-      setCart([]);
+    onSuccess: async () => {
+      // Clear cart from backend after successful sale
+      if (storeId) {
+        try {
+          await apiRequest('DELETE', `/api/cart?storeId=${storeId}`);
+        } catch (error) {
+          console.error("Error clearing cart:", error);
+        }
+      }
+      // Clear manual items
+      setManualCartItems([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
       setIsCheckoutOpen(false);
       setCashReceived("");
       setCustomerInfo({ name: "", phone: "", email: "" });
@@ -142,26 +294,23 @@ export default function POS() {
       toast({ title: "Product out of stock", variant: "destructive" });
       return;
     }
-
-    setCart(prev => {
-      const existingItem = prev.find(item => item.product.id === product.id);
-      if (existingItem) {
-        if (existingItem.quantity >= product.stock) {
-          toast({ title: "Cannot add more items than available stock", variant: "destructive" });
-          return prev;
-        }
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
+    addToCartMutation.mutate({ productId: product.id, quantity: 1 });
   };
 
   const removeFromCart = (productId: number) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+    // Check if it's a manual item (temporary ID)
+    const isManualItem = productId > 1000000000000; // Manual items use Date.now() as ID
+    
+    if (isManualItem) {
+      // Remove from local manual items
+      setManualCartItems(prev => prev.filter(item => item.product.id !== productId));
+    } else {
+      // Remove from backend cart
+      const cartItem = cartData.find((item: any) => item.product.id === productId);
+      if (cartItem) {
+        removeFromCartMutation.mutate(cartItem.id);
+      }
+    }
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -170,19 +319,31 @@ export default function POS() {
       return;
     }
 
-    const product = products.find((p: Product) => p.id === productId);
-    if (product && quantity > product.stock) {
-      toast({ title: "Cannot exceed available stock", variant: "destructive" });
-      return;
-    }
+    // Check if it's a manual item
+    const isManualItem = productId > 1000000000000;
+    
+    if (isManualItem) {
+      // Update local manual item
+      setManualCartItems(prev =>
+        prev.map(item =>
+          item.product.id === productId
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    } else {
+      // Update backend cart item
+      const product = products.find((p: Product) => p.id === productId);
+      if (product && quantity > product.stock) {
+        toast({ title: "Cannot exceed available stock", variant: "destructive" });
+        return;
+      }
 
-    setCart(prev =>
-      prev.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity }
-          : item
-      )
-    );
+      const cartItem = cartData.find((item: any) => item.product.id === productId);
+      if (cartItem) {
+        updateQuantityMutation.mutate({ cartId: cartItem.id, quantity });
+      }
+    }
   };
 
   const addManualItem = () => {
@@ -201,7 +362,18 @@ export default function POS() {
       storeId: storeId || 0,
     };
 
-    addToCart(manualProduct);
+    // Add manual item to local state (not backend)
+    setManualCartItems(prev => {
+      const existingItem = prev.find(item => item.product.id === manualProduct.id);
+      if (existingItem) {
+        return prev.map(item =>
+          item.product.id === manualProduct.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product: manualProduct, quantity: 1 }];
+    });
     setManualItem({ name: "", price: "", vatRate: "21" });
     setShowManualItem(false);
   };
@@ -253,7 +425,53 @@ export default function POS() {
     return received - total;
   };
 
+  // Validate cart for stock limits
+  const validateCartStock = (): { isValid: boolean; errorMessage?: string } => {
+    for (const item of cart) {
+      // Skip validation for manual items (they don't have real stock)
+      const isManualItem = item.product.id > 1000000000000;
+      if (isManualItem) {
+        continue;
+      }
+
+      // Check if quantity exceeds available stock
+      const product = products.find((p: Product) => p.id === item.product.id);
+      if (product && item.quantity > product.stock) {
+        return {
+          isValid: false,
+          errorMessage: `"${item.product.name}" quantity (${item.quantity}) exceeds available stock (${product.stock})`
+        };
+      }
+    }
+    return { isValid: true };
+  };
+
+  const handleCheckoutClick = () => {
+    const validation = validateCartStock();
+    if (!validation.isValid) {
+      toast({
+        title: "Stock limit exceeded",
+        description: validation.errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
+
   const processSale = () => {
+    // Validate stock limits before processing
+    const validation = validateCartStock();
+    if (!validation.isValid) {
+      toast({
+        title: "Stock limit exceeded",
+        description: validation.errorMessage,
+        variant: "destructive"
+      });
+      setIsCheckoutOpen(false);
+      return;
+    }
+
     const total = getTotalAmount();
     
     if (paymentMethod === 'cash') {
@@ -300,6 +518,17 @@ export default function POS() {
   };
 
   if (!storeId) {
+    if (isCompanyAdmin && storesLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
+            <h3 className="text-lg font-semibold">Loading stores...</h3>
+          </div>
+        </div>
+      );
+    }
+    
     if (isCompanyAdmin && stores.length > 0) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -359,7 +588,13 @@ export default function POS() {
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Clock className="h-3 w-3 mr-1" />
-                {new Date().toLocaleTimeString()}
+                {currentTime.toLocaleTimeString('en-US', { 
+                  timeZone: timezone,
+                  hour12: false,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
               </Badge>
             </div>
           </div>
@@ -581,7 +816,65 @@ export default function POS() {
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={quantityInputs[item.product.id] !== undefined 
+                              ? quantityInputs[item.product.id] 
+                              : item.quantity.toString()}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Update local state for immediate UI feedback
+                              setQuantityInputs(prev => ({
+                                ...prev,
+                                [item.product.id]: value
+                              }));
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              const numValue = parseInt(value, 10);
+                              
+                              // Clear the local input state
+                              setQuantityInputs(prev => {
+                                const newState = { ...prev };
+                                delete newState[item.product.id];
+                                return newState;
+                              });
+                              
+                              // Validate and update quantity
+                              if (value === '' || isNaN(numValue) || numValue <= 0) {
+                                // Reset to current quantity if invalid
+                                return;
+                              }
+                              
+                              // Check stock limit for backend cart items (not manual items)
+                              const isManualItem = item.product.id > 1000000000000;
+                              if (!isManualItem) {
+                                const product = products.find((p: Product) => p.id === item.product.id);
+                                if (product && numValue > product.stock) {
+                                  toast({ 
+                                    title: "Cannot exceed available stock", 
+                                    description: `Only ${product.stock} units available`,
+                                    variant: "destructive" 
+                                  });
+                                  return;
+                                }
+                              }
+                              
+                              // Update quantity if it's different
+                              if (numValue !== item.quantity) {
+                                updateQuantity(item.product.id, numValue);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              // Update on Enter key as well
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            className="w-16 h-8 text-center font-medium p-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            style={{ MozAppearance: 'textfield' }}
+                          />
                           <Button
                             variant="outline"
                             size="sm"
@@ -634,7 +927,7 @@ export default function POS() {
                     </div>
                   </div>
                   <Button
-                    onClick={() => setIsCheckoutOpen(true)}
+                    onClick={handleCheckoutClick}
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3"
                     size="lg"
                   >

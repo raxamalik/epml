@@ -14,22 +14,46 @@ import {
   Package,
   ClipboardList,
   History,
-  FileText
+  FileText,
+  Tag,
+  FlaskConical,
+  RotateCcw,
+  ArrowUpDown,
+  Shield
 } from "lucide-react";
 
 const adminNavigation = [
-  { name: "Dashboard", href: "/", icon: Home, roles: ["super_admin", "store_owner", "manager"] },
-  { name: "Company Management", href: "/companies", icon: Building2, roles: ["super_admin"] },
-  { name: "User Management", href: "/users", icon: Users, roles: ["super_admin"] },
-  { name: "Store Management", href: "/stores", icon: Store, roles: ["store_owner"] },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "company_admin", "store_owner"] },
+  { name: "Dashboard", href: "/", icon: Home, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+  { name: "Company Management", href: "/companies", icon: Building2, roles: ["super_admin", "portal_admin"] },
+  { name: "User Management", href: "/users", icon: Users, roles: ["super_admin", "portal_admin"] },
+  { name: "Portal Admins", href: "/portal-admins", icon: Shield, roles: ["super_admin"] },
+  { name: "Active Substances", href: "/active-substances", icon: FlaskConical, roles: ["super_admin", "portal_admin"] },
+  { name: "Store Management", href: "/stores", icon: Store, roles: ["company_admin"] },
+  { name: "Audit Logs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "portal_admin", "company_admin", "store_owner"] },
   { name: "Analytics", href: "/analytics", icon: BarChart3, roles: ["store_owner", "manager"] },
-  { name: "Settings", href: "/settings", icon: Settings, roles: ["super_admin", "store_owner", "manager"] },
+  { name: "Settings", href: "/settings", icon: Settings, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+];
+
+const storeOwnerNavigation = [
+  { name: "Dashboard", href: "/", icon: Home },
+  { name: "My Store", href: "/store-owner/store", icon: Store },
+  { name: "Categories", href: "/categories", icon: Tag },
+  { name: "Products", href: "/products", icon: Package },
+  { name: "Managers", href: "/store-owner/managers", icon: Users },
+  // { name: "Inventory", href: "/inventory", icon: ClipboardList },
+  { name: "Sales History", href: "/sales-history", icon: History },
+  { name: "Returns History", href: "/returns-history", icon: RotateCcw },
+  { name: "Stock Transactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { name: "Audit Logs", href: "/audit-logs", icon: FileText },
+  { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 const companyNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "My Stores", href: "/stores", icon: Store },
+  { name: "Categories", href: "/categories", icon: Tag },
+  { name: "Products", href: "/products", icon: Package },
   { name: "Managers", href: "/managers", icon: Users },
   { name: "Audit Logs", href: "/audit-logs", icon: FileText },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -39,9 +63,10 @@ const companyNavigation = [
 const managerNavigation = [
   { name: "Dashboard", href: "/", icon: Home },
   { name: "POS", href: "/manager/pos", icon: ShoppingCart },
-  { name: "Products", href: "/manager/products", icon: Package },
-  { name: "Inventory", href: "/manager/inventory", icon: ClipboardList },
-  { name: "Sales History", href: "/manager/sales-history", icon: History },
+  { name: "Inventory", href: "/inventory", icon: ClipboardList },
+  { name: "Sales History", href: "/sales-history", icon: History },
+  { name: "Returns History", href: "/returns-history", icon: RotateCcw },
+  { name: "Stock Transactions", href: "/stock-transactions", icon: ArrowUpDown },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -56,6 +81,8 @@ export function Sidebar() {
       return companyNavigation;
     } else if (user?.role === 'manager') {
       return managerNavigation;
+    } else if (user?.role === 'store_owner') {
+      return storeOwnerNavigation;
     } else {
       return adminNavigation.filter(item => 
         user?.role && item.roles.includes(user.role)

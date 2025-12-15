@@ -3,7 +3,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function UserRoles() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<{
+    superAdmins?: number;
+    portalAdmins?: number;
+    companyAdmins?: number;
+    storeOwners?: number;
+    managers?: number;
+    totalUsers?: number;
+    activeStores?: number;
+    totalStores?: number;
+  }>({
     queryKey: ["/api/analytics"],
   });
 
@@ -15,7 +24,7 @@ export function UserRoles() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-6 w-full" />
             ))}
           </div>
@@ -26,28 +35,34 @@ export function UserRoles() {
 
   const roles = [
     {
-      name: "Super Admins",
+      name: "Super Admin",
       count: analytics?.superAdmins || 0,
       gradient: "bg-gradient-to-r from-purple-500 to-indigo-600",
       bgGradient: "bg-gradient-to-r from-purple-50 to-indigo-50",
     },
     {
-      name: "Store Owners",
+      name: "Portal Admin",
+      count: analytics?.portalAdmins || 0,
+      gradient: "bg-gradient-to-r from-violet-500 to-purple-600",
+      bgGradient: "bg-gradient-to-r from-violet-50 to-purple-50",
+    },
+    {
+      name: "Company Admin",
+      count: analytics?.companyAdmins || 0,
+      gradient: "bg-gradient-to-r from-emerald-500 to-teal-600",
+      bgGradient: "bg-gradient-to-r from-emerald-50 to-teal-50",
+    },
+    {
+      name: "Store Owner",
       count: analytics?.storeOwners || 0,
       gradient: "bg-gradient-to-r from-blue-500 to-cyan-600",
       bgGradient: "bg-gradient-to-r from-blue-50 to-cyan-50",
     },
     {
-      name: "Managers",
+      name: "Manager",
       count: analytics?.managers || 0,
       gradient: "bg-gradient-to-r from-amber-500 to-orange-600",
       bgGradient: "bg-gradient-to-r from-amber-50 to-orange-50",
-    },
-    {
-      name: "Regular Users",
-      count: (analytics?.totalUsers || 0) - (analytics?.superAdmins || 0) - (analytics?.storeOwners || 0) - (analytics?.managers || 0),
-      gradient: "bg-gradient-to-r from-slate-500 to-gray-600",
-      bgGradient: "bg-gradient-to-r from-slate-50 to-gray-50",
     },
   ];
 

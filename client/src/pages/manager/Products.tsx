@@ -1,8 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { usePagination } from "@/hooks/common/usePagination";
+import { useFilters } from "@/hooks/common/useFilters";
+import { Pagination } from "@/components/common";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   Table,
   TableBody,
@@ -64,6 +70,7 @@ import {
   Palette,
   Layers
 } from "lucide-react";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 interface Product {
   id: number;
@@ -76,7 +83,27 @@ interface Product {
   barcode?: string;
   description?: string;
   imageUrl?: string;
-  storeId: number;
+  storeId: number | null;
+  storeName?: string | null;
+  // Regulatory compliance fields
+  substanceName?: string;
+  form?: string;
+  subtype?: string;
+  packageSize?: string;
+  receivedDate?: string;
+  batchNumber?: string;
+  quantityUnit?: string;
+  // Psychomodulatory substance compliance fields
+  recommendedDoseSingle?: string;
+  recommendedDoseDaily?: string;
+  dosageInfo?: string;
+  warningUnder18?: string;
+  warningHealth?: string;
+  minAge?: number;
+  adultOnly?: boolean;
+  consumerInfo?: string;
+  activeSubstancesComposition?: any;
+  isActive?: boolean;
 }
 
 interface ProductCategory {
@@ -84,20 +111,35 @@ interface ProductCategory {
   name: string;
   description?: string;
   companyId?: number;
+  storeId?: number | null; // null = company-wide, set = store-specific
   userId?: string;
 }
 
 function Products() {
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [stockFilter, setStockFilter] = useState<'all' | 'low' | 'out'>('all');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
+  const [isDeleteProductDialogOpen, setIsDeleteProductDialogOpen] = useState<boolean | null>(null);
+  const [productToDelete, setProductToDelete] = useState<boolean | null>(null);
+
+  // Use custom hooks for pagination and filters
+  const { currentPage, pageSize, setPage, setPageSize, offset } = usePagination({
+    initialPage: 1,
+    initialPageSize: 10,
+  });
+
+  const { search, debouncedSearch, setSearch } = useFilters({
+    debounceMs: 500,
+  });
   
   const [formData, setFormData] = useState({
     name: "",
@@ -108,7 +150,25 @@ function Products() {
     stock: "",
     barcode: "",
     description: "",
-    imageUrl: ""
+    imageUrl: "",
+    // Regulatory compliance fields
+    substanceName: "",
+    form: "",
+    subtype: "",
+    packageSize: "",
+    receivedDate: "",
+    batchNumber: "",
+    quantityUnit: "",
+    // Psychomodulatory substance compliance fields
+    recommendedDoseSingle: "",
+    recommendedDoseDaily: "",
+    dosageInfo: "",
+    warningUnder18: "",
+    warningHealth: "",
+    minAge: "",
+    adultOnly: false,
+    consumerInfo: "",
+    activeSubstancesComposition: ""
   });
   
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
@@ -122,23 +182,126 @@ function Products() {
   });
 
   // Determine the storeId to use
-  // For managers: use their assigned storeId
+  // For managers and store owners: use their assigned storeId (only their own store)
   // For company admins: allow them to select from their company's stores
-  const isCompanyAdmin = user?.role === 'company_admin' || user?.role === 'store_owner';
+  const isCompanyAdmin = user?.role === 'company_admin';
   const storeId = isCompanyAdmin ? selectedStoreId : user?.storeId;
 
-  // Fetch stores for company admins
-  const { data: stores = [] } = useQuery({
+  // Fetch stores for company admins only (store owners manage only their own store)
+  const { data: storesResponse } = useQuery({
     queryKey: ['/api/stores'],
-    queryFn: () => apiRequest('GET', '/api/stores').then(res => res.json()),
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/stores');
+      const data = await res.json();
+      // Handle both paginated response and array response
+      if (Array.isArray(data)) {
+        return data;
+      }
+      return data.data || [];
+    },
     enabled: isCompanyAdmin,
   });
+  
+  const stores = Array.isArray(storesResponse) ? storesResponse : [];
 
-  // Fetch products
-  const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: [`/api/stores/${storeId}/products`],
-    enabled: !!storeId,
+  // Fetch products with pagination
+  // For company admins: fetch all products across all stores
+  // For store owners/managers: fetch products for their store
+  const { data: productsResponse, isLoading } = useQuery({
+    queryKey: isCompanyAdmin 
+      ? [`/api/company/products`, currentPage, pageSize, debouncedSearch, selectedCategory]
+      : [`/api/stores/${storeId}/products`, currentPage, pageSize, debouncedSearch, selectedCategory],
+    queryFn: async () => {
+      // For company admins, use company-wide endpoint
+      if (isCompanyAdmin) {
+        const params = new URLSearchParams({
+          limit: pageSize.toString(),
+          offset: offset.toString(),
+        });
+        
+        if (debouncedSearch) {
+          params.append("search", debouncedSearch);
+        }
+        
+        // Get categoryId if a specific category is selected
+        if (selectedCategory !== "all") {
+          const selectedCat = categories.find(cat => cat.name === selectedCategory);
+          if (selectedCat?.id) {
+            params.append("categoryId", selectedCat.id.toString());
+          }
+        }
+        
+        const response = await apiRequest('GET', `/api/company/products?${params}`);
+        const data = await response.json();
+        
+        // Handle both paginated response and array response (for backward compatibility)
+        if (Array.isArray(data)) {
+          return {
+            data,
+            total: data.length,
+            page: currentPage,
+            limit: pageSize,
+            totalPages: Math.ceil(data.length / pageSize),
+          };
+        }
+        
+        return {
+          data: data.data || [],
+          total: data.total || 0,
+          page: data.page || currentPage,
+          limit: data.limit || pageSize,
+          totalPages: data.totalPages || Math.ceil((data.total || 0) / pageSize),
+        };
+      }
+      
+      // For store owners/managers, use store-specific endpoint
+      if (!storeId && !isCompanyAdmin) return { data: [], total: 0, page: 1, limit: pageSize, totalPages: 0 };
+      
+      const params = new URLSearchParams({
+        limit: pageSize.toString(),
+        offset: offset.toString(),
+      });
+      
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+      
+      // Get categoryId if a specific category is selected
+      if (selectedCategory !== "all") {
+        const selectedCat = categories.find(cat => cat.name === selectedCategory);
+        if (selectedCat?.id) {
+          params.append("categoryId", selectedCat.id.toString());
+        }
+      }
+      
+      const response = await apiRequest('GET', `/api/stores/${storeId}/products?${params}`);
+      const data = await response.json();
+      
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return {
+          data,
+          total: data.length,
+          page: currentPage,
+          limit: pageSize,
+          totalPages: Math.ceil(data.length / pageSize),
+        };
+      }
+      
+      return {
+        data: data.data || [],
+        total: data.total || 0,
+        page: data.page || currentPage,
+        limit: data.limit || pageSize,
+        totalPages: data.totalPages || Math.ceil((data.total || 0) / pageSize),
+      };
+    },
+    enabled: isCompanyAdmin || !!storeId, // Enable for company admins or when storeId exists
   });
+
+  const products: Product[] = productsResponse?.data || [];
+  const total = productsResponse?.total || 0;
+  const totalPages = productsResponse?.totalPages || 0;
 
   // Fetch categories
   const { data: categories = [] } = useQuery<ProductCategory[]>({
@@ -146,32 +309,21 @@ function Products() {
     enabled: !!user,
   });
 
-  // Category management states
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [categoryFormData, setCategoryFormData] = useState({
-    name: "",
-    description: "",
-  });
 
-  // Calculate analytics
-  const totalProducts = products.length;
+  // Calculate analytics (using all products from paginated response)
+  // Note: These are calculated from the current page, not all products
+  // For accurate analytics, we might need a separate analytics endpoint
   const lowStockProducts = products.filter(p => p.stock <= 10 && p.stock > 0).length;
   const outOfStockProducts = products.filter(p => p.stock === 0).length;
   const totalValue = products.reduce((sum, product) => sum + (parseFloat(product.price) * product.stock), 0);
 
-  // Filter products
+  // Filter products client-side for stock filter (category filter is now server-side)
   const filteredProducts = products.filter((product: Product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.barcode?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.category.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
-    
     const matchesStock = stockFilter === 'all' || 
                         (stockFilter === 'low' && product.stock <= 10 && product.stock > 0) ||
                         (stockFilter === 'out' && product.stock === 0);
     
-    return matchesSearch && matchesCategory && matchesStock;
+    return matchesStock;
   });
 
   // Mutations
@@ -187,7 +339,25 @@ function Products() {
       setIsCreateDialogOpen(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error creating product", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
+    }
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, productData }: { id: number; productData: any }) => {
+      const response = await apiRequest('PUT', `/api/stores/${storeId}/products/${id}`, productData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
+      toast({ title: "Product updated successfully!" });
+      resetForm();
+      setIsCreateDialogOpen(false);
+      setIsEditMode(false);
+      setEditingProduct(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
     }
   });
 
@@ -201,25 +371,10 @@ function Products() {
       toast({ title: "Product deleted successfully!" });
     },
     onError: (error: any) => {
-      toast({ title: "Error deleting product", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
     }
   });
 
-  const createCategoryMutation = useMutation({
-    mutationFn: async (categoryData: any) => {
-      const response = await apiRequest('POST', '/api/categories', categoryData);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      toast({ title: "Category created successfully!" });
-      setCategoryFormData({ name: "", description: "" });
-      setIsCategoryDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast({ title: "Error creating category", description: error.message, variant: "destructive" });
-    }
-  });
 
   const resetForm = () => {
     setFormData({
@@ -231,10 +386,34 @@ function Products() {
       stock: "",
       barcode: "",
       description: "",
-      imageUrl: ""
+      imageUrl: "",
+      // Regulatory compliance fields
+      substanceName: "",
+      form: "",
+      subtype: "",
+      packageSize: "",
+      receivedDate: "",
+      batchNumber: "",
+      quantityUnit: "",
+      // Psychomodulatory substance compliance fields
+      recommendedDoseSingle: "",
+      recommendedDoseDaily: "",
+      dosageInfo: "",
+      warningUnder18: "",
+      warningHealth: "",
+      minAge: "",
+      adultOnly: false,
+      consumerInfo: "",
+      activeSubstancesComposition: ""
     });
     setUploadedImageUrl("");
     setSelectedImageFromGallery("");
+    setIsEditMode(false);
+    setEditingProduct(null);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setLocation(`/products/edit/${product.id}`);
   };
 
   const handleCreateProduct = () => {
@@ -245,53 +424,99 @@ function Products() {
 
     const imageUrl = uploadedImageUrl || selectedImageFromGallery;
     
-    createProductMutation.mutate({
-      ...formData,
+    // Prepare product data with all fields
+    const productData: any = {
+      name: formData.name,
       categoryId: parseInt(formData.categoryId),
       price: parseFloat(formData.price),
       vatRate: parseFloat(formData.vatRate),
       stock: parseInt(formData.stock) || 0,
-      storeId: storeId,
-      imageUrl: imageUrl
-    });
+      barcode: formData.barcode || undefined,
+      description: formData.description || undefined,
+      imageUrl: imageUrl || undefined,
+      // Regulatory compliance fields
+      substanceName: formData.substanceName || undefined,
+      form: formData.form || undefined,
+      subtype: formData.subtype || undefined,
+      packageSize: formData.packageSize || undefined,
+      receivedDate: formData.receivedDate ? new Date(formData.receivedDate).toISOString() : undefined,
+      batchNumber: formData.batchNumber || undefined,
+      quantityUnit: formData.quantityUnit || undefined,
+      // Psychomodulatory substance compliance fields
+      recommendedDoseSingle: formData.recommendedDoseSingle || undefined,
+      recommendedDoseDaily: formData.recommendedDoseDaily || undefined,
+      dosageInfo: formData.dosageInfo || undefined,
+      warningUnder18: formData.warningUnder18 || undefined,
+      warningHealth: formData.warningHealth || undefined,
+      minAge: formData.minAge ? parseInt(formData.minAge) : undefined,
+      adultOnly: formData.adultOnly,
+      consumerInfo: formData.consumerInfo || undefined,
+      activeSubstancesComposition: formData.activeSubstancesComposition ? 
+        (typeof formData.activeSubstancesComposition === 'string' ? 
+          JSON.parse(formData.activeSubstancesComposition) : 
+          formData.activeSubstancesComposition) : undefined
+    };
+    
+    if (isEditMode && editingProduct) {
+      // Update existing product
+      updateProductMutation.mutate({
+        id: editingProduct.id,
+        productData: productData
+      });
+    } else {
+      // Create new product
+      createProductMutation.mutate({
+        ...productData,
+        storeId: storeId
+      });
+    }
   };
 
 
   const handleDeleteProduct = (id: number) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      deleteProductMutation.mutate(id);
+    setProductToDelete(id);
+    setIsDeleteProductDialogOpen(true);
+  };
+
+  const confirmDeleteProduct = () => {
+    if (productToDelete !== null) {
+      deleteProductMutation.mutate(productToDelete);
+      setIsDeleteProductDialogOpen(false);
+      setProductToDelete(null);
     }
   };
 
-  const handleCreateCategory = () => {
-    if (!categoryFormData.name) {
-      toast({ title: "Please enter a category name", variant: "destructive" });
-      return;
-    }
-    createCategoryMutation.mutate(categoryFormData);
-  };
 
   const handleImageUpload = async (file: File) => {
     const formData = new FormData();
     formData.append('image', file);
 
     try {
-      const response = await fetch('/api/upload-image', {
+      const response = await fetchWithAuth('/api/upload-image', {
         method: 'POST',
         body: formData,
       });
       
       if (!response.ok) {
-        throw new Error('Upload failed');
+        // Try to extract error message from response
+        const errorData = await response.json().catch(() => ({ 
+          error: 'Upload failed', 
+          message: 'Failed to upload image. Please try again.' 
+        }));
+        throw new Error(errorData.message || errorData.error || 'Upload failed');
       }
       
       const data = await response.json();
-      setUploadedImageUrl(data.imageUrl);
+      setUploadedImageUrl(data.imageUrl || data.url);
       setSelectedImageFromGallery('');
       toast({ title: "Image uploaded successfully!" });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      toast({ title: "Failed to upload image", variant: "destructive" });
+      toast({ 
+        title: "Failed to upload image", 
+        description: error.message || "An error occurred while uploading the image. Please try again.",
+        variant: "destructive" 
+      });
     }
   };
 
@@ -311,40 +536,9 @@ function Products() {
     return product.imageUrl || "/api/placeholder/150/150";
   };
 
-  if (!storeId) {
-    if (isCompanyAdmin && stores.length > 0) {
-      return (
-        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
-          <Card className="w-full max-w-md shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-center">Select Store for Products</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="text-center text-sm text-muted-foreground mb-4">
-                Choose which store you want to manage products for
-              </div>
-              <div className="space-y-2">
-                {stores.map((store: any) => (
-                  <Button
-                    key={store.id}
-                    data-testid={`button-select-store-${store.id}`}
-                    onClick={() => setSelectedStoreId(store.id)}
-                    variant="outline"
-                    className="w-full h-auto py-4 px-6 justify-start hover:bg-purple-50 hover:border-purple-500"
-                  >
-                    <div className="flex flex-col items-start w-full">
-                      <div className="font-semibold text-base">{store.name}</div>
-                      <div className="text-sm text-muted-foreground">{store.address}</div>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      );
-    }
-    
+  // For store owners/managers, require storeId
+  // Company admins can see all products without store selection
+  if (!isCompanyAdmin && !storeId) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -373,15 +567,7 @@ function Products() {
             </div>
             <div className="flex items-center space-x-3">
               <Button
-                onClick={() => setIsCategoryDialogOpen(true)}
-                variant="outline"
-                className="hidden sm:flex"
-              >
-                <Tag className="h-4 w-4 mr-2" />
-                Manage Categories
-              </Button>
-              <Button
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={() => setLocation('/products/create')}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -403,7 +589,7 @@ function Products() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalProducts}</div>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{total}</div>
               <p className="text-sm text-blue-700 dark:text-blue-300">Items in catalog</p>
             </CardContent>
           </Card>
@@ -456,14 +642,20 @@ function Products() {
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Search products, categories, or barcodes..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1); // Reset to first page on search
+                  }}
                   className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
                 />
               </div>
               
               <div className="flex gap-3">
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <Select value={selectedCategory} onValueChange={(value) => {
+                  setSelectedCategory(value);
+                  setPage(1); // Reset to first page on category change
+                }}>
                   <SelectTrigger className="w-48 bg-slate-50 dark:bg-slate-800">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Category" />
@@ -525,7 +717,7 @@ function Products() {
               <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No products found</h3>
               <p className="text-slate-500 mb-6">Get started by adding your first product to the catalog.</p>
               <Button
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={() => setLocation('/products/create')}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -540,7 +732,11 @@ function Products() {
               const StatusIcon = stockStatus.icon;
               
               return (
-                <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+                <Card 
+                  key={product.id} 
+                  className="group hover:shadow-xl transition-all duration-300 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden cursor-pointer"
+                  onClick={() => setLocation(`/products/${product.id}`)}
+                >
                   <div className="relative">
                     <div className="aspect-square bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700">
                       <img
@@ -566,6 +762,18 @@ function Products() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => setLocation(`/products/${product.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={() => handleEditProduct(product)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteProduct(product.id)}
                             className="text-red-600 dark:text-red-400"
@@ -619,10 +827,32 @@ function Products() {
         ) : (
           <Card className="shadow-lg border-slate-200 dark:border-slate-800">
             <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-              <CardTitle className="flex items-center gap-2">
-                <Layers className="h-5 w-5" />
-                Product Catalog ({filteredProducts.length})
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Layers className="h-5 w-5" />
+                  Product Catalog ({total})
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                  <Select
+                    value={pageSize.toString()}
+                    onValueChange={(value) => {
+                      setPageSize(parseInt(value));
+                      setPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="w-20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
@@ -631,6 +861,7 @@ function Products() {
                     <TableHead className="w-16">Image</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
+                    <TableHead>Store</TableHead>
                     <TableHead>Price</TableHead>
                     <TableHead>Stock</TableHead>
                     <TableHead>Status</TableHead>
@@ -673,6 +904,11 @@ function Products() {
                           <Badge variant="outline">{product.category}</Badge>
                         </TableCell>
                         <TableCell>
+                          <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            {product.storeName || "All Stores"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <div className="font-bold text-purple-600 dark:text-purple-400">
                             ${parseFloat(product.price).toFixed(2)}
                           </div>
@@ -702,6 +938,18 @@ function Products() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
+                                onClick={() => setLocation(`/products/${product.id}`)}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleEditProduct(product)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
                                 onClick={() => handleDeleteProduct(product.id)}
                                 className="text-red-600 dark:text-red-400"
                               >
@@ -714,10 +962,37 @@ function Products() {
                       </TableRow>
                     );
                   })}
-                </TableBody>
-              </Table>
+                  </TableBody>
+                </Table>
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="p-4 border-t border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/50">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      pageSize={pageSize}
+                      onPageSizeChange={setPageSize}
+                    />
+                  </div>
+                )}
             </CardContent>
           </Card>
+        )}
+        
+        {/* Pagination for Grid View */}
+        {viewMode === 'grid' && totalPages > 1 && (
+          <div className="mt-6 flex justify-center">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-4 shadow-lg">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                pageSize={pageSize}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          </div>
         )}
       </div>
 
@@ -732,7 +1007,10 @@ function Products() {
               Add New Product
             </DialogTitle>
             <DialogDescription>
-              Create a new product for your store catalog
+              {isCompanyAdmin 
+                ? "Create a new product that will be available across all stores in your company"
+                : "Create a new product for your store catalog"
+              }
             </DialogDescription>
           </DialogHeader>
           
@@ -901,6 +1179,235 @@ function Products() {
                 />
               </div>
             </div>
+
+            <Separator />
+
+            {/* Regulatory Compliance Fields */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Regulatory Compliance</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="substanceName">Substance Name</Label>
+                  <Input
+                    id="substanceName"
+                    placeholder="Name of the substance (according to government regulation)"
+                    value={formData.substanceName}
+                    onChange={(e) => setFormData({ ...formData, substanceName: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+          </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="form">Product Form</Label>
+                  <Select value={formData.form} onValueChange={(value) => setFormData({ ...formData, form: value })}>
+                    <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
+                      <SelectValue placeholder="Select form" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="liquid">Liquid</SelectItem>
+                      <SelectItem value="tablet">Tablet</SelectItem>
+                      <SelectItem value="powder">Powder</SelectItem>
+                      <SelectItem value="capsule">Capsule</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="subtype">Subtype</Label>
+                  <Input
+                    id="subtype"
+                    placeholder="More specific product subtype (if applicable)"
+                    value={formData.subtype}
+                    onChange={(e) => setFormData({ ...formData, subtype: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+              </div>
+
+            <div className="space-y-2">
+                  <Label htmlFor="packageSize">Package Size</Label>
+              <Input
+                    id="packageSize"
+                    placeholder="e.g. 500ml, 30 tablets"
+                    value={formData.packageSize}
+                    onChange={(e) => setFormData({ ...formData, packageSize: e.target.value })}
+                className="bg-slate-50 dark:bg-slate-800"
+              />
+            </div>
+
+            <div className="space-y-2">
+                  <Label htmlFor="receivedDate">Received Date</Label>
+                  <Input
+                    id="receivedDate"
+                    type="date"
+                    value={formData.receivedDate}
+                    onChange={(e) => setFormData({ ...formData, receivedDate: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="batchNumber">Batch Number</Label>
+                  <Input
+                    id="batchNumber"
+                    placeholder="Batch or lot number"
+                    value={formData.batchNumber}
+                    onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantityUnit">Quantity Unit</Label>
+                  <Select value={formData.quantityUnit} onValueChange={(value) => setFormData({ ...formData, quantityUnit: value })}>
+                    <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
+                      <SelectValue placeholder="Select unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pcs">Pieces (pcs)</SelectItem>
+                      <SelectItem value="ml">Milliliters (ml)</SelectItem>
+                      <SelectItem value="g">Grams (g)</SelectItem>
+                      <SelectItem value="kg">Kilograms (kg)</SelectItem>
+                      <SelectItem value="l">Liters (l)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Psychomodulatory Substance Compliance Fields */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Dosage Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="recommendedDoseSingle">Recommended Single Dose</Label>
+                  <Input
+                    id="recommendedDoseSingle"
+                    placeholder="e.g. 2 g"
+                    value={formData.recommendedDoseSingle}
+                    onChange={(e) => setFormData({ ...formData, recommendedDoseSingle: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="recommendedDoseDaily">Recommended Daily Dose</Label>
+                  <Input
+                    id="recommendedDoseDaily"
+                    placeholder="e.g. 4 g"
+                    value={formData.recommendedDoseDaily}
+                    onChange={(e) => setFormData({ ...formData, recommendedDoseDaily: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="dosageInfo">Dosage Info (Alternative)</Label>
+              <Textarea
+                    id="dosageInfo"
+                    placeholder="Combined dose info in free text (alternative to single/daily dose fields)"
+                    value={formData.dosageInfo}
+                    onChange={(e) => setFormData({ ...formData, dosageInfo: e.target.value })}
+                className="bg-slate-50 dark:bg-slate-800"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Warnings and Age Restrictions */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Warnings & Age Restrictions</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="warningUnder18">Warning for Under 18</Label>
+                  <Textarea
+                    id="warningUnder18"
+                    placeholder='Legal text: "Not intended for persons under 18..."'
+                    value={formData.warningUnder18}
+                    onChange={(e) => setFormData({ ...formData, warningUnder18: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="warningHealth">Health Warning</Label>
+                  <Textarea
+                    id="warningHealth"
+                    placeholder='Legal text: "Use of this product may harm your health..."'
+                    value={formData.warningHealth}
+                    onChange={(e) => setFormData({ ...formData, warningHealth: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="minAge">Minimum Age</Label>
+                  <Input
+                    id="minAge"
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="e.g. 18"
+                    value={formData.minAge}
+                    onChange={(e) => setFormData({ ...formData, minAge: e.target.value })}
+                    className="bg-slate-50 dark:bg-slate-800"
+                  />
+                </div>
+
+                <div className="space-y-2 flex items-end">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="adultOnly"
+                      checked={formData.adultOnly}
+                      onCheckedChange={(checked) => setFormData({ ...formData, adultOnly: checked === true })}
+                    />
+                    <Label htmlFor="adultOnly" className="cursor-pointer">
+                      Adult Only Product
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Consumer Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Consumer Information</h3>
+              <div className="space-y-2">
+                <Label htmlFor="consumerInfo">Consumer Info</Label>
+                <Textarea
+                  id="consumerInfo"
+                  placeholder="Full consumer info (effects, risks, usage instructions)"
+                  value={formData.consumerInfo}
+                  onChange={(e) => setFormData({ ...formData, consumerInfo: e.target.value })}
+                  className="bg-slate-50 dark:bg-slate-800"
+                  rows={4}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="activeSubstancesComposition">Active Substances Composition (JSON)</Label>
+                <Textarea
+                  id="activeSubstancesComposition"
+                  placeholder='JSON format: ["Substance1", "Substance2"] or {"substance1": "amount", "substance2": "amount"}'
+                  value={formData.activeSubstancesComposition}
+                  onChange={(e) => setFormData({ ...formData, activeSubstancesComposition: e.target.value })}
+                  className="bg-slate-50 dark:bg-slate-800 font-mono text-sm"
+                rows={3}
+              />
+                <p className="text-xs text-muted-foreground">
+                  Enter as JSON array or object. Example: ["Mitragynine", "7-Hydroxymitragynine"]
+                </p>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
@@ -912,79 +1419,24 @@ function Products() {
             </Button>
             <Button
               onClick={handleCreateProduct}
-              disabled={createProductMutation.isPending}
+              disabled={createProductMutation.isPending || updateProductMutation.isPending}
               className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
             >
-              {createProductMutation.isPending ? (
-                <>Creating...</>
+              {(createProductMutation.isPending || updateProductMutation.isPending) ? (
+                <>{isEditMode ? "Updating..." : "Creating..."}</>
               ) : (
                 <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Product
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Category Management Dialog */}
-      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-lg">
-                <Tag className="h-4 w-4 text-white" />
-              </div>
-              Add New Category
-            </DialogTitle>
-            <DialogDescription>
-              Create a new product category for better organization
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="category-name">Category Name *</Label>
-              <Input
-                id="category-name"
-                placeholder="Enter category name"
-                value={categoryFormData.name}
-                onChange={(e) => setCategoryFormData({ ...categoryFormData, name: e.target.value })}
-                className="bg-slate-50 dark:bg-slate-800"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="category-description">Description</Label>
-              <Textarea
-                id="category-description"
-                placeholder="Enter category description"
-                value={categoryFormData.description}
-                onChange={(e) => setCategoryFormData({ ...categoryFormData, description: e.target.value })}
-                className="bg-slate-50 dark:bg-slate-800"
-                rows={3}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsCategoryDialogOpen(false);
-              setCategoryFormData({ name: "", description: "" });
-            }}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleCreateCategory}
-              disabled={createCategoryMutation.isPending}
-              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700"
-            >
-              {createCategoryMutation.isPending ? (
-                <>Creating...</>
-              ) : (
-                <>
-                  <Tag className="h-4 w-4 mr-2" />
-                  Create Category
+                  {isEditMode ? (
+                    <>
+                      <Edit className="h-4 w-4 mr-2" />
+                      Update Product
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Product
+                    </>
+                  )}
                 </>
               )}
             </Button>
@@ -1043,6 +1495,33 @@ function Products() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Product Dialog */}
+      <AlertDialog open={isDeleteProductDialogOpen} onOpenChange={setIsDeleteProductDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Product</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this product? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteProductDialogOpen(false);
+              setProductToDelete(null);
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProduct}
+              disabled={deleteProductMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteProductMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

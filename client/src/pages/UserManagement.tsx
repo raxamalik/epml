@@ -8,22 +8,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
-import { Edit, Search, Download } from "lucide-react";
+import { Edit, Download, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow } from "date-fns";
+import { SearchBar, Pagination, EmptyState, TableLoadingSkeleton } from "@/components/common";
+import { usePagination } from "@/hooks/common/usePagination";
+import { formatRelativeTime } from "@/lib/utils/date";
+import { getRoleBadgeColor, getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 
 export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { currentPage: page, pageSize: limit, setPage, setPageSize } = usePagination({
+    initialPage: 1,
+    initialPageSize: 20,
+  });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
-    queryKey: ["/api/users"],
+  const { data, isLoading } = useQuery({
+    queryKey: ["/api/users", page, limit],
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/users?page=${page}&limit=${limit}`);
+      return response.json();
+    },
   });
+
+  const users = data?.users || [];
+  const pagination = data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 1, hasNextPage: false, hasPreviousPage: false };
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
@@ -52,28 +67,29 @@ export default function UserManagement() {
     user.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  const getRoleBadgeColor = (role: string) => {
-    switch (role) {
-      case "super_admin":
-        return "bg-red-100 text-red-800";
-      case "store_owner":
-        return "bg-green-100 text-green-800";
-      case "manager":
-        return "bg-blue-100 text-blue-800";
-      default:
-        return "bg-slate-100 text-slate-800";
-    }
-  };
 
   const handleRoleUpdate = (userId: string, newRole: string) => {
     updateRoleMutation.mutate({ userId, role: newRole });
   };
 
-  const handleExportUsers = () => {
+  const handleExportUsers = async () => {
     try {
+      // Fetch all users for export (without pagination)
+      const allUsersResponse = await apiRequest("GET", `/api/users?page=1&limit=1000`);
+      const allUsersData = await allUsersResponse.json();
+      const allUsers = allUsersData?.users || users;
+      
       // Convert users to CSV
       const headers = ["Email", "Name", "Role", "Store", "Status", "Joined"];
-      const rows = filteredUsers.map((user: any) => [
+      const usersToExport = searchQuery 
+        ? allUsers.filter((user: any) =>
+            user.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.firstName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            user.lastName?.toLowerCase().includes(searchQuery.toLowerCase())
+          )
+        : allUsers;
+      
+      const rows = usersToExport.map((user: any) => [
         user.email,
         user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : '',
         user.role?.replace('_', ' '),
@@ -84,7 +100,7 @@ export default function UserManagement() {
       
       const csvContent = [
         headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ...rows.map((row: any[]) => row.map((cell: any) => `"${cell}"`).join(','))
       ].join('\n');
       
       // Download CSV file
@@ -100,7 +116,7 @@ export default function UserManagement() {
       
       toast({
         title: "Export successful",
-        description: `Exported ${filteredUsers.length} users to CSV`,
+        description: `Exported ${usersToExport.length} users to CSV`,
       });
     } catch (error) {
       toast({
@@ -152,17 +168,23 @@ export default function UserManagement() {
         {/* Search and Filters */}
         <Card className="mb-6 border-slate-200">
           <CardContent className="p-6">
-            <div className="flex gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search users by name or email..."
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+              }}
+              className="flex gap-4"
+            >
+              <div className="flex-1">
+                <SearchBar
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  onChange={setSearchQuery}
+                  placeholder="Search users by name or email..."
                 />
               </div>
               <Button 
+                type="button"
                 variant="outline"
                 onClick={handleExportUsers}
                 data-testid="button-export-users"
@@ -170,44 +192,75 @@ export default function UserManagement() {
                 <Download className="h-4 w-4 mr-2" />
                 Export Users
               </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
 
         {/* Users Table */}
-        <Card className="border-slate-200">
-          <CardHeader>
-            <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+        <Card className="border-0 shadow-xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-700 dark:to-slate-600 border-b border-slate-200 dark:border-slate-600">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
+                  All Users ({pagination.total})
+                </span>
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Select
+                  value={limit.toString()}
+                  onValueChange={(value) => {
+                    setPageSize(parseInt(value));
+                    setPage(1); // Reset to first page when changing limit
+                  }}
+                >
+                  <SelectTrigger className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-hidden">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Store
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Joined
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-slate-200">
-                  {filteredUsers.map((user: any) => (
-                    <tr key={user.id} className="hover:bg-slate-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">User</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Role</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Store</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Joined</TableHead>
+                  <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="p-0">
+                      <EmptyState
+                        title={searchQuery ? "No users found matching your search" : "No users found"}
+                        description={searchQuery ? "Try adjusting your search query" : "No users have been created yet"}
+                        icon={<Users className="h-12 w-12 mx-auto text-muted-foreground" />}
+                        className="border-0"
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user: any, index: number) => (
+                    <TableRow 
+                      key={user.id}
+                      className={`border-b border-slate-200 dark:border-slate-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-slate-700 dark:hover:to-slate-600 transition-all duration-200 ${index % 2 === 0 ? 'bg-slate-50/50 dark:bg-slate-800/50' : 'bg-white dark:bg-slate-800'}`}
+                    >
+                      <TableCell className="py-4">
                         <div className="flex items-center">
                           <ProfileAvatar
                             user={user}
@@ -215,14 +268,14 @@ export default function UserManagement() {
                             showBorder={true}
                           />
                           <div className="ml-4">
-                            <div className="text-sm font-medium text-slate-900">
+                            <div className="font-semibold text-slate-900 dark:text-slate-100">
                               {user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email}
                             </div>
-                            <div className="text-sm text-slate-500">{user.email}</div>
+                            <div className="text-sm text-slate-500 dark:text-slate-400">{user.email}</div>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      </TableCell>
+                      <TableCell className="py-4">
                         <Select
                           value={user.role}
                           onValueChange={(newRole) => handleRoleUpdate(user.id, newRole)}
@@ -237,33 +290,46 @@ export default function UserManagement() {
                             <SelectItem value="super_admin">Super Admin</SelectItem>
                           </SelectContent>
                         </Select>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                      </TableCell>
+                      <TableCell className="py-4 text-sm text-slate-900 dark:text-slate-300">
                         {user.store?.name || "No store assigned"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge className={user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}>
-                          {user.isActive ? "Active" : "Inactive"}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <Badge variant={getStatusBadgeVariant(user.isActive)}>
+                          {getStatusText(user.isActive)}
                         </Badge>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                        {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      </TableCell>
+                      <TableCell className="py-4 text-sm text-slate-500 dark:text-slate-400">
+                        {formatRelativeTime(user.createdAt)}
+                      </TableCell>
+                      <TableCell className="py-4">
                         <Button 
                           variant="ghost" 
                           size="sm"
                           onClick={() => handleEditUser(user)}
                           data-testid={`button-edit-user-${user.id}`}
+                          className="h-8 w-8 p-0 hover:bg-gradient-to-r hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900 dark:hover:to-purple-900 rounded-full transition-all duration-200"
                         >
-                          <Edit className="h-4 w-4 text-primary" />
+                          <Edit className="h-4 w-4 text-slate-600 dark:text-slate-300" />
                         </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+            
+            
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="flex items-center justify-center px-6 py-4 border-t">
+                <Pagination
+                  currentPage={page}
+                  totalPages={pagination.totalPages}
+                  onPageChange={setPage}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -358,3 +424,4 @@ export default function UserManagement() {
     </div>
   );
 }
+  

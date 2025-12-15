@@ -63,12 +63,12 @@ if (connectionString.includes('supabase.co')) {
   lookup(hostname, { family: 4 })
     .then((result) => {
       if (result && typeof result === 'object' && 'address' in result) {
-        console.log(`✅ Resolved ${url.hostname} to IPv4: ${result.address}`);
+        console.log(`Resolved ${url.hostname} to IPv4: ${result.address}`);
       }
     })
     .catch((resolveError: any) => {
-      console.warn(`⚠️  Could not resolve ${hostname} to IPv4:`, resolveError.message);
-      console.warn(`⚠️  Using hostname directly. If connection fails, get IPv4 connection string from Supabase Dashboard.`);
+      console.warn(`Could not resolve ${hostname} to IPv4:`, resolveError.message);
+      console.warn(`Using hostname directly. If connection fails, get IPv4 connection string from Supabase Dashboard.`);
     });
   
   poolConfig = {

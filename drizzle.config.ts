@@ -7,13 +7,18 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL, ensure the database is provisioned");
 }
 
-// For Supabase, use direct connection (port 5432) instead of pooler to avoid IPv6 issues
+// Handle different database providers
 let databaseUrl = process.env.DATABASE_URL;
+let sslConfig = false;
+
 if (databaseUrl.includes('supabase.co')) {
-  // Replace pooler port (6543) with direct connection port (5432)
+  // For Supabase, use direct connection (port 5432) instead of pooler to avoid IPv6 issues
   databaseUrl = databaseUrl.replace(':6543/', ':5432/');
-  // Remove pgbouncer query parameter
   databaseUrl = databaseUrl.replace(/\?pgbouncer=true/, '');
+  sslConfig = { rejectUnauthorized: false };
+} else if (databaseUrl.includes('neon.tech')) {
+  // For Neon, SSL is required
+  sslConfig = { rejectUnauthorized: false };
 }
 
 export default defineConfig({
@@ -22,6 +27,6 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: databaseUrl,
-    ssl: databaseUrl.includes('supabase.co') ? { rejectUnauthorized: false } : false,
+    ssl: sslConfig,
   },
 });

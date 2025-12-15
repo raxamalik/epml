@@ -1,18 +1,25 @@
-// Session-based auth (server uses express-session with cookies)
+// JWT-based auth
 export async function login(email: string, password: string): Promise<boolean> {
   try {
     const response = await fetch("/api/auth/login", {
       method: "POST",
-      credentials: 'include', // Important: Include cookies for session
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ email, password }),
     });
 
+    // Parse response
+    let data: any;
+    try {
+      const text = await response.text();
+      data = text ? JSON.parse(text) : {};
+    } catch (parseError) {
+      console.error('Failed to parse login response:', parseError);
+      throw new Error('Invalid response from server');
+    }
+
     if (response.ok) {
-      const data = await response.json();
-      
       // Handle 2FA requirement
       if (data.requires2FA) {
         throw new Error("2FA_REQUIRED");
@@ -23,16 +30,23 @@ export async function login(email: string, password: string): Promise<boolean> {
         throw new Error("PROFILE_COMPLETION_REQUIRED");
       }
       
-      // Server uses sessions, so we just store user data in localStorage for client-side access
-      if (data.user) {
+      // Store JWT token and user data
+      if (data.token && data.user) {
+        localStorage.setItem('auth_token', data.token);
         localStorage.setItem('auth_user', JSON.stringify(data.user));
         return true;
       }
       
-      throw new Error('Login response missing user data');
+      // Log the actual response for debugging
+      console.error('Login response missing token or user data. Response:', {
+        hasToken: !!data.token,
+        hasUser: !!data.user,
+        message: data.message,
+        fullResponse: data
+      });
+      throw new Error('Login response missing token or user data');
     } else {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Login failed');
+      throw new Error(data.message || `Login failed with status ${response.status}`);
     }
   } catch (error) {
     if (error instanceof Error) {

@@ -1,28 +1,77 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { logout } from "./simpleAuth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
+    let errorData: any = null;
+    let errorMessage = res.statusText;
+    
     try {
-      // Clone the response since we might need to read it twice
-      const responseClone = res.clone();
-      const errorData = await responseClone.json();
-      // Extract the actual error message from the response
-      const message = errorData.message || res.statusText;
-      const error = new Error(message);
-      console.warn('API Error:', message);
-      throw error;
-    } catch (parseError) {
-      // If JSON parsing fails, fall back to text
+      // Clone the response so we can read it without consuming the original
+      const clonedRes = res.clone();
+      let text = '';
+      
       try {
-        const text = await res.text();
-        const error = new Error(text || res.statusText);
-        console.warn('API Error:', error.message);
-        throw error;
+        text = await clonedRes.text();
       } catch (textError) {
-        const error = new Error(res.statusText);
-        console.warn('API Error:', error.message);
+        // Try to read from original response as fallback
+        try {
+          text = await res.text();
+        } catch (originalError) {
+          // If both fail, use status text
+        }
+      }
+      
+      // Try to parse as JSON
+      if (text && text.trim().length > 0) {
+        try {
+          errorData = JSON.parse(text);
+          // Extract message from various possible fields
+          errorMessage = errorData.message || errorData.error || errorData.detail || errorMessage;
+        } catch (parseError) {
+          // If JSON parsing fails, use the text as the message
+          errorMessage = text || errorMessage;
+        }
+      }
+      
+      // Check for unauthorized token error and logout automatically
+      if (res.status === 401 && errorMessage === "Unauthorized - Invalid or expired token") {
+        console.warn('Token expired or invalid, logging out...');
+        await logout();
+        throw new Error('Unauthorized - Invalid or expired token');
+      }
+      
+      // Check for suspended account (403) and logout automatically
+      if (res.status === 403 && (
+        errorMessage.includes("account has been suspended") ||
+        errorMessage.includes("company account has been suspended")
+      )) {
+        console.warn('Account suspended, logging out...');
+        // Store suspension message for toast notification
+        localStorage.setItem('suspended_account_message', errorMessage);
+        // Dispatch custom event for suspended account
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('accountSuspended', { detail: { message: errorMessage } }));
+        }
+        await logout();
+        throw new Error(errorMessage);
+      }
+      
+      const error = new Error(errorMessage);
+      // Store the full error data for debugging
+      (error as any).errorData = errorData;
+      (error as any).status = res.status;
+      throw error;
+    } catch (error: any) {
+      // If error is already an Error object (from above), re-throw it
+      if (error instanceof Error && error.message !== res.statusText) {
         throw error;
       }
+      // Otherwise, create a new error with the extracted message
+      const finalError = new Error(errorMessage);
+      (finalError as any).errorData = errorData;
+      (finalError as any).status = res.status;
+      throw finalError;
     }
   }
 }
@@ -34,6 +83,12 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers: any = data ? { "Content-Type": "application/json" } : {};
   
+  // Include JWT token if available
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   // Include device token if available
   const deviceToken = localStorage.getItem('deviceToken');
   if (deviceToken) {
@@ -44,7 +99,6 @@ export async function apiRequest(
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
   });
   
   // Check for new device token in response headers
@@ -64,12 +118,58 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     try {
+      const headers: any = {};
+      
+      // Include JWT token if available
+      const token = localStorage.getItem('auth_token');
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const res = await fetch(queryKey[0] as string, {
-        credentials: "include",
+        headers,
       });
 
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
+      // Check for unauthorized token error
+      if (res.status === 401) {
+        try {
+          const errorData = await res.clone().json();
+          if (errorData.message === "Unauthorized - Invalid or expired token") {
+            console.warn('Token expired or invalid, logging out...');
+            await logout();
+            return null;
+          }
+        } catch {
+          // If JSON parsing fails, still handle 401
+        }
+        
+        if (unauthorizedBehavior === "returnNull") {
+          return null;
+        }
+      }
+
+      // Check for suspended account (403) and logout automatically
+      if (res.status === 403) {
+        try {
+          const errorData = await res.clone().json();
+          const errorMessage = errorData.message || errorData.error || errorData.detail || '';
+          if (
+            errorMessage.includes("account has been suspended") ||
+            errorMessage.includes("company account has been suspended")
+          ) {
+            console.warn('Account suspended, logging out...');
+            // Store suspension message for toast notification
+            localStorage.setItem('suspended_account_message', errorMessage);
+            // Dispatch custom event for suspended account
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('accountSuspended', { detail: { message: errorMessage } }));
+            }
+            await logout();
+            return null;
+          }
+        } catch {
+          // If JSON parsing fails, continue with normal error handling
+        }
       }
 
       if (!res.ok) {

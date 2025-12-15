@@ -7,13 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Link } from "wouter";
 import { Building, Mail, Lock, Eye, EyeOff, ArrowRight, Loader2, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-// Remove unused auth hook import
 import { apiRequest } from "@/lib/queryClient";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   // Direct API request for login - no need for auth hook
   
   const [formData, setFormData] = useState({
@@ -89,18 +90,51 @@ export default function Login() {
           description: "Please enter your Google Authenticator code",
         });
       } else if (data.message === "Login successful") {
-        // Successful login
-        window.location.href = "/";
-        toast({
-          title: "Welcome back!",
-          description: "Successfully logged in to your account",
-        });
+        // Successful login - store token and user data in localStorage
+        if (data.token && data.user) {
+          localStorage.setItem('auth_token', data.token);
+          localStorage.setItem('auth_user', JSON.stringify(data.user));
+          console.log("Token and user data stored in localStorage");
+          
+          // Update React Query cache immediately so isAuthenticated becomes true
+          queryClient.setQueryData(['/api/auth/user'], data.user);
+          
+          // Show success toast
+          toast({
+            title: "Welcome back!",
+            description: "Successfully logged in to your account",
+          });
+          
+          // Use React Router navigation instead of full page reload
+          // This ensures React state is preserved and useAuth hook sees the updated data
+          setTimeout(() => {
+            setLocation("/");
+          }, 100);
+        } else {
+          console.error("Login response missing token or user data:", data);
+          toast({
+            title: "Login Error",
+            description: "Authentication data missing. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
       }
     } catch (error: any) {
-      const errorData = error.message ? JSON.parse(error.message.split(': ')[1] || '{}') : {};
+      // Extract error message - apiRequest throws Error with message property
+      let errorMessage = "Invalid credentials. Please try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error?.errorData?.message) {
+        errorMessage = error.errorData.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Login Failed",
-        description: errorData.message || "Invalid credentials. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

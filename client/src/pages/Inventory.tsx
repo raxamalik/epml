@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { usePagination } from "@/hooks/common/usePagination";
+import { useFilters } from "@/hooks/common/useFilters";
+import { Pagination } from "@/components/common";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +49,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Product {
   id: number;
   name: string;
-  price: number;
+  price: string | number;
   category: string;
   stock: number;
   barcode?: string;
@@ -52,7 +62,6 @@ function Inventory() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
   const [adjustmentType, setAdjustmentType] = useState<'add' | 'remove'>('add');
@@ -61,16 +70,59 @@ function Inventory() {
 
   const storeId = user?.storeId;
 
-  // Fetch products for the store
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['/api/stores', storeId, 'products'],
+  // Use custom hooks for pagination and filters
+  const { currentPage, pageSize, setPage, setPageSize, offset } = usePagination({
+    initialPage: 1,
+    initialPageSize: 10,
+  });
+
+  const { search, debouncedSearch, setSearch } = useFilters({
+    debounceMs: 500,
+  });
+
+  // Fetch products for the store with pagination
+  const { data: productsResponse, isLoading } = useQuery({
+    queryKey: ['/api/stores', storeId, 'products', currentPage, pageSize, debouncedSearch],
     queryFn: async () => {
-      if (!storeId) return [];
-      const res = await apiRequest('GET', `/api/stores/${storeId}/products`);
-      return await res.json();
+      if (!storeId) return { data: [], total: 0, page: 1, limit: pageSize, totalPages: 0 };
+      
+      const params = new URLSearchParams({
+        limit: pageSize.toString(),
+        offset: offset.toString(),
+      });
+      
+      if (debouncedSearch) {
+        params.append("search", debouncedSearch);
+      }
+      
+      const res = await apiRequest('GET', `/api/stores/${storeId}/products?${params}`);
+      const data = await res.json();
+      
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return {
+          data,
+          total: data.length,
+          page: currentPage,
+          limit: pageSize,
+          totalPages: Math.ceil(data.length / pageSize),
+        };
+      }
+      
+      return {
+        data: data.data || [],
+        total: data.total || 0,
+        page: data.page || currentPage,
+        limit: data.limit || pageSize,
+        totalPages: data.totalPages || Math.ceil((data.total || 0) / pageSize),
+      };
     },
     enabled: !!storeId
   });
+
+  const products: Product[] = productsResponse?.data || [];
+  const total = productsResponse?.total || 0;
+  const totalPages = productsResponse?.totalPages || 0;
 
   // Update product stock mutation
   const updateStockMutation = useMutation({
@@ -125,11 +177,9 @@ function Inventory() {
     return { status: 'good', color: 'default', label: 'In Stock' };
   };
 
-  const filteredProducts = products.filter((product: Product) =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+  // Calculate statistics from current page products
+  // Note: These are calculated from the current page, not all products
+  // For accurate analytics across all products, we might need a separate analytics endpoint
   const lowStockProducts = products.filter((product: Product) => product.stock <= 5);
   const outOfStockProducts = products.filter((product: Product) => product.stock === 0);
   const totalValue = products.reduce((sum: number, product: Product) => 
@@ -158,7 +208,7 @@ function Inventory() {
             <Package2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{products.length}</div>
+            <div className="text-2xl font-bold">{total}</div>
           </CardContent>
         </Card>
         <Card>
@@ -195,15 +245,40 @@ function Inventory() {
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Search inventory..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1); // Reset to first page on search
+          }}
         />
       </div>
 
       {/* Inventory Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Inventory Details</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Inventory Details ({total})</CardTitle>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="limit" className="text-sm text-muted-foreground">Items per page:</Label>
+              <Select
+                value={pageSize.toString()}
+                onValueChange={(value) => {
+                  setPageSize(parseInt(value));
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <Table>
@@ -219,7 +294,7 @@ function Inventory() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredProducts.map((product: Product) => {
+              {products.map((product: Product) => {
                 const stockInfo = getStockStatus(product.stock);
                 const productValue = parseFloat(product.price) * product.stock;
                 
@@ -259,6 +334,18 @@ function Inventory() {
               })}
             </TableBody>
           </Table>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-200 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-800/50">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+                pageSize={pageSize}
+                onPageSizeChange={setPageSize}
+              />
+            </div>
+          )}
         </CardContent>
       </Card>
 

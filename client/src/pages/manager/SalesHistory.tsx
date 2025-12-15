@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Table,
@@ -43,11 +46,16 @@ import {
   FileText,
   BarChart3,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  RotateCcw,
+  X
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+import { usePagination } from "@/hooks/common/usePagination";
+import { Pagination } from "@/components/common";
 
 interface Sale {
   id: string;
@@ -57,6 +65,18 @@ interface Sale {
   vatBreakdown?: { [key: string]: { net: number; vat: number; rate: number } };
   paymentMethod: string;
   items: any;
+  salesItems?: Array<{
+    id: number;
+    productId: number;
+    quantity: string;
+    unitPrice: string;
+    vatRate: string;
+    product?: {
+      id: number;
+      name: string;
+      price: string;
+    };
+  }>;
   customerInfo?: {
     name?: string;
     phone?: string;
@@ -67,68 +87,314 @@ interface Sale {
   userId?: string;
 }
 
+interface ReturnItem {
+  saleItemId: number;
+  productId: number;
+  quantity: number;
+  unitPrice: number;
+  vatRate: number;
+  refundAmount: number;
+  reason?: string;
+}
+
 function SalesHistory() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
+  const [returnItems, setReturnItems] = useState<ReturnItem[]>([]);
+  const [returnReason, setReturnReason] = useState("");
+  const [refundMethod, setRefundMethod] = useState<'cash' | 'card'>('cash');
   const [dateFilter, setDateFilter] = useState("");
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card'>('all');
 
   const storeId = user?.storeId;
+  // Note: Backend handles the 14-day restriction for managers automatically
+  // Frontend doesn't need to set dateFilter - backend will apply it when no search is active
 
-  // Fetch sales for the store with automatic refresh
-  const { data: sales = [], isLoading } = useQuery({
-    queryKey: ['/api/stores', storeId, 'sales'],
+  // Use pagination hook
+  const { currentPage, pageSize, setPage, setPageSize, offset } = usePagination({
+    initialPage: 1,
+    initialPageSize: 10,
+  });
+
+  // Fetch all sales for analytics (without pagination)
+  // Backend handles 14-day restriction for managers automatically
+  const { data: allSalesData = [] } = useQuery({
+    queryKey: ['/api/stores', storeId, 'sales', 'all', searchTerm],
     queryFn: async () => {
       if (!storeId) return [];
-      const res = await apiRequest('GET', `/api/stores/${storeId}/sales`);
-      return await res.json();
+      const params = new URLSearchParams({
+        limit: '10000',
+      });
+      // Include search if provided (this allows managers to access older data)
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      const res = await apiRequest('GET', `/api/stores/${storeId}/sales?${params}`);
+      const data = await res.json();
+      return Array.isArray(data) ? data : data.data || [];
+    },
+    enabled: !!storeId,
+  });
+
+  // Fetch paginated sales for the store
+  const { data: salesResponse, isLoading } = useQuery({
+    queryKey: ['/api/stores', storeId, 'sales', currentPage, pageSize, searchTerm, dateFilter, paymentFilter],
+    queryFn: async () => {
+      if (!storeId) return { data: [], total: 0, page: 1, limit: pageSize, totalPages: 0 };
+      
+      const params = new URLSearchParams({
+        limit: pageSize.toString(),
+        offset: offset.toString(),
+      });
+      
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      
+      if (dateFilter) {
+        params.append("startDate", dateFilter);
+        // Don't set endDate when dateFilter is used - this allows showing all data from that date onwards
+        // For managers, the backend will handle the 14-day restriction
+      }
+      
+      const res = await apiRequest('GET', `/api/stores/${storeId}/sales?${params}`);
+      const data = await res.json();
+      
+      // Handle paginated response
+      if (Array.isArray(data)) {
+        return {
+          data,
+          total: data.length,
+          page: currentPage,
+          limit: pageSize,
+          totalPages: Math.ceil(data.length / pageSize),
+        };
+      }
+      
+      return {
+        data: data.data || [],
+        total: data.total || 0,
+        page: data.page || currentPage,
+        limit: data.limit || pageSize,
+        totalPages: data.totalPages || Math.ceil((data.total || 0) / pageSize),
+      };
     },
     enabled: !!storeId,
     refetchInterval: 30000, // Refresh every 30 seconds
     refetchOnWindowFocus: true,
   });
 
-  const handleViewDetails = (sale: Sale) => {
+  const sales = salesResponse?.data || [];
+  const totalSales = salesResponse?.total || 0;
+  const totalPages = salesResponse?.totalPages || 0;
+
+  const handleViewDetails = async (sale: Sale) => {
     setSelectedSale(sale);
     setIsDetailsDialogOpen(true);
+    
+    // Fetch sale details with salesItems
+    try {
+      const res = await apiRequest('GET', `/api/sales/${sale.id}`);
+      const saleDetails = await res.json();
+      setSelectedSale(saleDetails);
+    } catch (error) {
+      console.error("Error fetching sale details:", error);
+    }
   };
 
-  // Sort sales by date (newest first by default)
-  const sortedSales = [...sales].sort((a, b) => {
-    const dateA = new Date(a.createdAt).getTime();
-    const dateB = new Date(b.createdAt).getTime();
-    return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+  const handleOpenReturn = async () => {
+    if (!selectedSale) return;
+    
+    // Ensure we have salesItems - fetch sale details if not already fetched
+    if (!selectedSale.salesItems || selectedSale.salesItems.length === 0) {
+      try {
+        const res = await apiRequest('GET', `/api/sales/${selectedSale.id}`);
+        const saleDetails = await res.json();
+        if (!saleDetails.salesItems || saleDetails.salesItems.length === 0) {
+          toast({
+            title: "Cannot process return",
+            description: "This sale does not have item details. Returns are only available for sales with item records.",
+            variant: "destructive"
+          });
+          return;
+        }
+        setSelectedSale(saleDetails);
+      } catch (error) {
+        toast({
+          title: "Error fetching sale details",
+          description: "Failed to fetch sale details for return",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+    
+    setReturnItems([]);
+    setReturnReason("");
+    setRefundMethod('cash');
+    setIsReturnDialogOpen(true);
+  };
+
+  const handleAddReturnItem = (saleItem: any, quantity: number) => {
+    if (!selectedSale) return;
+    
+    // Ensure we have a valid saleItemId from sales_items table
+    if (!saleItem.id || typeof saleItem.id !== 'number') {
+      toast({
+        title: "Invalid item",
+        description: "This item cannot be returned. Please ensure the sale has proper item records.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const existingIndex = returnItems.findIndex(item => item.saleItemId === saleItem.id);
+    
+    // Get available quantity (accounting for already returned items)
+    const availableQty = saleItem.availableQuantity !== undefined 
+      ? saleItem.availableQuantity 
+      : parseFloat(saleItem.quantity?.toString() || '0') - (saleItem.returnedQuantity || 0);
+    
+    if (quantity > availableQty || quantity <= 0) {
+      toast({
+        title: "Invalid quantity",
+        description: `Please enter a quantity between 0 and ${availableQty} (available after previous returns)`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const unitPrice = parseFloat(saleItem.unitPrice?.toString() || '0');
+    const vatRate = parseFloat(saleItem.vatRate?.toString() || '0');
+    const productId = saleItem.productId || saleItem.product?.id;
+    
+    if (!productId) {
+      toast({
+        title: "Invalid item",
+        description: "Product ID is missing for this item",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const netAmount = unitPrice * quantity;
+    const vatAmount = netAmount * (vatRate / 100);
+    const refundAmount = netAmount + vatAmount;
+
+    const returnItem: ReturnItem = {
+      saleItemId: saleItem.id, // This must be the ID from sales_items table
+      productId: productId,
+      quantity,
+      unitPrice,
+      vatRate,
+      refundAmount
+    };
+
+    if (existingIndex >= 0) {
+      const updated = [...returnItems];
+      updated[existingIndex] = returnItem;
+      setReturnItems(updated);
+    } else {
+      setReturnItems([...returnItems, returnItem]);
+    }
+  };
+
+  const handleRemoveReturnItem = (saleItemId: number) => {
+    setReturnItems(returnItems.filter(item => item.saleItemId !== saleItemId));
+  };
+
+  const createReturnMutation = useMutation({
+    mutationFn: async (returnData: any) => {
+      const response = await apiRequest('POST', '/api/returns', returnData);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Return processed successfully",
+        description: "Items have been returned and stock has been updated"
+      });
+      setIsReturnDialogOpen(false);
+      setReturnItems([]);
+      setReturnReason("");
+      queryClient.invalidateQueries({ queryKey: ['/api/stores', storeId, 'sales'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/returns'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error processing return",
+        description: error.message || "Failed to process return",
+        variant: "destructive"
+      });
+    }
   });
 
-  const filteredSales = sortedSales.filter((sale: Sale) => {
-    const matchesSearch = sale.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         sale.paymentMethod.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDate = !dateFilter || 
-                       format(new Date(sale.createdAt), 'yyyy-MM-dd') === dateFilter;
-    
-    const matchesPayment = paymentFilter === 'all' || sale.paymentMethod === paymentFilter;
-    
-    return matchesSearch && matchesDate && matchesPayment;
-  });
+  const handleProcessReturn = () => {
+    if (!selectedSale || returnItems.length === 0) {
+      toast({
+        title: "Invalid return",
+        description: "Please select at least one item to return",
+        variant: "destructive"
+      });
+      return;
+    }
 
-  // Calculate analytics
-  const todaysSales = sales.filter((sale: Sale) => 
+    // Validate all return items have valid saleItemIds
+    const invalidItems = returnItems.filter(item => !item.saleItemId || typeof item.saleItemId !== 'number');
+    if (invalidItems.length > 0) {
+      toast({
+        title: "Invalid return items",
+        description: "Some items are missing required information. Please try again.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const totalRefund = returnItems.reduce((sum, item) => sum + item.refundAmount, 0);
+
+    const returnData = {
+      returnData: {
+        saleId: selectedSale.id,
+        storeId: selectedSale.storeId,
+        userId: user?.id,
+        totalRefund: totalRefund.toFixed(2),
+        refundMethod: refundMethod,
+        reason: returnReason || null,
+        status: 'completed'
+      },
+      returnItems: returnItems.map(item => ({
+        saleItemId: item.saleItemId, // Must be a number (ID from sales_items table)
+        productId: item.productId,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toFixed(2),
+        vatRate: item.vatRate.toFixed(2),
+        refundAmount: item.refundAmount.toFixed(2),
+        reason: item.reason || null
+      }))
+    };
+
+    createReturnMutation.mutate(returnData);
+  };
+
+  // Calculate analytics from all sales (for accurate metrics)
+  const allSales = Array.isArray(allSalesData) ? allSalesData : [];
+  const todaysSales = allSales.filter((sale: Sale) => 
     isToday(new Date(sale.createdAt))
   );
   
-  const yesterdaysSales = sales.filter((sale: Sale) => 
+  const yesterdaysSales = allSales.filter((sale: Sale) => 
     isYesterday(new Date(sale.createdAt))
   );
   
-  const totalRevenue = sales.reduce((sum: number, sale: Sale) => sum + parseFloat(sale.total), 0);
+  const totalRevenue = allSales.reduce((sum: number, sale: Sale) => sum + parseFloat(sale.total), 0);
   const todaysRevenue = todaysSales.reduce((sum: number, sale: Sale) => sum + parseFloat(sale.total), 0);
   const yesterdaysRevenue = yesterdaysSales.reduce((sum: number, sale: Sale) => sum + parseFloat(sale.total), 0);
-  const averageOrderValue = sales.length > 0 ? totalRevenue / sales.length : 0;
+  const averageOrderValue = allSales.length > 0 ? totalRevenue / allSales.length : 0;
 
   // Calculate growth
   const revenueGrowth = yesterdaysRevenue > 0 
@@ -209,7 +475,7 @@ function SalesHistory() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{sales.length}</div>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalSales}</div>
               <p className="text-sm text-blue-700 dark:text-blue-300">All time transactions</p>
             </CardContent>
           </Card>
@@ -307,15 +573,6 @@ function SalesHistory() {
                   </select>
                 </div>
 
-                <Button
-                  variant="outline"
-                  onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-                  className="flex items-center gap-2"
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                  {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
-                </Button>
-
                 {(dateFilter || paymentFilter !== 'all') && (
                   <Button
                     variant="outline"
@@ -337,7 +594,7 @@ function SalesHistory() {
           <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
-              Transaction History ({filteredSales.length})
+              Transaction History ({totalSales})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -346,7 +603,7 @@ function SalesHistory() {
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                 <p className="text-slate-500">Loading sales history...</p>
               </div>
-            ) : filteredSales.length === 0 ? (
+            ) : sales.length === 0 ? (
               <div className="p-12 text-center">
                 <Receipt className="h-12 w-12 mx-auto text-slate-400 mb-4" />
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No sales found</h3>
@@ -354,7 +611,7 @@ function SalesHistory() {
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredSales.map((sale: Sale, index: number) => {
+                {sales.map((sale: Sale, index: number) => {
                   const saleItems = parseSaleItems(sale.items);
                   const customerInfo = getCustomerInfo(sale.items);
                   const isRecent = index < 3; // Highlight first 3 as recent
@@ -460,6 +717,32 @@ function SalesHistory() {
               </div>
             )}
           </CardContent>
+          {sales.length > 0 && (
+            <div className="p-4 border-t flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Label>Items per page:</Label>
+                <Select
+                  value={pageSize.toString()}
+                  onValueChange={(value) => setPageSize(parseInt(value))}
+                >
+                  <SelectTrigger className="w-[80px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            </div>
+          )}
         </Card>
       </div>
 
@@ -662,8 +945,202 @@ function SalesHistory() {
                 <p>Transaction processed on {format(new Date(selectedSale.createdAt), 'PPPP')}</p>
                 <p>Store ID: {selectedSale.storeId} | Sale ID: {selectedSale.id}</p>
               </div>
+
+              {/* Return Button */}
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={handleOpenReturn}
+                  className="flex items-center gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Process Return
+                </Button>
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Return Dialog */}
+      <Dialog open={isReturnDialogOpen} onOpenChange={setIsReturnDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RotateCcw className="h-5 w-5" />
+              Process Return
+            </DialogTitle>
+            <DialogDescription>
+              Select items to return and specify refund method
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedSale && (
+            <div className="space-y-6">
+              {/* Sale Items List */}
+              <div>
+                <Label className="text-sm font-semibold mb-3 block">Select Items to Return</Label>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {(() => {
+                    // Only show items that have salesItems (from sales_items table)
+                    // Legacy sales without salesItems cannot be returned
+                    if (!selectedSale.salesItems || selectedSale.salesItems.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-slate-500">
+                          <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+                          <p>This sale does not have item records available for return processing.</p>
+                          <p className="text-sm mt-2">Returns are only available for sales with proper item tracking.</p>
+                        </div>
+                      );
+                    }
+
+                    return selectedSale.salesItems.map((item: any, index: number) => {
+                      // Must have a valid ID from sales_items table
+                      if (!item.id || typeof item.id !== 'number') {
+                        return null;
+                      }
+
+                      const saleItemId = item.id;
+                      const productId = item.productId || item.product?.id;
+                      const productName = item.product?.name || item.name || 'Unknown Product';
+                      const quantity = parseFloat(item.quantity?.toString() || '0');
+                      const unitPrice = parseFloat(item.unitPrice?.toString() || '0');
+                      const vatRate = parseFloat(item.vatRate?.toString() || '0');
+                      
+                      // Get already returned quantity from the sale data
+                      const alreadyReturnedQty = item.returnedQuantity || 0;
+                      const availableQty = item.availableQuantity !== undefined 
+                        ? item.availableQuantity 
+                        : quantity - alreadyReturnedQty;
+                      
+                      // Get quantity currently being returned in this dialog
+                      const returnItem = returnItems.find(ri => ri.saleItemId === saleItemId);
+                      const currentReturnQty = returnItem?.quantity || 0;
+                      
+                      // Remaining quantity after current return
+                      const remainingQty = availableQty - currentReturnQty;
+
+                      if (availableQty <= 0) return null;
+
+                      return (
+                        <Card key={saleItemId} className="p-3">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium">{productName}</p>
+                              <p className="text-sm text-slate-600">
+                                Original Qty: {quantity} | Available: {availableQty} | Price: ${unitPrice.toFixed(2)} | VAT: {vatRate}%
+                              </p>
+                              {alreadyReturnedQty > 0 && (
+                                <p className="text-sm text-orange-600 mt-1">
+                                  Already Returned: {alreadyReturnedQty}
+                                </p>
+                              )}
+                              {returnItem && (
+                                <p className="text-sm text-green-600 mt-1">
+                                  Returning: {returnItem.quantity} (Refund: ${returnItem.refundAmount.toFixed(2)})
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={availableQty}
+                                step="0.01"
+                                placeholder="Qty"
+                                className="w-20"
+                                defaultValue={currentReturnQty || ''}
+                                onChange={(e) => {
+                                  const qty = parseFloat(e.target.value) || 0;
+                                  if (qty > 0 && qty <= availableQty) {
+                                    handleAddReturnItem(item, qty);
+                                  } else if (qty === 0) {
+                                    handleRemoveReturnItem(saleItemId);
+                                  }
+                                }}
+                              />
+                              {returnItem && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveReturnItem(saleItemId)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
+
+              {/* Return Items Summary */}
+              {returnItems.length > 0 && (
+                <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                  <Label className="text-sm font-semibold mb-3 block">Return Summary</Label>
+                  <div className="space-y-2">
+                    {returnItems.map((item, index) => (
+                      <div key={index} className="flex justify-between text-sm">
+                        <span>Item {index + 1}</span>
+                        <span>${item.refundAmount.toFixed(2)}</span>
+                      </div>
+                    ))}
+                    <Separator />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total Refund:</span>
+                      <span className="text-lg">
+                        ${returnItems.reduce((sum, item) => sum + item.refundAmount, 0).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Refund Method */}
+              <div>
+                <Label htmlFor="refundMethod">Refund Method</Label>
+                <Select value={refundMethod} onValueChange={(value: any) => setRefundMethod(value)}>
+                  <SelectTrigger id="refundMethod">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="card">Card</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Return Reason */}
+              <div>
+                <Label htmlFor="returnReason">Return Reason (Optional)</Label>
+                <Textarea
+                  id="returnReason"
+                  value={returnReason}
+                  onChange={(e) => setReturnReason(e.target.value)}
+                  placeholder="Enter reason for return..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsReturnDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleProcessReturn}
+              disabled={returnItems.length === 0 || createReturnMutation.isPending}
+            >
+              {createReturnMutation.isPending ? "Processing..." : "Process Return"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

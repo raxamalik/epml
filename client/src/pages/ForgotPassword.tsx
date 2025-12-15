@@ -16,15 +16,38 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    
+    // Client-side email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      toast({
+        title: "Email Required",
+        description: "Please enter your email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!emailRegex.test(email.trim())) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
     
     setIsLoading(true);
     try {
-      const response = await apiRequest("POST", "/api/auth/forgot-password", { email });
+      const response = await apiRequest("POST", "/api/auth/forgot-password", { email: email.trim() });
       const data = await response.json();
       
-      if (data.success) {
+      if (response.ok && data.success) {
         setIsSubmitted(true);
+        toast({
+          title: "Success",
+          description: data.message || "Password reset link sent to your email",
+        });
       } else {
         toast({
           title: "Error",
@@ -32,11 +55,21 @@ export default function ForgotPassword() {
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Forgot password error:", error);
+      // Try to parse error response
+      let errorMessage = "Failed to send reset email. Please try again.";
+      try {
+        if (error.response) {
+          const errorData = await error.response.json();
+          errorMessage = errorData.message || errorMessage;
+        }
+      } catch {
+        // Ignore JSON parse errors
+      }
       toast({
         title: "Error",
-        description: "Failed to send reset email. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

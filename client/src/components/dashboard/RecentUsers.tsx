@@ -14,12 +14,12 @@ export function RecentUsers() {
   const [, setLocation] = useLocation();
   const { data: users, isLoading, error } = useQuery({
     queryKey: ["/api/users"],
-    enabled: currentUser?.role === "super_admin",
+    enabled: currentUser?.role === "super_admin" || currentUser?.role === "portal_admin",
     retry: false,
     refetchOnWindowFocus: false,
   });
 
-  if (currentUser?.role !== "super_admin") {
+  if (currentUser?.role !== "super_admin" && currentUser?.role !== "portal_admin") {
     return null;
   }
 

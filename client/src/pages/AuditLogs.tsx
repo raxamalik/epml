@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Search, Filter, AlertCircle, Info, AlertTriangle, XCircle, RefreshCw, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
-import { format } from "date-fns";
 import { Link } from "wouter";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { formatDateTime, formatJsonData } from "@/lib/utils/date";
 
 interface AuditLog {
   id: number;
@@ -73,7 +74,7 @@ export default function AuditLogs() {
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
       
-      const response = await fetch(`/api/audit-logs?${params}`);
+      const response = await fetchWithAuth(`/api/audit-logs?${params}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch audit logs: ${response.statusText}`);
       }
@@ -131,18 +132,6 @@ export default function AuditLogs() {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return format(new Date(dateString), "MMM dd, yyyy HH:mm:ss");
-  };
-
-  const formatJsonData = (data: any) => {
-    if (!data) return "N/A";
-    try {
-      return JSON.stringify(data, null, 2);
-    } catch {
-      return String(data);
-    }
-  };
 
   if (error) {
     return (
@@ -397,7 +386,7 @@ export default function AuditLogs() {
                     <div className="text-right text-sm text-gray-500 dark:text-gray-400">
                       <div className="flex items-center gap-1">
                         <Calendar className="h-3 w-3" />
-                        {formatDate(log.createdAt)}
+                        {formatDateTime(log.createdAt)}
                       </div>
                     </div>
                   </div>
