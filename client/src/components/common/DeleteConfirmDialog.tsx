@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -28,6 +29,7 @@ export function DeleteConfirmDialog({
   itemName,
   isLoading = false,
 }: DeleteConfirmDialogProps) {
+  const { t } = useTranslation();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -41,17 +43,17 @@ export function DeleteConfirmDialog({
                 {itemName}
               </span>
             )}
-            ? This action cannot be undone.
+            ? {t("dialogs.cannotUndo")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{t("dialogs.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isLoading ? "Deleting..." : "Delete"}
+            {isLoading ? t("dialogs.deleting") : t("dialogs.delete")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,7 @@ import { getRoleBadgeColor, getStatusBadgeVariant, getStatusText } from "@/lib/u
 
 export default function UserManagement() {
   const [searchQuery, setSearchQuery] = useState("");
+  const { t, currentLanguage } = useTranslation();
   const { currentPage: page, pageSize: limit, setPage, setPageSize } = usePagination({
     initialPage: 1,
     initialPageSize: 20,
@@ -159,9 +161,9 @@ export default function UserManagement() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t("userManagement.title")}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Manage user accounts, roles, and permissions across your platform.
+            {t("userManagement.description")}
           </p>
         </div>
 
@@ -180,7 +182,7 @@ export default function UserManagement() {
                 <SearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  placeholder="Search users by name or email..."
+                  placeholder={t("userManagement.searchPlaceholder")}
                 />
               </div>
               <Button 
@@ -190,7 +192,7 @@ export default function UserManagement() {
                 data-testid="button-export-users"
               >
                 <Download className="h-4 w-4 mr-2" />
-                Export Users
+                {t("userManagement.export")}
               </Button>
             </form>
           </CardContent>
@@ -205,11 +207,11 @@ export default function UserManagement() {
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  All Users ({pagination.total})
+                  {t("userManagement.table.allUsers", { count: pagination.total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}:</Label>
                 <Select
                   value={limit.toString()}
                   onValueChange={(value) => {
@@ -234,12 +236,12 @@ export default function UserManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">User</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Role</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Store</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Joined</TableHead>
-                  <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.user")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.role")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.store")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.status")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.joined")}</TableHead>
+                  <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("userManagement.table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -247,8 +249,8 @@ export default function UserManagement() {
                   <TableRow>
                     <TableCell colSpan={6} className="p-0">
                       <EmptyState
-                        title={searchQuery ? "No users found matching your search" : "No users found"}
-                        description={searchQuery ? "Try adjusting your search query" : "No users have been created yet"}
+                        title={searchQuery ? t("userManagement.table.emptyTitleSearch") : t("userManagement.table.emptyTitle")}
+                        description={searchQuery ? t("userManagement.table.emptyDescSearch") : t("userManagement.table.emptyDesc")}
                         icon={<Users className="h-12 w-12 mx-auto text-muted-foreground" />}
                         className="border-0"
                       />
@@ -300,7 +302,7 @@ export default function UserManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-4 text-sm text-slate-500 dark:text-slate-400">
-                        {formatRelativeTime(user.createdAt)}
+                        {formatRelativeTime(user.createdAt, currentLanguage)}
                       </TableCell>
                       <TableCell className="py-4">
                         <Button 

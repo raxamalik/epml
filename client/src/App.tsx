@@ -7,6 +7,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
+import { useTranslation } from "@/hooks/useTranslation";
 import Dashboard from "@/pages/Dashboard";
 import CompanyDashboard from "@/pages/CompanyDashboard";
 import ManagerDashboard from "@/pages/ManagerDashboard";
@@ -46,6 +47,7 @@ import ActiveSubstances from "@/pages/ActiveSubstances";
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   // Auto-redirect managers to Manager Dashboard
   useEffect(() => {
@@ -62,7 +64,7 @@ function Router() {
   }, [isAuthenticated, user, setLocation]);
 
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen">{t("common.loading")}</div>;
   }
 
   if (!isAuthenticated || !user) {

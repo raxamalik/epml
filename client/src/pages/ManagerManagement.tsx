@@ -20,6 +20,7 @@ import { usePagination } from "@/hooks/common/usePagination";
 import { useFilters } from "@/hooks/common/useFilters";
 import { managerFormSchema, ManagerFormData } from "@/lib/utils/validation";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Manager {
   id: number;
@@ -50,6 +51,7 @@ export default function ManagerManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   // Use custom hooks for pagination and filters
   const { currentPage, pageSize, setPage, setPageSize } = usePagination({
@@ -160,14 +162,14 @@ export default function ManagerManagement() {
       setIsCreateDialogOpen(false);
       createForm.reset();
       toast({
-        title: "Manager Created",
-        description: "Manager has been created successfully.",
+        title: t("managerManagement.toasts.created"),
+        description: t("managerManagement.toasts.createdDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -185,14 +187,14 @@ export default function ManagerManagement() {
       setSelectedManager(null);
       editForm.reset();
       toast({
-        title: "Manager Updated",
-        description: "Manager has been updated successfully.",
+        title: t("managerManagement.toasts.updated"),
+        description: t("managerManagement.toasts.updatedDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -209,14 +211,14 @@ export default function ManagerManagement() {
       setIsDeleteDialogOpen(false);
       setManagerToDelete(null);
       toast({
-        title: "Manager Deleted",
-        description: "Manager has been deleted successfully.",
+        title: t("managerManagement.toasts.deleted"),
+        description: t("managerManagement.toasts.deletedDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -231,14 +233,14 @@ export default function ManagerManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/managers"] });
       toast({
-        title: "Status Updated",
-        description: "Manager status has been updated successfully.",
+        title: t("managerManagement.toasts.statusUpdateSuccess"),
+        description: t("managerManagement.toasts.statusUpdateDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.statusUpdateError"),
         variant: "destructive",
       });
     },
@@ -291,7 +293,7 @@ export default function ManagerManagement() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Loading managers...</p>
+          <p className="text-slate-600">{t("common.loading")}</p>
         </div>
       </div>
     );
@@ -302,13 +304,13 @@ export default function ManagerManagement() {
       <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
         <User className="h-12 w-12 text-slate-400" />
         <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
-          Error Loading Managers
+          {t("common.errorLoading")}
         </h2>
         <p className="text-slate-600 dark:text-slate-400">
-          {(error as Error).message || "An error occurred"}
+          {(error as Error).message || t("errors.generic")}
         </p>
         <Button onClick={() => refetch()} variant="outline">
-          Retry
+          {t("common.retry")}
         </Button>
       </div>
     );
@@ -327,20 +329,20 @@ export default function ManagerManagement() {
                     <User className="h-8 w-8" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold">Manager Management</h1>
+                    <h1 className="text-3xl font-bold">{t("managerManagement.title")}</h1>
                     <p className="text-blue-100 text-lg mt-1">
-                      Manage your team members and store managers
+                      {t("managerManagement.subtitle")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">System Active</span>
+                    <span className="text-sm">{t("storeManagement.systemActive")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4" />
-                    <span className="text-sm">{pagination.total} Managers</span>
+                    <span className="text-sm">{t("managerManagement.headerCount", { count: pagination.total })}</span>
                   </div>
                 </div>
               </div>
@@ -363,7 +365,7 @@ export default function ManagerManagement() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search managers by name, email, phone, or store..."
+                  placeholder={t("managerManagement.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -382,13 +384,13 @@ export default function ManagerManagement() {
                 className="h-12"
               />
               
-              <Button 
+                <Button 
                 type="button"
                 onClick={() => setIsCreateDialogOpen(true)}
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
               >
-                <Plus className="h-5 w-5 mr-2" />
-                Create Manager
+                  <Plus className="h-5 w-5 mr-2" />
+                  {t("managerManagement.createButton")}
               </Button>
             </form>
           </CardContent>
@@ -403,11 +405,11 @@ export default function ManagerManagement() {
                   <User className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Managers ({pagination.total})
+                  {t("managerManagement.headerCount", { count: pagination.total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => {
@@ -432,16 +434,16 @@ export default function ManagerManagement() {
             {managers.length === 0 ? (
               <EmptyState
                 title={debouncedSearch || status !== "all" || store !== "all"
-                  ? "No managers found matching your filters"
-                  : "No managers found"}
+                  ? t("managerManagement.empty.titleFiltered")
+                  : t("managerManagement.empty.title")}
                 description={!debouncedSearch && status === "all" && store === "all"
-                  ? "Get started by creating your first manager"
-                  : "Try adjusting your search or filters"}
+                  ? t("managerManagement.empty.description")
+                  : t("managerManagement.empty.descriptionFiltered")}
                 icon={<User className="h-12 w-12 mx-auto text-muted-foreground" />}
                 action={!debouncedSearch && status === "all" && store === "all" ? (
                   <Button onClick={() => setIsCreateDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create First Manager
+                    {t("managerManagement.empty.createFirst")}
                   </Button>
                 ) : undefined}
                 className="border-0"
@@ -450,13 +452,13 @@ export default function ManagerManagement() {
               <>
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Email</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Phone</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Store</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                      <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.name")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.email")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.phone")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.store")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.status")}</TableHead>
+                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -537,23 +539,23 @@ export default function ManagerManagement() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New Manager</DialogTitle>
+              <DialogTitle>{t("managerManagement.dialogs.createTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreateManager)} className="space-y-4">
               <ManagerForm form={createForm} stores={stores} mode="create" />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={createManagerMutation.isPending}>
                   {createManagerMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
+                      {t("managerManagement.dialogs.creating")}
                     </>
                   ) : (
-                    "Create Manager"
+                    t("managerManagement.dialogs.createTitle")
                   )}
                 </Button>
               </DialogFooter>
@@ -565,23 +567,23 @@ export default function ManagerManagement() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit Manager</DialogTitle>
+              <DialogTitle>{t("managerManagement.dialogs.editTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={editForm.handleSubmit(handleUpdateManager)} className="space-y-4">
               <ManagerForm form={editForm} stores={stores} mode="edit" />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={updateManagerMutation.isPending}>
                   {updateManagerMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {t("managerManagement.dialogs.updating")}
                     </>
                   ) : (
-                    "Update Manager"
+                    t("managerManagement.dialogs.editTitle")
                   )}
                 </Button>
               </DialogFooter>
@@ -601,8 +603,8 @@ export default function ManagerManagement() {
               deleteManagerMutation.mutate(managerToDelete.id);
             }
           }}
-          title="Delete Manager"
-          description="Are you sure you want to delete"
+          title={t("managerManagement.dialogs.deleteTitle")}
+          description={t("managerManagement.dialogs.deleteDesc")}
           itemName={managerToDelete ? `${managerToDelete.firstName} ${managerToDelete.lastName}` : undefined}
           isLoading={deleteManagerMutation.isPending}
         />

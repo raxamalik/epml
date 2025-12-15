@@ -1,0 +1,1706 @@
+{
+  "common": {
+    "loading": "Načítání...",
+    "save": "Uložit",
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "edit": "Upravit",
+    "create": "Vytvořit",
+    "search": "Hledat",
+    "filter": "Filtr",
+    "close": "Zavřít",
+    "submit": "Odeslat",
+    "back": "Zpět",
+    "next": "Další",
+    "previous": "Předchozí",
+    "confirm": "Potvrdit",
+    "yes": "Ano",
+    "no": "Ne",
+    "itemsPerPage": "Položek na stránku",
+    "notAvailable": "N/A"
+  },
+  "auth": {
+    "login": "Přihlásit se",
+    "logout": "Odhlásit se",
+    "signOut": "Odhlásit se",
+    "email": "E-mail",
+    "password": "Heslo",
+    "forgotPassword": "Zapomenuté heslo",
+    "resetPassword": "Obnovit heslo",
+    "welcomeBack": "Vítejte zpět!",
+    "loginSuccessful": "Úspěšně jste se přihlásili ke svému účtu",
+    "profileCompletionRequired": "Vyžadováno dokončení profilu",
+    "completeProfileMessage": "Prosím dokončete profil vaší společnosti pro pokračování",
+    "twoFactorRequired": "Vyžadováno 2FA",
+    "enter2FACode": "Prosím zadejte kód z Google Authenticator"
+  },
+  "navigation": {
+    "dashboard": "Nástěnka",
+    "companyManagement": "Správa společností",
+    "users": "Uživatelé",
+    "portalAdmins": "Portáloví administrátoři",
+    "stores": "Prodejny",
+    "myStore": "Moje prodejna",
+    "myStores": "Moje prodejny",
+    "managers": "Manažeři",
+    "pos": "Pokladna (POS)",
+    "products": "Produkty",
+    "inventory": "Sklad",
+    "analytics": "Analytika",
+    "settings": "Nastavení",
+    "auditLogs": "Auditní protokoly",
+    "categories": "Kategorie",
+    "activeSubstances": "Aktivní látky",
+    "salesHistory": "Historie prodeje",
+    "returnsHistory": "Historie vrácení",
+    "stockTransactions": "Skladové transakce"
+  },
+  "header": {
+    "searchPlaceholder": "Hledat uživatele, prodejny, analytiku...",
+    "notifications": "Notifikace",
+    "profile": "Profil"
+  },
+  "sidebar": {
+    "appName": "EPML",
+    "defaultUser": "Uživatel",
+    "loading": "Načítání..."
+  },
+  "dashboard": {
+    "title": "Nástěnka",
+    "overview": "Přehled",
+    "recentActivity": "Nedávná aktivita",
+    "quickActions": "Rychlé akce",
+    "super": {
+      "title": "Nástěnka super administrátora",
+      "subtitle": "Kompletní dohled a správa platformy",
+      "systemActive": "Systém aktivní",
+      "allUsers": "Všichni uživatelé a společnosti",
+      "fullAccess": "Plná kontrola přístupů",
+      "managerButton": "Nástěnka manažera"
+    },
+    "analytics": {
+      "totalUsers": "Celkem uživatelů",
+      "activeStores": "Aktivní prodejny",
+      "monthlyRevenue": "Měsíční tržby",
+      "systemUptime": "Dostupnost systému",
+      "fromLastMonth": "oproti minulému měsíci",
+      "allSystemsOperational": "Všechny systémy fungují"
+    },
+    "userRoles": {
+      "title": "Uživatelské role",
+      "superAdmin": "Super administrátor",
+      "portalAdmin": "Portálový administrátor",
+      "companyAdmin": "Správce společnosti",
+      "storeOwner": "Majitel prodejny",
+      "manager": "Manažer"
+    },
+    "recentUsers": {
+      "title": "Nedávní uživatelé",
+      "viewAll": "Zobrazit vše",
+      "user": "Uživatel",
+      "role": "Role",
+      "store": "Prodejna",
+      "status": "Stav",
+      "joined": "Připojil se",
+      "actions": "Akce",
+      "noUsers": "V systému nebyli nalezeni žádní uživatelé.",
+      "noUsersDesc": "Uživatelé se zde zobrazí po registraci.",
+      "noStoreAssigned": "Nepřiřazena žádná prodejna"
+    }
+  },
+  "users": {
+    "title": "Správa uživatelů",
+    "createUser": "Vytvořit uživatele",
+    "editUser": "Upravit uživatele",
+    "deleteUser": "Smazat uživatele",
+    "firstName": "Jméno",
+    "lastName": "Příjmení",
+    "role": "Role",
+    "status": "Stav",
+    "active": "Aktivní",
+    "inactive": "Neaktivní"
+  },
+  "stores": {
+    "title": "Správa prodejen",
+    "createStore": "Vytvořit prodejnu",
+    "editStore": "Upravit prodejnu",
+    "deleteStore": "Smazat prodejnu",
+    "storeName": "Název prodejny",
+    "address": "Adresa",
+    "phone": "Telefon",
+    "email": "E-mail"
+  },
+  "userManagement": {
+    "title": "Správa uživatelů",
+    "description": "Spravujte uživatelské účty, role a oprávnění v rámci platformy.",
+    "searchPlaceholder": "Hledat uživatele podle jména nebo e-mailu...",
+    "export": "Exportovat uživatele",
+    "table": {
+      "allUsers": "Všichni uživatelé ({{count}})",
+      "user": "Uživatel",
+      "role": "Role",
+      "store": "Prodejna",
+      "status": "Stav",
+      "joined": "Registrován",
+      "actions": "Akce",
+      "emptyTitle": "Žádní uživatelé nenalezeni",
+      "emptyTitleSearch": "Žádní uživatelé neodpovídají hledání",
+      "emptyDesc": "Zatím nebyli vytvořeni žádní uživatelé",
+      "emptyDescSearch": "Zkuste upravit hledaný dotaz"
+    }
+  },
+  "portalAdmin": {
+    "title": "Správa portálových administrátorů",
+    "description": "Spravujte portálové administrátory, kteří mají plný přístup k systému (kromě vytváření jiných portálových administrátorů).",
+    "accessDeniedTitle": "Přístup odepřen",
+    "accessDeniedDesc": "Přístup na tuto stránku mají pouze super administrátoři.",
+    "searchPlaceholder": "Hledat portálové administrátory podle jména nebo e-mailu...",
+    "createButton": "Vytvořit portálového administrátora",
+    "table": {
+      "title": "Portáloví administrátoři ({{count}})",
+      "portalAdmin": "Portálový administrátor",
+      "status": "Stav",
+      "created": "Vytvořeno",
+      "actions": "Akce",
+      "emptyTitle": "Nebyli nalezeni žádní portáloví administrátoři",
+      "emptyTitleSearch": "Nebyli nalezeni žádní portáloví administrátoři odpovídající vašemu vyhledávání",
+      "emptyDesc": "Vytvořte svého prvního portálového administrátora pro začátek",
+      "emptyDescSearch": "Zkuste upravit vyhledávací dotaz"
+    },
+    "create": {
+      "title": "Vytvořit portálového administrátora",
+      "description": "Vytvořte nového portálového administrátora. Portáloví administrátoři mají plný přístup k systému, ale nemohou vytvářet jiné portálové administrátory.",
+      "firstName": "Jméno *",
+      "lastName": "Příjmení *",
+      "email": "E-mail *",
+      "password": "Heslo *",
+      "firstNamePlaceholder": "Jan",
+      "lastNamePlaceholder": "Novák",
+      "emailPlaceholder": "portal.admin@example.com",
+      "passwordPlaceholder": "Zadejte bezpečné heslo",
+      "creating": "Vytváření...",
+      "createButton": "Vytvořit portálového administrátora",
+      "validationError": "Prosím vyplňte všechna povinná pole.",
+      "success": "Portálový administrátor vytvořen",
+      "successDesc": "Portálový administrátor byl úspěšně vytvořen.",
+      "error": "Chyba při vytváření portálového administrátora",
+      "errorDesc": "Došlo k chybě při vytváření portálového administrátora."
+    },
+    "delete": {
+      "title": "Smazat portálového administrátora",
+      "description": "Opravdu chcete smazat tohoto portálového administrátora? Tuto akci nelze vrátit zpět.",
+      "deleting": "Mazání...",
+      "deleteButton": "Smazat",
+      "success": "Portálový administrátor smazán",
+      "successDesc": "Portálový administrátor byl úspěšně smazán.",
+      "error": "Chyba při mazání portálového administrátora",
+      "errorDesc": "Došlo k chybě při mazání portálového administrátora."
+    }
+  },
+  "companyManagement": {
+    "title": "Správa společností",
+    "description": "Spravujte společnosti, licence a nastavení společností s podnikovými kontrolami",
+    "systemActive": "Systém aktivní",
+    "companiesCount": "{{count}} společností",
+    "searchPlaceholder": "Hledat společnosti podle názvu, IČO nebo DIČ...",
+    "createButton": "Vytvořit společnost",
+    "table": {
+      "title": "Společnosti ({{count}})",
+      "company": "Společnost",
+      "registration": "Registrace",
+      "contact": "Kontakt",
+      "status": "Stav",
+      "branches": "Pobočky",
+      "users": "Uživatelé",
+      "actions": "Akce",
+      "ico": "IČO",
+      "dic": "DIČ"
+    },
+    "actions": {
+      "viewDetails": "Zobrazit detaily",
+      "editCompany": "Upravit společnost",
+      "viewBranches": "Zobrazit pobočky",
+      "sendInvitation": "Odeslat pozvánku",
+      "suspendCompany": "Pozastavit společnost",
+      "unsuspendCompany": "Zrušit pozastavení společnosti",
+      "activateCompany": "Aktivovat společnost",
+      "deactivateCompany": "Deaktivovat společnost",
+      "deleteCompany": "Smazat společnost"
+    },
+    "status": {
+      "active": "Aktivní",
+      "inactive": "Neaktivní",
+      "suspended": "Pozastaveno"
+    },
+    "dialogs": {
+      "suspend": {
+        "title": "Pozastavit společnost",
+        "description": "Opravdu chcete pozastavit"
+      },
+      "unsuspend": {
+        "title": "Zrušit pozastavení společnosti",
+        "description": "Opravdu chcete zrušit pozastavení"
+      },
+      "activate": {
+        "title": "Aktivovat společnost",
+        "description": "Opravdu chcete aktivovat"
+      },
+      "deactivate": {
+        "title": "Deaktivovat společnost",
+        "description": "Opravdu chcete deaktivovat"
+      },
+      "delete": {
+        "title": "Smazat společnost",
+        "description": "Opravdu chcete smazat"
+      }
+    },
+    "toasts": {
+      "created": "Společnost úspěšně vytvořena!",
+      "updated": "Společnost úspěšně aktualizována!",
+      "deleted": "Společnost úspěšně smazána!",
+      "activated": "Společnost úspěšně aktivována!",
+      "deactivated": "Společnost úspěšně deaktivována!",
+      "suspended": "Společnost úspěšně pozastavena. {{stores}} prodejen a {{users}} uživatelů bylo také pozastaveno.",
+      "unsuspended": "Pozastavení společnosti úspěšně zrušeno. {{stores}} prodejen a {{users}} uživatelů bylo také znovu aktivováno.",
+      "invitationSent": "Pozvánka odeslána!",
+      "invitationDesc": "Pozvánka k aktivaci společnosti byla úspěšně odeslána"
+    }
+  },
+  "companyForm": {
+    "companyName": "Název společnosti *",
+    "companyNamePlaceholder": "Zadejte název společnosti",
+    "registrationNumber": "IČO *",
+    "registrationNumberPlaceholder": "12345678",
+    "vatNumber": "DIČ",
+    "vatNumberPlaceholder": "CZ12345678",
+    "address": "Plná adresa *",
+    "addressPlaceholder": "Ulice, Město, PSČ",
+    "email": "E-mail *",
+    "emailPlaceholder": "spolecnost@example.com",
+    "phone": "Telefon *",
+    "phonePlaceholder": "+420 123 456 789",
+    "contactPerson": "Kontaktní osoba *",
+    "contactPersonPlaceholder": "Celé jméno",
+    "password": "Přihlašovací heslo *",
+    "passwordPlaceholder": "Nastavte přihlašovací heslo pro tuto společnost",
+    "maxBranches": "Max. poboček"
+  },
+  "companyEdit": {
+    "title": "Upravit společnost",
+    "updating": "Aktualizace...",
+    "updateButton": "Aktualizovat společnost"
+  },
+  "companyCreate": {
+    "title": "Vytvořit novou společnost",
+    "creating": "Vytváření...",
+    "createButton": "Vytvořit společnost"
+  },
+  "activeSubstances": {
+    "title": "Aktivní látky",
+    "description": "Spravujte aktivní látky a jejich regulační limity",
+    "systemActive": "Systém aktivní",
+    "substancesCount": "{{count}} látek",
+    "searchPlaceholder": "Hledat látky podle názvu...",
+    "createButton": "Vytvořit látku",
+    "accessDenied": "Přístup odepřen",
+    "accessDeniedDesc": "Nemáte oprávnění k přístupu k aktivním látkám.",
+    "loading": "Načítání aktivních látek...",
+    "table": {
+      "title": "Aktivní látky ({{count}})",
+      "name": "Název",
+      "maxSingleDose": "Max. jednorázová dávka",
+      "maxDailyDose": "Max. denní dávka",
+      "maxConcentration": "Max. koncentrace (%)",
+      "created": "Vytvořeno",
+      "actions": "Akce"
+    },
+    "empty": {
+      "title": "Nebyly nalezeny žádné aktivní látky",
+      "desc": "Začněte vytvořením vaší první aktivní látky",
+      "descSearch": "Zkuste upravit vyhledávací termíny",
+      "createFirst": "Vytvořit první látku"
+    },
+    "create": {
+      "title": "Vytvořit novou aktivní látku"
+    },
+    "edit": {
+      "title": "Upravit aktivní látku"
+    },
+    "delete": {
+      "title": "Smazat aktivní látku",
+      "description": "Opravdu chcete smazat"
+    },
+    "toasts": {
+      "created": "Aktivní látka vytvořena",
+      "createdDesc": "Aktivní látka byla úspěšně vytvořena.",
+      "updated": "Aktivní látka aktualizována",
+      "updatedDesc": "Aktivní látka byla úspěšně aktualizována.",
+      "deleted": "Aktivní látka smazána",
+      "deletedDesc": "Aktivní látka byla úspěšně smazána.",
+      "error": "Chyba",
+      "errorCreate": "Nepodařilo se vytvořit aktivní látku",
+      "errorUpdate": "Nepodařilo se aktualizovat aktivní látku",
+      "errorDelete": "Nepodařilo se smazat aktivní látku"
+    }
+  },
+  "activeSubstanceForm": {
+    "name": "Název *",
+    "namePlaceholder": "Zadejte název látky (např. Mitragynin)",
+    "maxSingleDose": "Max. jednorázová dávka",
+    "maxSingleDosePlaceholder": "např. 125",
+    "maxSingleDoseDesc": "Maximální povolená jednorázová dávka (např. 125 mg)",
+    "maxDailyDose": "Max. denní dávka",
+    "maxDailyDosePlaceholder": "např. 375",
+    "maxDailyDoseDesc": "Maximální povolená denní dávka (např. 375 mg)",
+    "maxConcentration": "Max. koncentrace (%)",
+    "maxConcentrationPlaceholder": "např. 2.5",
+    "maxConcentrationDesc": "Maximální povolená koncentrace (0-100%)",
+    "nameRequired": "Název je povinný",
+    "invalidNumber": "Musí být platné kladné číslo",
+    "invalidConcentration": "Musí být platné číslo mezi 0 a 100",
+    "creating": "Vytváření...",
+    "updating": "Aktualizace...",
+    "createButton": "Vytvořit látku",
+    "updateButton": "Aktualizovat látku"
+  },
+  "auditLogs": {
+    "title": "Auditní protokoly",
+    "description": "Sledujte všechny systémové aktivity a akce uživatelů pro zabezpečení a shodu",
+    "filters": "Filtry",
+    "search": "Hledat",
+    "searchPlaceholder": "Hledat v popisech, e-mailech, akcích...",
+    "action": "Akce",
+    "allActions": "Všechny akce",
+    "entityType": "Typ entity",
+    "allTypes": "Všechny typy",
+    "severity": "Závažnost",
+    "allSeverities": "Všechny závažnosti",
+    "startDate": "Počáteční datum",
+    "endDate": "Koncové datum",
+    "clearAllFilters": "Vymazat všechny filtry",
+    "refresh": "Obnovit",
+    "autoRefresh": "Automatické obnovování",
+    "autoRefreshOn": "ZAPNUTO",
+    "autoRefreshOff": "VYPNUTO",
+    "updatesEvery": "Aktualizace každých 10 sekund",
+    "totalEntries": "Celkem: {{count}} záznamů",
+    "auditLogEntries": "Záznamy auditního protokolu",
+    "showingEntries": "Zobrazeno {{start}} až {{end}} z {{total}} záznamů",
+    "page": "Stránka",
+    "pageOf": "Stránka {{current}} z {{total}}",
+    "previous": "Předchozí",
+    "next": "Další",
+    "first": "První",
+    "last": "Poslední",
+    "accessDenied": "Přístup odepřen",
+    "accessDeniedDesc": "Nemáte oprávnění k zobrazení auditních protokolů.",
+    "noLogsFound": "Žádné auditní protokoly nenalezeny",
+    "noLogsFoundDesc": "Zkuste upravit filtry pro zobrazení více výsledků.",
+    "user": "Uživatel",
+    "ipAddress": "IP adresa",
+    "entityId": "ID entity",
+    "storeId": "ID prodejny",
+    "companyId": "ID společnosti",
+    "viewDetails": "Zobrazit detaily",
+    "oldValues": "Staré hodnoty",
+    "newValues": "Nové hodnoty",
+    "metadata": "Metadata",
+    "actions": {
+      "userLogin": "Přihlášení uživatele",
+      "userLogout": "Odhlášení uživatele",
+      "productCreate": "Vytvoření produktu",
+      "productUpdate": "Aktualizace produktu",
+      "saleCreate": "Vytvoření prodeje",
+      "userCreate": "Vytvoření uživatele",
+      "userUpdate": "Aktualizace uživatele",
+      "storeCreate": "Vytvoření prodejny",
+      "storeUpdate": "Aktualizace prodejny",
+      "companyCreate": "Vytvoření společnosti",
+      "companyUpdate": "Aktualizace společnosti"
+    },
+    "entityTypes": {
+      "user": "Uživatel",
+      "product": "Produkt",
+      "sale": "Prodej",
+      "store": "Prodejna",
+      "company": "Společnost"
+    },
+    "severities": {
+      "info": "Informace",
+      "warning": "Varování",
+      "error": "Chyba",
+      "critical": "Kritické"
+    }
+  },
+  "dialogs": {
+    "cancel": "Zrušit",
+    "delete": "Smazat",
+    "deleting": "Mazání...",
+    "cannotUndo": "Tuto akci nelze vrátit zpět.",
+    "sendInvitation": "Odeslat pozvánku",
+    "sending": "Odesílání...",
+    "activate": "Aktivovat",
+    "activating": "Aktivace...",
+    "deactivate": "Deaktivovat",
+    "deactivating": "Deaktivace...",
+    "suspend": "Pozastavit",
+    "suspending": "Pozastavování...",
+    "unsuspend": "Zrušit pozastavení",
+    "unsuspending": "Rušení pozastavení..."
+  },
+  "settings": {
+    "title": "Nastavení",
+    "tabs": {
+      "profile": "Profil",
+      "companyInfo": "Informace o společnosti",
+      "regional": "Regionální",
+      "notifications": "Oznámení",
+      "security": "Zabezpečení",
+      "system": "Systém"
+    },
+    "profile": "Profil",
+    "companyInfo": "Informace o společnosti",
+    "regional": "Regionální",
+    "notifications": "Oznámení",
+    "security": "Zabezpečení",
+    "system": "Systém",
+    "twoFactor": "Dvoufaktorové ověřování",
+    "enabled": "Povoleno",
+    "disabled": "Zakázáno",
+    "setup": "Nastavit",
+    "disable": "Zakázat",
+    "personalDescription": "Spravujte svá osobní nastavení a preference",
+    "companyDescription": "Spravujte nastavení a preference vaší společnosti",
+    "personalInformation": "Osobní informace",
+    "personalInformationDesc": "Aktualizujte své osobní údaje a kontaktní informace",
+    "firstName": "Jméno",
+    "lastName": "Příjmení",
+    "phoneNumber": "Telefonní číslo",
+    "profileImage": "Profilový obrázek",
+    "uploadImage": "Nahrát obrázek",
+    "uploading": "Nahrávání...",
+    "orEnterImageUrl": "Nebo zadejte URL obrázku:",
+    "imageFormatHint": "JPG, PNG, GIF do 5MB",
+    "companyInformation": "Informace o společnosti",
+    "companyInformationDesc": "Nastavení a preference pro celou společnost",
+    "companyAccountNote": "Firemní účet: Tato nastavení platí pro všechny uživatele ve vaší společnosti. Jednotliví uživatelé mohou některé preference přepsat ve svých osobních nastaveních.",
+    "regionalSettings": "Regionální nastavení",
+    "regionalSettingsDesc": "Nakonfigurujte časové pásmo, měnu a jazykové preference",
+    "timezone": "Časové pásmo",
+    "selectTimezone": "Vyberte časové pásmo",
+    "currency": "Výchozí měna",
+    "selectCurrency": "Vyberte měnu",
+    "language": "Jazyk",
+    "selectLanguage": "Vyberte jazyk",
+    "notificationPreferences": "Předvolby oznámení",
+    "notificationPreferencesDesc": "Zvolte, jakým způsobem chcete dostávat upozornění a oznámení",
+    "emailNotifications": "E-mailová oznámení",
+    "emailNotificationsDesc": "Dostávejte e-mailová upozornění pro důležité události a aktualizace",
+    "smsAlerts": "SMS upozornění",
+    "smsAlertsDesc": "Dostávejte SMS oznámení pro kritické problémy",
+    "weeklyReports": "Týdenní zprávy",
+    "weeklyReportsDesc": "Automaticky generovat a odesílat týdenní analytické zprávy",
+    "storeAlerts": "Upozornění prodejny",
+    "storeAlertsDesc": "Oznámení, když se prodejny odpojí nebo mají problémy",
+    "passwordAuthentication": "Heslo a ověřování",
+    "passwordAuthenticationDesc": "Spravujte nastavení zabezpečení a metody ověřování",
+    "sessionTimeout": "Časový limit relace (minuty)",
+    "selectTimeout": "Vyberte časový limit",
+    "twoFactorAuth": "Dvoufaktorové ověřování",
+    "twoFactorAuthDesc": "Přidejte další vrstvu zabezpečení pomocí Google Authenticator",
+    "twoFactorActive": "✓ Dvoufaktorové ověřování je aktivní na vašem účtu",
+    "twoFactorActiveDesc": "Použijte aplikaci pro ověřování k vygenerování kódů při přihlášení",
+    "enable2FA": "Povolit 2FA",
+    "settingUp": "Nastavování...",
+    "disable2FA": "Zakázat",
+    "disabling": "Zakazování...",
+    "passwordPolicy": "Zásady hesel",
+    "passwordPolicyDesc": "Nakonfigurujte požadavky na heslo",
+    "requireUppercase": "Vyžadovat velká písmena",
+    "requireNumbers": "Vyžadovat čísla",
+    "requireSymbols": "Vyžadovat speciální znaky",
+    "systemSettings": "Systémová nastavení",
+    "systemSettingsDesc": "Pokročilá systémová konfigurace a nastavení auditu",
+    "loginAuditTrail": "Auditní záznam přihlášení",
+    "alwaysEnabled": "Vždy povoleno",
+    "loginAuditTrailDesc": "Sledovat všechny aktivity přihlášení uživatelů a udržovat protokoly (nelze zakázat z důvodu bezpečnostní shody)",
+    "dataRetention": "Doba uchovávání dat (dny)",
+    "dataRetentionDesc": "Jak dlouho uchovávat protokoly aktivit uživatelů a systémová data",
+    "saveSettings": "Uložit nastavení",
+    "saving": "Ukládání...",
+    "setup2FATitle": "Nastavit dvoufaktorové ověřování",
+    "setup2FADesc": "Zabezpečte svůj účet pomocí Google Authenticator pro zvýšenou ochranu",
+    "importantDeleteExisting": "Důležité: Smazat existující záznam",
+    "importantDeleteExistingDesc": "Před naskenováním nového QR kódu smažte jakýkoli existující e-mailový záznam z Google Authenticator.",
+    "scanQRCode": "Naskenovat QR kód",
+    "scanQRCodeDesc": "Otevřete Google Authenticator a naskenujte QR kód níže",
+    "cantScan": "Nemůžete naskenovat? Zadejte tento klíč ručně:",
+    "copied": "Zkopírováno!",
+    "manualKeyCopied": "Ruční zadávací klíč zkopírován do schránky",
+    "enterVerificationCode": "Zadejte ověřovací kód",
+    "enterVerificationCodeDesc": "Zadejte 6místný kód z aplikace pro ověřování",
+    "verificationCode": "Ověřovací kód",
+    "verificationCodeHint": "Zadejte 6místný kód, který se zobrazí v aplikaci Google Authenticator",
+    "verifyEnable": "Ověřit a povolit",
+    "verifying": "Ověřování...",
+    "twoFactorSuccessTitle": "2FA úspěšně povoleno!",
+    "twoFactorSuccessDesc": "Dvoufaktorové ověřování nyní chrání váš účet",
+    "saveBackupCodes": "Důležité: Uložte si záložní kódy",
+    "saveBackupCodesDesc": "Uložte tyto kódy na bezpečné místo. Použijte je pro přístup k účtu, pokud ztratíte telefon.",
+    "copyAllBackupCodes": "Kopírovat všechny záložní kódy",
+    "backupCodesCopied": "Záložní kódy zkopírovány do schránky",
+    "completeSetup": "Dokončit nastavení",
+    "disable2FATitle": "Zakázat dvoufaktorové ověřování",
+    "disable2FADesc": "Z bezpečnostních důvodů zadejte své heslo pro zakázání 2FA",
+    "warning": "Varování:",
+    "disable2FAWarning": "Zakázání 2FA sníží zabezpečení vašeho účtu. Pokud ho chcete znovu povolit, budete ho muset znovu nastavit.",
+    "enterPassword": "Zadejte své heslo",
+    "enterPasswordPlaceholder": "Zadejte své heslo",
+    "imageRemoved": "Obrázek odstraněn",
+    "imageRemovedDesc": "Profilový obrázek byl odstraněn. Nezapomeňte uložit svá nastavení.",
+    "imageUploaded": "Obrázek nahrán",
+    "imageUploadedDesc": "Profilový obrázek byl nahrán. Nezapomeňte uložit svá nastavení.",
+    "invalidFile": "Neplatný soubor",
+    "invalidFileDesc": "Prosím vyberte soubor obrázku (JPG, PNG, GIF atd.)",
+    "fileTooLarge": "Soubor příliš velký",
+    "fileTooLargeDesc": "Prosím vyberte obrázek menší než 5MB",
+    "uploadFailed": "Nahrávání selhalo",
+    "toasts": {
+      "updated": "Nastavení aktualizováno",
+      "updatedDesc": "Vaše nastavení byla úspěšně aktualizována.",
+      "error": "Chyba",
+      "setupError": "Chyba při nastavení 2FA",
+      "verifyError": "Chyba při ověřování nastavení 2FA",
+      "verifySuccess": "Nastavení 2FA úspěšné",
+      "disableError": "Chyba při zakazování 2FA",
+      "disableSuccess": "2FA úspěšně zakázáno",
+      "passwordRequired": "Heslo je povinné pro zakázání 2FA",
+      "secretTokenRequired": "Tajný klíč a token jsou povinné"
+    }
+  },
+  "companyDashboard": {
+    "title": "Firemní nástěnka",
+    "subtitle": "Spravujte prodejny a sledujte analytiky",
+    "systemActive": "Systém aktivní",
+    "activeStores": "{{count}} aktivních prodejen",
+    "managersCount": "{{count}} manažerů",
+    "cards": {
+      "totalStores": "Celkem prodejen",
+      "activeStores": "{{count}} aktivních prodejen",
+      "totalRevenue": "Celkové tržby",
+      "monthlyGrowth": "+{{percent}}% oproti minulému měsíci",
+      "products": "Produkty",
+      "productsDesc": "Napříč všemi prodejnami",
+      "customers": "Zákazníci",
+      "customersDesc": "Celková zákaznická základna"
+    },
+    "analytics": {
+      "title": "Přehled analytik",
+      "revenueComparison": "Porovnání tržeb prodejen",
+      "customersProducts": "Zákazníci a produkty podle prodejny"
+    },
+    "tabs": {
+      "stores": "Prodejny",
+      "managers": "Manažeři",
+      "settings": "Nastavení"
+    },
+    "stores": {
+      "title": "Provozovny",
+      "searchPlaceholder": "Hledejte prodejny podle názvu, adresy nebo manažera...",
+      "managerLabel": "Manažer",
+      "status": "Stav",
+      "revenue": "Tržby",
+      "products": "Produkty",
+      "actions": "Akce",
+      "addStore": "Přidat prodejnu ({{used}}/{{limit}})",
+      "limitReached": "Limit dosažen ({{used}}/{{limit}})",
+      "activeStores": "{{count}} prodejen",
+      "active": "aktivních prodejen"
+    },
+    "managers": {
+      "title": "Správa manažerů",
+      "searchPlaceholder": "Hledejte manažery podle jména, e-mailu nebo role...",
+      "addManager": "Přidat manažera",
+      "managerCount": "{{count}} manažerů",
+      "noManagers": "Žádní manažeři nenalezeni. Přidejte prvního manažera.",
+      "storeLabel": "Prodejna",
+      "roleLabel": "Role",
+      "statusLabel": "Stav",
+      "actions": "Akce",
+      "active": "Aktivní",
+      "inactive": "Neaktivní",
+      "createManager": "Vytvořit manažera",
+      "updateManager": "Aktualizovat manažera",
+      "deleteManager": "Smazat manažera",
+      "deleteManagerConfirm": "Opravdu chcete smazat {{name}}? Tuto akci nelze vrátit.",
+      "assignStore": "Přiřadit k prodejně (volitelné)",
+      "noStoreAssigned": "Není přiřazena žádná prodejna"
+    },
+    "settings": {
+      "title": "Profil společnosti",
+      "description": "Aktualizujte informace o společnosti a kontaktní údaje",
+      "companyName": "Název společnosti",
+      "registrationNumber": "IČO",
+      "vatNumber": "DIČ",
+      "email": "E-mail společnosti",
+      "phone": "Telefon",
+      "address": "Firemní adresa",
+      "saveProfile": "Uložit změny profilu",
+      "systemPreferences": "Systémové preference",
+      "systemPreferencesDesc": "Nastavte systémová nastavení a oznámení",
+      "emailNotifications": "E-mailová oznámení",
+      "emailNotificationsDesc": "Dostávejte e-mailové upozornění na důležité události",
+      "smsAlerts": "SMS upozornění",
+      "smsAlertsDesc": "Dostávejte SMS pro kritické události",
+      "weeklyReports": "Týdenní reporty",
+      "weeklyReportsDesc": "Automaticky generovat týdenní analytické reporty",
+      "timezone": "Časové pásmo",
+      "selectTimezone": "Vyberte časové pásmo",
+      "currency": "Výchozí měna",
+      "selectCurrency": "Vyberte měnu",
+      "updatePreferences": "Aktualizovat preference",
+      "storeConfiguration": "Konfigurace prodejen",
+      "storeConfigurationDesc": "Spravujte nastavení prodejen a provozní dobu",
+      "maxStores": "Maximální počet prodejen",
+      "storesAllowed": "povolených prodejen",
+      "currentStores": "Aktuálně: {{used}} / {{limit}} prodejen",
+      "defaultOperatingHours": "Výchozí provozní doba",
+      "openingTime": "Čas otevření",
+      "closingTime": "Čas zavření",
+      "autoSyncInventory": "Automatická synchronizace skladu",
+      "autoSyncInventoryDesc": "Automaticky synchronizovat sklad napříč prodejnami",
+      "centralizedPricing": "Centralizované ceny",
+      "centralizedPricingDesc": "Použít jednotné ceny ve všech prodejnách",
+      "applyStoreSettings": "Použít nastavení prodejen",
+      "securityAccess": "Zabezpečení a přístup",
+      "securityAccessDesc": "Spravujte nastavení zabezpečení a oprávnění uživatelů",
+      "passwordPolicy": "Zásady hesel",
+      "requireUppercase": "Vyžadovat velká písmena",
+      "requireNumbers": "Vyžadovat čísla",
+      "requireSymbols": "Vyžadovat speciální znaky",
+      "sessionTimeout": "Časový limit relace",
+      "selectTimeout": "Vyberte časový limit",
+      "twoFactor": "Dvoufaktorové ověřování",
+      "twoFactorDesc": "Povolit 2FA pro vyšší zabezpečení",
+      "loginAuditTrail": "Auditní záznam přihlášení",
+      "loginAuditTrailDesc": "Sledovat všechny přihlášení uživatelů",
+      "updateSecurity": "Aktualizovat zabezpečení",
+      "dangerZone": "Nebezpečná zóna",
+      "dangerZoneDesc": "Tyto akce jsou trvalé a nelze je vrátit",
+      "exportData": "Exportovat data společnosti",
+      "exportDataDesc": "Stáhněte všechna firemní a prodejní data",
+      "closeAccount": "Zavřít firemní účet",
+      "closeAccountDesc": "Trvale uzavřít firemní účet a veškerá data",
+      "storeIsActive": "Prodejna je aktivní",
+      "storeActiveLabel": "Stav aktivity",
+      "storeActiveDesc": "Povolit nebo zakázat tuto prodejnu"
+    },
+    "dialogs": {
+      "viewStore": {
+        "title": "Detail prodejny",
+        "storeName": "Název prodejny",
+        "status": "Stav",
+        "address": "Adresa",
+        "phone": "Telefon",
+        "manager": "Manažer",
+        "revenue": "Tržby",
+        "products": "Produkty",
+        "customers": "Zákazníci",
+        "created": "Vytvořeno",
+        "close": "Zavřít",
+        "editStore": "Upravit prodejnu"
+      },
+      "editStore": {
+        "title": "Upravit prodejnu",
+        "storeName": "Název prodejny",
+        "phone": "Telefon",
+        "address": "Adresa",
+        "revenue": "Tržby",
+        "customerCount": "Počet zákazníků",
+        "productCount": "Počet produktů",
+        "active": "Prodejna je aktivní",
+        "cancel": "Zrušit",
+        "update": "Aktualizovat prodejnu"
+      },
+      "createStore": {
+        "title": "Vytvořit novou prodejnu",
+        "create": "Vytvořit prodejnu",
+        "creating": "Vytváření..."
+      },
+      "deleteManager": {
+        "title": "Smazat manažera",
+        "confirm": "Opravdu chcete smazat {{name}}? Tuto akci nelze vrátit."
+      },
+      "managerForm": {
+        "firstName": "Jméno",
+        "lastName": "Příjmení",
+        "email": "E-mail",
+        "phone": "Telefon",
+        "password": "Heslo",
+        "role": "Role",
+        "store": "Přiřadit k prodejně (volitelné)",
+        "activeStatus": "Stav aktivity",
+        "activeStatusDesc": "Povolit nebo zakázat tento účet manažera",
+        "noStore": "Není přiřazena žádná prodejna"
+      }
+    }
+  },
+  "storeManagement": {
+    "title": "Správa prodejen",
+    "subtitle": "Spravujte své provozovny a jejich nastavení",
+    "searchPlaceholder": "Hledejte prodejny podle názvu, adresy nebo telefonu...",
+    "createButton": "Vytvořit prodejnu",
+    "headerCount": "Prodejny ({{count}})",
+    "statusActive": "Aktivní",
+    "statusInactive": "Neaktivní",
+    "table": {
+      "storeName": "Název prodejny",
+      "address": "Adresa",
+      "phone": "Telefon",
+      "status": "Stav",
+      "revenue": "Tržby",
+      "products": "Produkty",
+      "actions": "Akce"
+    },
+    "empty": {
+      "title": "Žádné prodejny nenalezeny",
+      "titleSearch": "Žádné prodejny neodpovídají vyhledávání",
+      "description": "Začněte vytvořením první prodejny",
+      "descriptionSearch": "Zkuste upravit vyhledávací dotaz",
+      "createFirst": "Vytvořit první prodejnu"
+    },
+    "dialogs": {
+      "createTitle": "Vytvořit novou prodejnu",
+      "create": "Vytvořit prodejnu",
+      "creating": "Vytváření...",
+      "editTitle": "Upravit prodejnu",
+      "update": "Aktualizovat prodejnu",
+      "updating": "Aktualizace...",
+      "deleteTitle": "Smazat prodejnu",
+      "deleteDesc": "Opravdu chcete smazat",
+      "activeLabel": "Prodejna je aktivní"
+    },
+    "toasts": {
+      "created": "Prodejna vytvořena",
+      "createdDesc": "Prodejna byla úspěšně vytvořena.",
+      "updated": "Prodejna aktualizována",
+      "updatedDesc": "Prodejna byla úspěšně aktualizována.",
+      "deleted": "Prodejna smazána",
+      "deletedDesc": "Prodejna byla úspěšně smazána.",
+      "error": "Chyba",
+      "errorGeneric": "Došlo k chybě"
+    }
+  },
+  "categoryManagement": {
+    "title": "Správa kategorií",
+    "subtitle": "Organizujte produkty pomocí kategorií",
+    "searchPlaceholder": "Hledejte kategorie podle názvu nebo popisu...",
+    "createButton": "Vytvořit kategorii",
+    "headerCount": "Kategorie ({{count}})",
+    "table": {
+      "name": "Název kategorie",
+      "description": "Popis",
+      "stores": "Prodejny",
+      "status": "Stav",
+      "created": "Vytvořeno",
+      "actions": "Akce"
+    },
+    "empty": {
+      "title": "Žádné kategorie nenalezeny",
+      "titleSearch": "Žádné kategorie neodpovídají vyhledávání",
+      "description": "Začněte vytvořením první kategorie",
+      "descriptionSearch": "Zkuste upravit vyhledávací dotaz",
+      "createFirst": "Vytvořit první kategorii"
+    },
+    "dialogs": {
+      "createTitle": "Vytvořit novou kategorii",
+      "create": "Vytvořit kategorii",
+      "creating": "Vytváření...",
+      "editTitle": "Upravit kategorii",
+      "update": "Aktualizovat kategorii",
+      "updating": "Aktualizace...",
+      "deleteTitle": "Smazat kategorii",
+      "deleteDesc": "Opravdu chcete smazat",
+      "storesLabel": "Vyberte prodejny",
+      "allStores": "Všechny prodejny (celá společnost)",
+      "noStores": "Není přiřazena žádná prodejna"
+    },
+    "toasts": {
+      "created": "Kategorie vytvořena",
+      "createdDesc": "Kategorie byla úspěšně vytvořena.",
+      "updated": "Kategorie aktualizována",
+      "updatedDesc": "Kategorie byla úspěšně aktualizována.",
+      "deleted": "Kategorie smazána",
+      "deletedDesc": "Kategorie byla úspěšně smazána.",
+      "error": "Chyba",
+      "errorGeneric": "Došlo k chybě"
+    },
+    "status": {
+      "active": "Aktivní",
+      "inactive": "Neaktivní"
+    }
+  },
+  "products": {
+    "title": "Produkty",
+    "subtitle": "Spravujte katalog produktů vaší prodejny",
+    "searchPlaceholder": "Hledejte produkty, kategorie nebo čárové kódy...",
+    "addProduct": "Přidat produkt",
+    "filters": {
+      "category": "Kategorie",
+      "allCategories": "Všechny kategorie",
+      "stock": "Sklad",
+      "allStock": "Všechny zásoby",
+      "lowStock": "Nízký stav",
+      "outOfStock": "Nedostupné",
+      "viewGrid": "Mřížka",
+      "viewTable": "Tabulka"
+    },
+    "cards": {
+      "totalProducts": "Celkem produktů",
+      "itemsInCatalog": "Položek v katalogu",
+      "lowStockItems": "Položky s nízkým stavem",
+      "needRestocking": "Potřebují doplnit",
+      "outOfStock": "Nedostupné",
+      "unavailable": "Nedostupné položky",
+      "totalValue": "Celková hodnota",
+      "inventoryValue": "Hodnota zásob"
+    },
+    "empty": {
+      "title": "Žádné produkty nenalezeny",
+      "description": "Začněte přidáním prvního produktu do katalogu.",
+      "createFirst": "Přidat první produkt"
+    },
+    "table": {
+      "image": "Obrázek",
+      "name": "Název",
+      "category": "Kategorie",
+      "store": "Prodejna",
+      "allStores": "Všechny prodejny",
+      "price": "Cena",
+      "stock": "Sklad",
+      "status": "Stav",
+      "barcode": "Čárový kód",
+      "actions": "Akce",
+      "productCatalog": "Katalog produktů ({{count}})"
+    },
+    "stockStatus": {
+      "in": "Skladem",
+      "low": "Nízký stav",
+      "out": "Vyprodáno",
+      "inStock": "Skladem",
+      "lowStock": "Nízký stav",
+      "outOfStock": "Vyprodáno"
+    },
+    "dropdownActions": {
+      "viewDetails": "Zobrazit detaily",
+      "edit": "Upravit",
+      "delete": "Smazat"
+    },
+    "dialogs": {
+      "createTitle": "Přidat nový produkt",
+      "editTitle": "Upravit produkt",
+      "viewDetails": "Zobrazit detaily",
+      "deleteTitle": "Smazat produkt",
+      "deleteDesc": "Opravdu chcete smazat tento produkt? Tuto akci nelze vrátit.",
+      "activeSubstancesTitle": "Aktivní látky",
+      "noActiveSubstances": "Zatím nebyly přidány žádné aktivní látky.",
+      "content": "Obsah",
+      "concentration": "Koncentrace",
+      "productImage": "Obrázek produktu",
+      "description": "Popis",
+      "substanceName": "Název látky",
+      "productForm": "Forma produktu",
+      "subtype": "Podtyp",
+      "packageSize": "Velikost balení",
+      "batchNumber": "Číslo šarže",
+      "quantityUnit": "Měrná jednotka",
+      "receivedDate": "Datum naskladnění",
+      "dosageInformation": "Informace o dávkování",
+      "recommendedSingleDose": "Doporučená jednorázová dávka",
+      "recommendedDailyDose": "Doporučená denní dávka",
+      "warningUnder18": "Upozornění pro osoby mladší 18 let",
+      "healthWarning": "Zdravotní upozornění",
+      "minAge": "Minimální věk",
+      "adultOnlyProduct": "Produkt pouze pro dospělé",
+      "consumerInformation": "Informace pro spotřebitele",
+      "warningsAgeRestrictions": "Upozornění a věková omezení"
+    },
+    "detail": {
+      "notFoundTitle": "Produkt nenalezen",
+      "notFoundDescription": "Produkt, který hledáte, neexistuje nebo k němu nemáte přístup.",
+      "backToProducts": "Zpět na produkty",
+      "productId": "ID produktu: {{id}}",
+      "editProduct": "Upravit produkt",
+      "quickStatsTitle": "Rychlé statistiky",
+      "stockLevel": "Stav zásob",
+      "stockUnits": "{{count}} ks",
+      "vat": "DPH",
+      "vatRate": "Sazba DPH",
+      "basicInfoTitle": "Základní informace",
+      "regulatoryComplianceTitle": "Regulační informace",
+      "regulatoryDosageTitle": "Regulační a dávkovací informace",
+      "noActiveSubstances": "K tomuto produktu nejsou přidány žádné aktivní látky."
+    },
+    "toasts": {
+      "created": "Produkt byl vytvořen",
+      "updated": "Produkt byl aktualizován",
+      "deleted": "Produkt byl smazán",
+      "error": "Chyba",
+      "errorGeneric": "Došlo k chybě"
+    }
+  },
+  "storeDetail": {
+    "notFoundTitle": "Prodejna nenalezena",
+    "notFoundDescription": "Nepodařilo se načíst informace o prodejně.",
+    "notFoundHelp": "Pokud si myslíte, že jde o chybu, kontaktujte prosím podporu.",
+    "header": {
+      "address": "Adresa",
+      "phone": "Telefon"
+    },
+    "stats": {
+      "totalRevenue": "Celkové tržby",
+      "products": "Produkty",
+      "staffMembers": "Členové personálu"
+    },
+    "info": {
+      "sectionTitle": "Informace o prodejně",
+      "storeName": "Název prodejny",
+      "status": "Stav",
+      "address": "Adresa",
+      "noAddress": "Žádná adresa není k dispozici",
+      "phone": "Telefon",
+      "storeOwnerEmail": "E-mail vlastníka prodejny",
+      "customers": "Zákazníci",
+      "createdAt": "Vytvořeno"
+    },
+    "staff": {
+      "sectionTitle": "Členové personálu",
+      "name": "Jméno",
+      "email": "E-mail",
+      "phone": "Telefon",
+      "status": "Stav",
+      "created": "Vytvořeno",
+      "none": "K této prodejně nejsou přiřazeni žádní členové personálu."
+    }
+  },
+  "storeOwnerDashboard": {
+    "cards": {
+      "totalRevenue": "Celkové tržby",
+      "revenueChange": "{{value}} oproti včera",
+      "todaysSales": "Dnešní prodeje",
+      "todaysTransactions": "{{count}} transakcí",
+      "products": "Produkty",
+      "productsLowOut": "{{low}} s nízkým stavem, {{out}} vyprodané",
+      "staff": "Členové personálu",
+      "staffActive": "Aktivní členové týmu"
+    },
+    "tabs": {
+      "overview": "Přehled",
+      "analytics": "Analytika",
+      "products": "Produkty",
+      "staff": "Personál"
+    },
+    "overview": {
+      "salesTrend": "Tržby za posledních 7 dní",
+      "paymentMethods": "Platební metody",
+      "payment": {
+        "cash": "Hotovost",
+        "card": "Karta"
+      },
+      "quickActionsTitle": "Rychlé akce",
+      "manageProductsTitle": "Spravovat produkty",
+      "manageProductsDesc": "Zobrazení a správa zásob",
+      "inventoryTitle": "Sklad",
+      "inventoryDesc": "Sledování skladových zásob",
+      "manageStaffTitle": "Spravovat personál",
+      "manageStaffDesc": "Zobrazení a správa týmu"
+    },
+    "analytics": {
+      "salesByDayTitle": "Prodeje podle dne (posledních 7 dní)",
+      "transactionsByDayTitle": "Transakce podle dne",
+      "additionalStatsTitle": "Další statistiky",
+      "totalCustomers": "Celkem zákazníků",
+      "inventoryValue": "Hodnota zásob",
+      "totalTransactions": "Celkem transakcí"
+    },
+    "productsTab": {
+      "title": "Přehled produktů",
+      "viewAll": "Zobrazit všechny produkty",
+      "totalProducts": "Celkem produktů",
+      "lowStock": "Nízký stav",
+      "outOfStock": "Vyprodáno",
+      "noProducts": "Žádné produkty nenalezeny"
+    },
+    "staffTab": {
+      "title": "Členové personálu",
+      "manageStaff": "Spravovat personál",
+      "noStaff": "Žádní členové personálu nenalezeni"
+    }
+  },
+  "branchDetails": {
+    "errorTitle": "Chyba",
+    "notFoundTitle": "Pobočka nenalezena",
+    "notFoundDescription": "Pobočka, kterou hledáte, neexistuje nebo k ní nemáte oprávnění.",
+    "backToBranches": "Zpět na pobočky",
+    "backToStores": "Zpět na prodejny",
+    "retry": "Zkusit znovu",
+    "salesTable": {
+      "noSalesFound": "Pro tuto pobočku nebyly nalezeny žádné prodeje.",
+      "saleId": "ID prodeje",
+      "total": "Celkem",
+      "paymentMethod": "Platební metoda",
+      "date": "Datum"
+    },
+    "managersTable": {
+      "title": "Manažeři pobočky",
+      "viewAll": "Zobrazit všechny manažery",
+      "noManagersFound": "Pro tuto pobočku nebyli nalezeni žádní manažeři.",
+      "name": "Jméno",
+      "email": "E-mail",
+      "phone": "Telefon",
+      "status": "Stav",
+      "joined": "Přidán",
+      "viewAllCount": "Zobrazit všech {{count}} manažerů"
+    }
+  },
+  "managerManagement": {
+    "title": "Správa manažerů",
+    "subtitle": "Spravujte členy týmu a manažery prodejen",
+    "searchPlaceholder": "Hledejte manažery podle jména, e-mailu, telefonu nebo prodejny...",
+    "createButton": "Vytvořit manažera",
+    "headerCount": "Manažeři ({{count}})",
+    "table": {
+      "name": "Jméno",
+      "email": "E-mail",
+      "phone": "Telefon",
+      "store": "Prodejna",
+      "status": "Stav",
+      "actions": "Akce"
+    },
+    "empty": {
+      "title": "Žádní manažeři nenalezeni",
+      "titleFiltered": "Žádní manažeři neodpovídají filtrům",
+      "description": "Začněte vytvořením prvního manažera",
+      "descriptionFiltered": "Zkuste upravit hledání nebo filtry",
+      "createFirst": "Vytvořit prvního manažera"
+    },
+    "dialogs": {
+      "createTitle": "Vytvořit nového manažera",
+      "editTitle": "Upravit manažera",
+      "deleteTitle": "Smazat manažera",
+      "deleteDesc": "Opravdu chcete smazat",
+      "activeLabel": "Stav aktivity",
+      "activeDesc": "Povolit nebo zakázat tento účet manažera",
+      "storeLabel": "Prodejna",
+      "statusActive": "Aktivní",
+      "statusInactive": "Neaktivní"
+    },
+    "toasts": {
+      "created": "Manažer vytvořen",
+      "createdDesc": "Manažer byl úspěšně vytvořen.",
+      "updated": "Manažer aktualizován",
+      "updatedDesc": "Manažer byl úspěšně aktualizován.",
+      "deleted": "Manažer smazán",
+      "deletedDesc": "Manažer byl úspěšně smazán.",
+      "error": "Chyba",
+      "errorGeneric": "Došlo k chybě",
+      "statusUpdateSuccess": "Stav byl aktualizován",
+      "statusUpdateDesc": "Stav manažera byl úspěšně aktualizován.",
+      "statusUpdateError": "Nepodařilo se aktualizovat stav"
+    }
+  },
+  "storeOwnerManagers": {
+    "headerTitle": "Manažeři prodejny",
+    "headerSubtitle": "Zobrazte všechny manažery přiřazené k vaší prodejně",
+    "errorTitle": "Chyba při načítání manažerů",
+    "errorDescription": "Nepodařilo se načíst manažery"
+  },
+  "salesHistory": {
+    "header": {
+      "title": "Historie prodeje",
+      "subtitle": "Analytika transakcí a historie",
+      "realtime": "Aktualizace v reálném čase"
+    },
+    "cards": {
+      "totalSales": "Celkem prodejů",
+      "totalSalesDesc": "Transakce za celou dobu",
+      "totalRevenue": "Celkové tržby",
+      "totalRevenueDesc": "Tržby za celou dobu",
+      "todaysRevenue": "Dnešní tržby",
+      "noChange": "Bez změny",
+      "vsYesterday": "oproti včerejšku",
+      "avgOrderValue": "Průměrná hodnota objednávky",
+      "avgOrderValueDesc": "Na jednu transakci"
+    },
+    "filters": {
+      "searchPlaceholder": "Hledejte podle ID prodeje nebo platební metody...",
+      "date": "Datum:",
+      "payment": "Platba:",
+      "allMethods": "Všechny metody",
+      "cashOnly": "Pouze hotovost",
+      "cardOnly": "Pouze karta",
+      "clear": "Vymazat filtry"
+    },
+    "list": {
+      "title": "Historie transakcí ({{count}})",
+      "loading": "Načítání historie prodeje...",
+      "emptyTitle": "Žádné prodeje nenalezeny",
+      "emptyDesc": "Žádné transakce neodpovídají aktuálním filtrům.",
+      "recentBadge": "Nedávné",
+      "customerFallback": "Zákazník",
+      "noContactInfo": "Bez kontaktních údajů",
+      "walkInCustomer": "Náhodný zákazník",
+      "itemsCount": "{{count}} položka{{count, plural, one {} other {y}}}",
+      "detailsButton": "Detaily"
+    },
+    "details": {
+      "title": "Detail prodeje",
+      "description": "Kompletní informace o transakci a účtence",
+      "saleId": "ID prodeje",
+      "dateTime": "Datum a čas",
+      "customerInfoTitle": "Informace o zákazníkovi",
+      "customerName": "Jméno",
+      "customerPhone": "Telefon",
+      "customerEmail": "E‑mail",
+      "walkInCustomerFull": "Náhodný zákazník (nejsou uvedeny kontaktní údaje)",
+      "itemsTitle": "Zakoupené položky",
+      "itemsHeader": {
+        "item": "Položka",
+        "qty": "Množství",
+        "unitPrice": "Jednotková cena",
+        "total": "Celkem"
+      },
+      "noItems": "Nejsou k dispozici detaily položek",
+      "paymentSummaryTitle": "Souhrn platby",
+      "paymentMethodLabel": "Platební metoda:",
+      "vat": {
+        "breakdownTitle": "Rozpis DPH",
+        "netAmount": "Základ daně:",
+        "rateLine": "DPH {{rate}} % (základ: ${{net}}):",
+        "totalVat": "Celkem DPH:"
+      },
+      "totalAmount": "Celková částka:",
+      "transactionSuccess": "Transakce byla úspěšně dokončena",
+      "footerProcessedOn": "Transakce zpracována dne {{date}}",
+      "footerIds": "ID prodejny: {{storeId}} | ID prodeje: {{saleId}}",
+      "relativeTime": {
+        "today": "Dnes, {{time}}",
+        "yesterday": "Včera, {{time}}",
+        "daysAgo": "Před {{count}} dny"
+      }
+    },
+    "return": {
+      "title": "Zpracovat vrácení",
+      "description": "Vyberte položky k vrácení a zvolte způsob vrácení peněz",
+      "selectItemsLabel": "Vyberte položky k vrácení",
+      "noItemsReturnTitle": "Tento prodej nemá záznamy o položkách pro zpracování vrácení.",
+      "noItemsReturnDesc": "Vrácení je dostupné pouze pro prodeje s úplným sledováním položek.",
+      "itemLine": "Původní množství: {{quantity}} | Dostupné: {{availableQty}} | Cena: ${{price}} | DPH: {{vatRate}} %",
+      "alreadyReturned": "Již vráceno: {{count}}",
+      "returningLine": "Vrací se: {{quantity}} (Vráceno: ${{refund}})",
+      "qtyPlaceholder": "Množství",
+      "summaryTitle": "Souhrn vrácení",
+      "summaryItem": "Položka {{index}}",
+      "totalRefund": "Celková částka k vrácení:",
+      "refundMethodLabel": "Způsob vrácení",
+      "refundMethod": {
+        "cash": "Hotovost",
+        "card": "Karta"
+      },
+      "reasonLabel": "Důvod vrácení (volitelné)",
+      "reasonPlaceholder": "Zadejte důvod vrácení...",
+      "openButton": "Zpracovat vrácení",
+      "processing": "Zpracovávání...",
+      "processButton": "Zpracovat vrácení"
+    }
+  },
+  "returnsHistory": {
+    "header": {
+      "title": "Historie vrácení",
+      "subtitle": "Zobrazit a spravovat vrácené transakce",
+      "autoRefresh": "Automatické obnovení: 30 s"
+    },
+    "cards": {
+      "totalReturns": "Celkem vrácení",
+      "allTime": "Za celou dobu",
+      "totalRefunds": "Celkem vráceno",
+      "todaysRefunds": "Dnešní vrácení",
+      "vsYesterday": "{{value}} % oproti včerejšku",
+      "averageRefund": "Průměrná částka vrácení",
+      "perReturn": "Na jedno vrácení"
+    },
+    "filters": {
+      "title": "Filtry",
+      "searchLabel": "Hledat",
+      "searchPlaceholder": "Hledejte podle ID prodeje, metody, důvodu...",
+      "date": "Datum",
+      "status": "Stav",
+      "refundMethod": "Způsob vrácení",
+      "allStatuses": "Všechny stavy",
+      "allMethods": "Všechny metody",
+      "cash": "Hotovost",
+      "card": "Karta",
+      "clear": "Vymazat filtry"
+    },
+    "status": {
+      "pending": "Čeká na zpracování",
+      "completed": "Dokončeno",
+      "rejected": "Zamítnuto"
+    },
+    "list": {
+      "title": "Vrácení ({{count}})",
+      "loading": "Načítání vrácení...",
+      "emptyTitle": "Žádná vrácení nenalezena",
+      "emptyDesc": "Vrácení se zde zobrazí po zpracování",
+      "recentBadge": "Nedávné",
+      "returnId": "Vrácení #{{id}}",
+      "saleIdShort": "Prodej: {{id}}",
+      "relativeTime": {
+        "today": "Dnes, {{time}}",
+        "yesterday": "Včera, {{time}}",
+        "daysAgo": "Před {{count}} dny"
+      }
+    },
+    "details": {
+      "title": "Detail vrácení",
+      "description": "Kompletní informace o vrácené transakci",
+      "header": {
+        "returnId": "ID vrácení",
+        "saleId": "ID prodeje",
+        "dateTime": "Datum a čas",
+        "status": "Stav"
+      },
+      "itemsTitle": "Vrácené položky",
+      "itemsHeader": {
+        "item": "Položka",
+        "qty": "Množství",
+        "unitPrice": "Jednotková cena",
+        "vatRate": "Sazba DPH",
+        "refundAmount": "Vrácená částka"
+      },
+      "noItems": "Nejsou k dispozici detaily položek",
+      "refundSummaryTitle": "Souhrn vrácení",
+      "refundMethodLabel": "Způsob vrácení:",
+      "reasonLabel": "Důvod vrácení",
+      "notesLabel": "Poznámky",
+      "totalRefund": "Celková částka k vrácení:",
+      "processedBy": "Zpracoval uživatel dne {{date}}",
+      "footerProcessedOn": "Vrácení zpracováno dne {{date}}",
+      "footerIds": "ID prodejny: {{storeId}} | ID vrácení: #{{id}}"
+    }
+  },
+  "stockTransactions": {
+    "header": {
+      "title": "Skladové transakce",
+      "subtitle": "Kompletní auditní stopa všech pohybů na skladě",
+      "realtime": "Aktualizace v reálném čase"
+    },
+    "cards": {
+      "totalTransactions": "Celkem transakcí",
+      "allTimeMovements": "Pohyby za celou dobu",
+      "increases": "Nárůst zásob",
+      "increasesDesc": "Položky přidané na sklad",
+      "decreases": "Pokles zásob",
+      "decreasesDesc": "Položky odebrané ze skladu",
+      "netChange": "Čistá změna",
+      "netChangeDesc": "Celkový pohyb zásob"
+    },
+    "filters": {
+      "title": "Filtry",
+      "searchLabel": "Hledat produkty",
+      "searchPlaceholder": "Hledejte podle názvu produktu nebo čárového kódu...",
+      "transactionType": "Typ transakce",
+      "allTypes": "Všechny typy",
+      "date": "Datum"
+    },
+    "types": {
+      "sale": "Prodej",
+      "return": "Vrácení",
+      "adjustment": "Úprava",
+      "transfer_in": "Příjem převodem",
+      "transfer_out": "Výdej převodem",
+      "received": "Přijato",
+      "damaged": "Poškozeno",
+      "expired": "Prošlé"
+    },
+    "list": {
+      "title": "Historie transakcí",
+      "loading": "Načítání transakcí...",
+      "empty": "Žádné skladové transakce nenalezeny",
+      "headers": {
+        "dateTime": "Datum a čas",
+        "product": "Produkt",
+        "type": "Typ",
+        "quantityChange": "Změna množství",
+        "before": "Před",
+        "after": "Po",
+        "reason": "Důvod",
+        "user": "Uživatel"
+      },
+      "productFallback": "Produkt #{{id}}",
+      "barcode": "Čárový kód: {{barcode}}",
+      "systemUser": "Systém",
+      "relativeTime": {
+        "today": "Dnes, {{time}}",
+        "yesterday": "Včera, {{time}}",
+        "daysAgo": "Před {{count}} dny"
+      }
+    }
+  },
+  "pos": {
+    "header": {
+      "title": "Prodejní místo",
+      "storeLabel": "Prodejna #{{id}}"
+    },
+    "toasts": {
+      "itemAdded": "Položka byla přidána do košíku",
+      "addErrorTitle": "Chyba při přidávání do košíku",
+      "addErrorDesc": "Nepodařilo se přidat položku do košíku",
+      "updateErrorTitle": "Chyba při aktualizaci košíku",
+      "updateErrorDesc": "Nepodařilo se aktualizovat položku v košíku",
+      "itemRemoved": "Položka byla odstraněna z košíku",
+      "removeErrorTitle": "Chyba při odebírání z košíku",
+      "removeErrorDesc": "Nepodařilo se odstranit položku z košíku",
+      "saleSuccess": "Prodej byl úspěšně zpracován!",
+      "saleErrorTitle": "Chyba při zpracování prodeje",
+      "saleErrorDesc": "Nepodařilo se zpracovat prodej"
+    },
+    "errors": {
+      "productOutOfStock": "Produkt není skladem",
+      "stockLimitExceeded": "Nelze překročit dostupné množství na skladě"
+    },
+    "storeSelection": {
+      "loading": "Načítání prodejen...",
+      "title": "Vyberte prodejnu pro POS",
+      "description": "Vyberte, pro kterou prodejnu chcete obsluhovat prodejní místo"
+    },
+    "noStoreAssigned": {
+      "title": "Není přiřazena žádná prodejna",
+      "description": "Kontaktujte prosím svého administrátora kvůli přiřazení prodejny."
+    },
+    "products": {
+      "searchPlaceholder": "Hledejte produkty nebo naskenujte čárový kód...",
+      "categoryPlaceholder": "Kategorie",
+      "allCategories": "Všechny kategorie",
+      "lowStock": "Nízký stav",
+      "outOfStock": "Není skladem",
+      "inStockLabel": "{{count}} ks skladem"
+    },
+    "cart": {
+      "title": "Košík ({{count}} položek)",
+      "emptyTitle": "Váš košík je prázdný",
+      "emptyDescription": "Přidejte produkty pro zahájení prodeje",
+      "each": "za kus",
+      "checkoutButton": "Pokladna"
+    },
+    "summary": {
+      "netAmount": "Čistá částka:",
+      "vatRateLabel": "DPH {{rate}} %:",
+      "totalVat": "Celková DPH:",
+      "total": "Celkem:"
+    },
+    "manualItem": {
+      "title": "Přidat ruční položku",
+      "nameLabel": "Název položky",
+      "namePlaceholder": "Zadejte název položky",
+      "priceLabel": "Cena",
+      "vatLabel": "Sazba DPH (%)",
+      "vatHint": "Zadejte procento (např. 21 pro 21 %)",
+      "addButton": "Přidat položku"
+    }
+  },
+  "managerDashboard": {
+    "loading": "Načítání dat přehledu...",
+    "storeError": {
+      "title": "Chyba přístupu k prodejně",
+      "unableToLoad": "Nelze načíst informace o prodejně",
+      "noStoreAssigned": "K vašemu účtu není přiřazena žádná prodejna",
+      "help": "Kontaktujte prosím administrátora kvůli přiřazení prodejny k vašemu účtu."
+    },
+    "header": {
+      "title": "Přehled manažera",
+      "subtitle": "Spravujete {{name}} \u2022 {{address}}",
+      "storeActive": "Prodejna aktivní"
+    },
+    "tabs": {
+      "analytics": "Analytika",
+      "pos": "POS",
+      "inventory": "Sklad",
+      "sales": "Historie prodeje"
+    },
+    "analytics": {
+      "overview": {
+        "totalProducts": {
+          "title": "Celkem produktů",
+          "subtitle": "Položky v katalogu"
+        },
+        "lowStock": {
+          "title": "Položky s nízkým stavem",
+          "subtitle": "Potřebují doplnit"
+        },
+        "todaysSales": {
+          "title": "Dnešní prodeje",
+          "subtitle": "Dnešní transakce"
+        },
+        "revenueToday": {
+          "title": "Dnešní tržby",
+          "subtitle": "Denní výdělky"
+        }
+      },
+      "secondary": {
+        "monthlyRevenue": {
+          "title": "Měsíční tržby",
+          "subtitle": "+8 % oproti minulému měsíci"
+        },
+        "averageSale": {
+          "title": "Průměrný prodej",
+          "subtitle": "Na transakci"
+        },
+        "customerTransactions": {
+          "title": "Zákaznické transakce",
+          "subtitle": "Celkem prodejů"
+        }
+      },
+      "charts": {
+        "salesTrend": "Trend prodeje (posledních 7 dní)",
+        "salesByCategory": "Prodeje podle kategorie",
+        "paymentMethods": "Platební metody",
+        "recentSales": "Nedávné prodeje",
+        "noRecentSales": "Žádné nedávné prodeje"
+      },
+      "paymentMethods": {
+        "card": "Platby kartou",
+        "cash": "Platby v hotovosti"
+      },
+      "quickActions": {
+        "title": "Rychlé akce",
+        "newSale": "Nový prodej",
+        "checkInventory": "Zkontrolovat sklad",
+        "salesHistory": "Historie prodeje"
+      }
+    },
+    "pos": {
+      "header": {
+        "title": "Prodejní místo - {{name}}",
+        "subtitle": "Zpracování prodejů a správa transakcí"
+      },
+      "searchPlaceholder": "Hledejte produkty podle názvu, kategorie nebo čárového kódu...",
+      "products": {
+        "stockLeft": "zbývá {{count}}"
+      },
+      "cartSection": {
+        "title": "Nákupní košík",
+        "empty": "Košík je prázdný",
+        "each": "za kus",
+        "priceBreakdown": "Rozpis ceny",
+        "netAmount": "Čistá částka:",
+        "vatRate": "DPH ({{rate}} %):",
+        "totalVat": "Celková DPH:",
+        "total": "Celkem:",
+        "paymentMethod": "Způsob platby",
+        "cash": "Hotovost",
+        "card": "Karta",
+        "processButton": "Dokončit prodej",
+        "processing": "Zpracovávání..."
+      },
+      "toasts": {
+        "saleSuccess": "Prodej byl úspěšně dokončen!",
+        "saleErrorTitle": "Chyba při zpracování prodeje",
+        "saleErrorDesc": "Prodej se nepodařilo zpracovat"
+      },
+      "errors": {
+        "outOfStockTitle": "Není skladem",
+        "outOfStockDesc": "Tento produkt není dostupný",
+        "insufficientStock": "Nedostatečný stav na skladě",
+        "cartEmpty": "Košík je prázdný"
+      }
+    },
+    "inventory": {
+      "header": {
+        "title": "Správa skladu",
+        "subtitle": "Sledujte stav zásob a skladové zásoby"
+      },
+      "cards": {
+        "wellStocked": "Dostatečně zásobeno",
+        "lowStock": "Nízký stav",
+        "outOfStock": "Není skladem"
+      },
+      "table": {
+        "product": "Produkt",
+        "currentStock": "Aktuální stav",
+        "status": "Stav",
+        "lastUpdated": "Naposledy aktualizováno",
+        "units": "{{count}} ks",
+        "statusWell": "Dostatečně zásobeno",
+        "statusLow": "Nízký stav",
+        "statusOut": "Není skladem",
+        "na": "N/A"
+      }
+    },
+    "sales": {
+      "header": {
+        "title": "Historie prodeje",
+        "subtitle": "Zobrazit historii transakcí a prodejních dat"
+      },
+      "empty": "Zatím nejsou zaznamenány žádné prodeje",
+      "table": {
+        "saleId": "ID prodeje",
+        "total": "Celkem",
+        "paymentMethod": "Způsob platby",
+        "items": "Položky",
+        "date": "Datum",
+        "itemsCount": "{{count}} položek"
+      }
+    }
+  },
+  "inventoryPage": {
+    "toasts": {
+      "stockUpdatedTitle": "Stav zásob aktualizován",
+      "stockUpdatedDesc": "Stav produktu byl úspěšně aktualizován",
+      "updateErrorTitle": "Chyba",
+      "updateErrorDesc": "Nepodařilo se aktualizovat stav zásob"
+    },
+    "status": {
+      "outOfStock": "Není skladem",
+      "lowStock": "Nízký stav",
+      "mediumStock": "Střední stav",
+      "inStock": "Skladem"
+    },
+    "header": {
+      "title": "Správa skladu",
+      "subtitle": "Sledujte a spravujte zásoby vaší prodejny",
+      "stockOverview": "Přehled zásob"
+    },
+    "cards": {
+      "totalProducts": "Celkem produktů",
+      "lowStockItems": "Položky s nízkým stavem",
+      "outOfStock": "Není skladem",
+      "totalValue": "Celková hodnota"
+    },
+    "search": {
+      "placeholder": "Hledat ve skladu..."
+    },
+    "table": {
+      "title": "Detaily skladu ({{count}})",
+      "itemsPerPage": "Položek na stránku:",
+      "headers": {
+        "productName": "Název produktu",
+        "category": "Kategorie",
+        "currentStock": "Aktuální stav",
+        "unitPrice": "Jednotková cena",
+        "totalValue": "Celková hodnota",
+        "status": "Stav",
+        "actions": "Akce"
+      }
+    },
+    "dialog": {
+      "addTitle": "Přidat zásoby",
+      "removeTitle": "Odebrat zásoby",
+      "addDescription": "Přidat zásoby k produktu {{name}}",
+      "removeDescription": "Odebrat zásoby z produktu {{name}}",
+      "currentStock": "Aktuální stav: {{stock}}",
+      "quantityLabel": "Množství",
+      "quantityPlaceholder": "Zadejte množství",
+      "reasonLabel": "Důvod (volitelné)",
+      "reasonPlaceholder": "Důvod úpravy",
+      "previewLabel": "Náhled:",
+      "updating": "Aktualizuji...",
+      "updateButton": "Aktualizovat zásoby"
+    }
+  },
+  "analyticsDashboard": {
+    "header": {
+      "title": "Analytický přehled",
+      "subtitle": "Komplexní přehled o výkonnosti vašeho podnikání"
+    },
+    "cards": {
+      "totalRevenue": "Celkové tržby",
+      "monthlyGrowth": "+{{value}} % oproti minulému měsíci",
+      "activeStores": "Aktivní prodejny",
+      "totalStores": "z {{count}} celkových prodejen",
+      "totalProducts": "Celkem produktů",
+      "acrossStores": "Napříč všemi prodejnami",
+      "totalCustomers": "Celkem zákazníků",
+      "customerBase": "Zákaznická základna"
+    },
+    "status": {
+      "active": "Aktivní",
+      "inactive": "Neaktivní"
+    },
+    "months": {
+      "jan": "Led",
+      "feb": "Úno",
+      "mar": "Bře",
+      "apr": "Dub",
+      "may": "Kvě",
+      "jun": "Čvn"
+    },
+    "charts": {
+      "revenueComparison": "Srovnání tržeb prodejen",
+      "statusDistribution": "Rozložení stavu prodejen",
+      "monthlyPerformance": "Měsíční vývoj výkonu",
+      "customersVsProducts": "Zákazníci vs. produkty podle prodejny"
+    },
+    "topStores": {
+      "title": "Nejvýkonnější prodejny",
+      "revenue": "{{value}}k tržeb"
+    }
+  },
+  "managerForm": {
+    "firstName": "Jméno *",
+    "firstNamePlaceholder": "Zadejte jméno",
+    "lastName": "Příjmení *",
+    "lastNamePlaceholder": "Zadejte příjmení",
+    "email": "E-mail *",
+    "emailPlaceholder": "Zadejte e-mailovou adresu",
+    "phone": "Telefon",
+    "phonePlaceholder": "Zadejte telefonní číslo",
+    "storeLabel": "Prodejna",
+    "selectStorePlaceholder": "Vyberte prodejnu (volitelné)",
+    "noStoreAssigned": "Není přiřazena žádná prodejna",
+    "password": "Heslo *",
+    "passwordPlaceholder": "Zadejte heslo (min. 6 znaků)"
+  },
+  "storeForm": {
+    "name": "Název prodejny *",
+    "namePlaceholder": "Zadejte název prodejny",
+    "address": "Adresa *",
+    "addressPlaceholder": "Zadejte adresu prodejny",
+    "phone": "Telefon",
+    "phonePlaceholder": "Zadejte telefonní číslo",
+    "ownerSectionTitle": "Účet vlastníka prodejny (volitelné)",
+    "ownerSectionDesc": "Vytvořte účet vlastníka prodejny. Ponechte prázdné, pokud jej nechcete nyní vytvářet.",
+    "ownerEmail": "E-mail vlastníka prodejny",
+    "ownerEmailPlaceholder": "Zadejte e-mail vlastníka prodejny",
+    "ownerPassword": "Heslo vlastníka prodejny",
+    "ownerPasswordPlaceholder": "Zadejte heslo (min. 6 znaků)"
+  },
+  "errors": {
+    "generic": "Došlo k chybě",
+    "networkError": "Chyba sítě. Zkontrolujte prosím připojení.",
+    "unauthorized": "Nemáte oprávnění k provedení této akce",
+    "notFound": "Zdroj nenalezen",
+    "validationError": "Chyba ověření"
+  },
+  "success": {
+    "saved": "Úspěšně uloženo",
+    "deleted": "Úspěšně smazáno",
+    "created": "Úspěšně vytvořeno",
+    "updated": "Úspěšně aktualizováno"
+  },
+  "language": {
+    "english": "Angličtina",
+    "czech": "Čeština",
+    "selectLanguage": "Vybrat jazyk"
+  },
+  "quickActions": {
+    "title": "Rychlé akce",
+    "addUser": "Přidat nového uživatele",
+    "viewAnalytics": "Zobrazit analytiku",
+    "systemSettings": "Systémová nastavení"
+  },
+  "notFound": {
+    "title": "404 Stránka nenalezena",
+    "description": "Nezapomněli jste stránku přidat do routeru?"
+  }
+}

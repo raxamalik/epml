@@ -1,0 +1,1709 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "close": "Close",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "itemsPerPage": "Items per page",
+    "notAvailable": "N/A"
+  },
+  "auth": {
+    "login": "Login",
+    "logout": "Logout",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password",
+    "welcomeBack": "Welcome back!",
+    "loginSuccessful": "Successfully logged in to your account",
+    "profileCompletionRequired": "Profile Completion Required",
+    "completeProfileMessage": "Please complete your company profile to continue",
+    "twoFactorRequired": "2FA Required",
+    "enter2FACode": "Please enter your Google Authenticator code"
+  },
+  "navigation": {
+    "dashboard": "Dashboard",
+    "companyManagement": "Company Management",
+    "users": "Users",
+    "portalAdmins": "Portal Admins",
+    "stores": "Stores",
+    "myStore": "My Store",
+    "myStores": "My Stores",
+    "managers": "Managers",
+    "pos": "POS",
+    "products": "Products",
+    "inventory": "Inventory",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "auditLogs": "Audit Logs",
+    "categories": "Categories",
+    "activeSubstances": "Active Substances",
+    "salesHistory": "Sales History",
+    "returnsHistory": "Returns History",
+    "stockTransactions": "Stock Transactions"
+  },
+  "header": {
+    "searchPlaceholder": "Search users, stores, analytics...",
+    "notifications": "Notifications",
+    "profile": "Profile"
+  },
+  "sidebar": {
+    "appName": "EPML",
+    "defaultUser": "User",
+    "loading": "Loading..."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "overview": "Overview",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "super": {
+      "title": "Super Admin Dashboard",
+      "subtitle": "Complete platform oversight and management",
+      "systemActive": "System Active",
+      "allUsers": "All Users & Companies",
+      "fullAccess": "Full Access Control",
+      "managerButton": "Manager Dashboard"
+    },
+    "analytics": {
+      "totalUsers": "Total Users",
+      "activeStores": "Active Stores",
+      "monthlyRevenue": "Monthly Revenue",
+      "systemUptime": "System Uptime",
+      "fromLastMonth": "from last month",
+      "allSystemsOperational": "All systems operational"
+    },
+    "userRoles": {
+      "title": "User Roles",
+      "superAdmin": "Super Admin",
+      "portalAdmin": "Portal Admin",
+      "companyAdmin": "Company Admin",
+      "storeOwner": "Store Owner",
+      "manager": "Manager"
+    },
+    "recentUsers": {
+      "title": "Recent Users",
+      "viewAll": "View all",
+      "user": "User",
+      "role": "Role",
+      "store": "Store",
+      "status": "Status",
+      "joined": "Joined",
+      "actions": "Actions",
+      "noUsers": "No users found in the system.",
+      "noUsersDesc": "Users will appear here once they register.",
+      "noStoreAssigned": "No store assigned"
+    }
+  },
+  "users": {
+    "title": "User Management",
+    "createUser": "Create User",
+    "editUser": "Edit User",
+    "deleteUser": "Delete User",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "role": "Role",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "stores": {
+    "title": "Store Management",
+    "createStore": "Create Store",
+    "editStore": "Edit Store",
+    "deleteStore": "Delete Store",
+    "storeName": "Store Name",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email"
+  },
+  "userManagement": {
+    "title": "User Management",
+    "description": "Manage user accounts, roles, and permissions across your platform.",
+    "searchPlaceholder": "Search users by name or email...",
+    "export": "Export Users",
+    "table": {
+      "allUsers": "All Users ({{count}})",
+      "user": "User",
+      "role": "Role",
+      "store": "Store",
+      "status": "Status",
+      "joined": "Joined",
+      "actions": "Actions",
+      "emptyTitle": "No users found",
+      "emptyTitleSearch": "No users found matching your search",
+      "emptyDesc": "No users have been created yet",
+      "emptyDescSearch": "Try adjusting your search query"
+    }
+  },
+  "portalAdmin": {
+    "title": "Portal Admin Management",
+    "description": "Manage portal administrators who have full system access (except creating other portal admins).",
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDesc": "Only super administrators can access this page.",
+    "searchPlaceholder": "Search portal admins by name or email...",
+    "createButton": "Create Portal Admin",
+    "table": {
+      "title": "Portal Admins ({{count}})",
+      "portalAdmin": "Portal Admin",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions",
+      "emptyTitle": "No portal admins found",
+      "emptyTitleSearch": "No portal admins found matching your search",
+      "emptyDesc": "Create your first portal admin to get started",
+      "emptyDescSearch": "Try adjusting your search query"
+    },
+    "create": {
+      "title": "Create Portal Admin",
+      "description": "Create a new portal administrator. Portal admins have full system access but cannot create other portal admins.",
+      "firstName": "First Name *",
+      "lastName": "Last Name *",
+      "email": "Email *",
+      "password": "Password *",
+      "firstNamePlaceholder": "John",
+      "lastNamePlaceholder": "Doe",
+      "emailPlaceholder": "portal.admin@example.com",
+      "passwordPlaceholder": "Enter a secure password",
+      "creating": "Creating...",
+      "createButton": "Create Portal Admin",
+      "validationError": "Please fill in all required fields.",
+      "success": "Portal admin created",
+      "successDesc": "The portal admin has been successfully created.",
+      "error": "Error creating portal admin",
+      "errorDesc": "There was an error creating the portal admin."
+    },
+    "delete": {
+      "title": "Delete Portal Admin",
+      "description": "Are you sure you want to delete this portal admin? This action cannot be undone.",
+      "deleting": "Deleting...",
+      "deleteButton": "Delete",
+      "success": "Portal admin deleted",
+      "successDesc": "The portal admin has been successfully deleted.",
+      "error": "Error deleting portal admin",
+      "errorDesc": "There was an error deleting the portal admin."
+    }
+  },
+  "companyManagement": {
+    "title": "Company Management",
+    "description": "Manage companies, licenses, and company settings with enterprise-grade controls",
+    "systemActive": "System Active",
+    "companiesCount": "{{count}} Companies",
+    "searchPlaceholder": "Search companies by name, IČO, or DIČ...",
+    "createButton": "Create Company",
+    "table": {
+      "title": "Companies ({{count}})",
+      "company": "Company",
+      "registration": "Registration",
+      "contact": "Contact",
+      "status": "Status",
+      "branches": "Branches",
+      "users": "Users",
+      "actions": "Actions",
+      "ico": "IČO",
+      "dic": "DIČ"
+    },
+    "actions": {
+      "viewDetails": "View Details",
+      "editCompany": "Edit Company",
+      "viewBranches": "View Branches",
+      "sendInvitation": "Send Invitation",
+      "suspendCompany": "Suspend Company",
+      "unsuspendCompany": "Unsuspend Company",
+      "activateCompany": "Activate Company",
+      "deactivateCompany": "Deactivate Company",
+      "deleteCompany": "Delete Company"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "suspended": "Suspended"
+    },
+    "dialogs": {
+      "suspend": {
+        "title": "Suspend Company",
+        "description": "Are you sure you want to suspend"
+      },
+      "unsuspend": {
+        "title": "Unsuspend Company",
+        "description": "Are you sure you want to unsuspend"
+      },
+      "activate": {
+        "title": "Activate Company",
+        "description": "Are you sure you want to activate"
+      },
+      "deactivate": {
+        "title": "Deactivate Company",
+        "description": "Are you sure you want to deactivate"
+      },
+      "delete": {
+        "title": "Delete Company",
+        "description": "Are you sure you want to delete"
+      }
+    },
+    "toasts": {
+      "created": "Company created successfully!",
+      "updated": "Company updated successfully!",
+      "deleted": "Company deleted successfully!",
+      "activated": "Company activated successfully!",
+      "deactivated": "Company deactivated successfully!",
+      "suspended": "Company suspended successfully. {{stores}} stores and {{users}} users were also suspended.",
+      "unsuspended": "Company unsuspended successfully. {{stores}} stores and {{users}} users were also reactivated.",
+      "invitationSent": "Invitation Sent!",
+      "invitationDesc": "Company activation invitation sent successfully"
+    }
+  },
+  "companyForm": {
+    "companyName": "Company Name *",
+    "companyNamePlaceholder": "Enter company name",
+    "registrationNumber": "Registration Number (IČO) *",
+    "registrationNumberPlaceholder": "12345678",
+    "vatNumber": "VAT Number (DIČ)",
+    "vatNumberPlaceholder": "CZ12345678",
+    "address": "Full Address *",
+    "addressPlaceholder": "Street, City, Postal Code",
+    "email": "Email *",
+    "emailPlaceholder": "company@example.com",
+    "phone": "Phone *",
+    "phonePlaceholder": "+420 123 456 789",
+    "contactPerson": "Contact Person *",
+    "contactPersonPlaceholder": "Full name",
+    "password": "Login Password *",
+    "passwordPlaceholder": "Set login password for this company",
+    "maxBranches": "Max Branches"
+  },
+  "companyEdit": {
+    "title": "Edit Company",
+    "updating": "Updating...",
+    "updateButton": "Update Company"
+  },
+  "companyCreate": {
+    "title": "Create New Company",
+    "creating": "Creating...",
+    "createButton": "Create Company"
+  },
+  "activeSubstances": {
+    "title": "Active Substances",
+    "description": "Manage active substances and their regulatory limits",
+    "systemActive": "System Active",
+    "substancesCount": "{{count}} Substances",
+    "searchPlaceholder": "Search substances by name...",
+    "createButton": "Create Substance",
+    "accessDenied": "Access Denied",
+    "accessDeniedDesc": "You don't have permission to access active substances.",
+    "loading": "Loading active substances...",
+    "table": {
+      "title": "Active Substances ({{count}})",
+      "name": "Name",
+      "maxSingleDose": "Max Single Dose",
+      "maxDailyDose": "Max Daily Dose",
+      "maxConcentration": "Max Concentration (%)",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No active substances found",
+      "desc": "Get started by creating your first active substance",
+      "descSearch": "Try adjusting your search terms",
+      "createFirst": "Create First Substance"
+    },
+    "create": {
+      "title": "Create New Active Substance"
+    },
+    "edit": {
+      "title": "Edit Active Substance"
+    },
+    "delete": {
+      "title": "Delete Active Substance",
+      "description": "Are you sure you want to delete"
+    },
+    "toasts": {
+      "created": "Active Substance Created",
+      "createdDesc": "Active substance has been created successfully.",
+      "updated": "Active Substance Updated",
+      "updatedDesc": "Active substance has been updated successfully.",
+      "deleted": "Active Substance Deleted",
+      "deletedDesc": "Active substance has been deleted successfully.",
+      "error": "Error",
+      "errorCreate": "Failed to create active substance",
+      "errorUpdate": "Failed to update active substance",
+      "errorDelete": "Failed to delete active substance"
+    }
+  },
+  "activeSubstanceForm": {
+    "name": "Name *",
+    "namePlaceholder": "Enter substance name (e.g. Mitragynine)",
+    "maxSingleDose": "Max Single Dose",
+    "maxSingleDosePlaceholder": "e.g. 125",
+    "maxSingleDoseDesc": "Maximum allowed single dose (e.g. 125 mg)",
+    "maxDailyDose": "Max Daily Dose",
+    "maxDailyDosePlaceholder": "e.g. 375",
+    "maxDailyDoseDesc": "Maximum allowed daily dose (e.g. 375 mg)",
+    "maxConcentration": "Max Concentration (%)",
+    "maxConcentrationPlaceholder": "e.g. 2.5",
+    "maxConcentrationDesc": "Maximum allowed concentration (0-100%)",
+    "nameRequired": "Name is required",
+    "invalidNumber": "Must be a valid positive number",
+    "invalidConcentration": "Must be a valid number between 0 and 100",
+    "creating": "Creating...",
+    "updating": "Updating...",
+    "createButton": "Create Substance",
+    "updateButton": "Update Substance"
+  },
+  "auditLogs": {
+    "title": "Audit Logs",
+    "description": "Monitor all system activities and user actions for security and compliance",
+    "filters": "Filters",
+    "search": "Search",
+    "searchPlaceholder": "Search descriptions, emails, actions...",
+    "action": "Action",
+    "allActions": "All actions",
+    "entityType": "Entity Type",
+    "allTypes": "All types",
+    "severity": "Severity",
+    "allSeverities": "All severities",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "clearAllFilters": "Clear All Filters",
+    "refresh": "Refresh",
+    "autoRefresh": "Auto-refresh",
+    "autoRefreshOn": "ON",
+    "autoRefreshOff": "OFF",
+    "updatesEvery": "Updates every 10 seconds",
+    "totalEntries": "Total: {{count}} entries",
+    "auditLogEntries": "Audit Log Entries",
+    "showingEntries": "Showing {{start}} to {{end}} of {{total}} entries",
+    "page": "Page",
+    "pageOf": "Page {{current}} of {{total}}",
+    "previous": "Previous",
+    "next": "Next",
+    "first": "First",
+    "last": "Last",
+    "accessDenied": "Access Denied",
+    "accessDeniedDesc": "You don't have permission to view audit logs.",
+    "noLogsFound": "No audit logs found",
+    "noLogsFoundDesc": "Try adjusting your filters to see more results.",
+    "user": "User",
+    "ipAddress": "IP Address",
+    "entityId": "Entity ID",
+    "storeId": "Store ID",
+    "companyId": "Company ID",
+    "viewDetails": "View Details",
+    "oldValues": "Old Values",
+    "newValues": "New Values",
+    "metadata": "Metadata",
+    "actions": {
+      "userLogin": "User Login",
+      "userLogout": "User Logout",
+      "productCreate": "Product Create",
+      "productUpdate": "Product Update",
+      "saleCreate": "Sale Create",
+      "userCreate": "User Create",
+      "userUpdate": "User Update",
+      "storeCreate": "Store Create",
+      "storeUpdate": "Store Update",
+      "companyCreate": "Company Create",
+      "companyUpdate": "Company Update"
+    },
+    "entityTypes": {
+      "user": "User",
+      "product": "Product",
+      "sale": "Sale",
+      "store": "Store",
+      "company": "Company"
+    },
+    "severities": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error",
+      "critical": "Critical"
+    }
+  },
+  "dialogs": {
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleting": "Deleting...",
+    "cannotUndo": "This action cannot be undone.",
+    "sendInvitation": "Send Invitation",
+    "sending": "Sending...",
+    "activate": "Activate",
+    "activating": "Activating...",
+    "deactivate": "Deactivate",
+    "deactivating": "Deactivating...",
+    "suspend": "Suspend",
+    "suspending": "Suspending...",
+    "unsuspend": "Unsuspend",
+    "unsuspending": "Unsuspending..."
+  },
+  "settings": {
+    "title": "Settings",
+    "tabs": {
+      "profile": "Profile",
+      "companyInfo": "Company Info",
+      "regional": "Regional",
+      "notifications": "Notifications",
+      "security": "Security",
+      "system": "System"
+    },
+    "profile": "Profile",
+    "companyInfo": "Company Info",
+    "regional": "Regional",
+    "notifications": "Notifications",
+    "security": "Security",
+    "system": "System",
+    "twoFactor": "Two-Factor Authentication",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "setup": "Setup",
+    "disable": "Disable",
+    "personalDescription": "Manage your personal settings and preferences",
+    "companyDescription": "Manage your company settings and preferences",
+    "personalInformation": "Personal Information",
+    "personalInformationDesc": "Update your personal details and contact information",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "phoneNumber": "Phone Number",
+    "profileImage": "Profile Image",
+    "uploadImage": "Upload Image",
+    "uploading": "Uploading...",
+    "orEnterImageUrl": "Or enter image URL:",
+    "imageFormatHint": "JPG, PNG, GIF up to 5MB",
+    "companyInformation": "Company Information",
+    "companyInformationDesc": "Company-wide settings and preferences",
+    "companyAccountNote": "Company Account: These settings apply to all users in your company. Individual users can override some preferences in their personal settings.",
+    "regionalSettings": "Regional Settings",
+    "regionalSettingsDesc": "Configure timezone, currency, and language preferences",
+    "timezone": "Timezone",
+    "selectTimezone": "Select timezone",
+    "currency": "Default Currency",
+    "selectCurrency": "Select currency",
+    "language": "Language",
+    "selectLanguage": "Select language",
+    "notificationPreferences": "Notification Preferences",
+    "notificationPreferencesDesc": "Choose how you want to receive alerts and notifications",
+    "emailNotifications": "Email Notifications",
+    "emailNotificationsDesc": "Receive email alerts for important events and updates",
+    "smsAlerts": "SMS Alerts",
+    "smsAlertsDesc": "Get SMS notifications for critical issues",
+    "weeklyReports": "Weekly Reports",
+    "weeklyReportsDesc": "Automatically generate and send weekly analytics reports",
+    "storeAlerts": "Store Alerts",
+    "storeAlertsDesc": "Notifications when stores go offline or have issues",
+    "passwordAuthentication": "Password & Authentication",
+    "passwordAuthenticationDesc": "Manage security settings and authentication methods",
+    "sessionTimeout": "Session Timeout (minutes)",
+    "selectTimeout": "Select timeout",
+    "twoFactorAuth": "Two-Factor Authentication",
+    "twoFactorAuthDesc": "Add an extra layer of security using Google Authenticator",
+    "twoFactorActive": "✓ Two-factor authentication is active on your account",
+    "twoFactorActiveDesc": "Use your authenticator app to generate codes when logging in",
+    "enable2FA": "Enable 2FA",
+    "settingUp": "Setting up...",
+    "disable2FA": "Disable",
+    "disabling": "Disabling...",
+    "passwordPolicy": "Password Policy",
+    "passwordPolicyDesc": "Configure password requirements",
+    "requireUppercase": "Require uppercase letters",
+    "requireNumbers": "Require numbers",
+    "requireSymbols": "Require special characters",
+    "systemSettings": "System Settings",
+    "systemSettingsDesc": "Advanced system configuration and audit settings",
+    "loginAuditTrail": "Login Audit Trail",
+    "alwaysEnabled": "Always Enabled",
+    "loginAuditTrailDesc": "Track all user login activities and maintain logs (cannot be disabled for security compliance)",
+    "dataRetention": "Data Retention Period (days)",
+    "dataRetentionDesc": "How long to keep user activity logs and system data",
+    "saveSettings": "Save Settings",
+    "saving": "Saving...",
+    "setup2FATitle": "Set Up Two-Factor Authentication",
+    "setup2FADesc": "Secure your account with Google Authenticator for enhanced protection",
+    "importantDeleteExisting": "Important: Delete Existing Entry",
+    "importantDeleteExistingDesc": "Delete any existing email entry from Google Authenticator before scanning the new QR code.",
+    "scanQRCode": "Scan QR Code",
+    "scanQRCodeDesc": "Open Google Authenticator and scan the QR code below",
+    "cantScan": "Can't scan? Enter this key manually:",
+    "copied": "Copied!",
+    "manualKeyCopied": "Manual entry key copied to clipboard",
+    "enterVerificationCode": "Enter Verification Code",
+    "enterVerificationCodeDesc": "Type the 6-digit code from your authenticator app",
+    "verificationCode": "Verification Code",
+    "verificationCodeHint": "Enter the 6-digit code that appears in your Google Authenticator app",
+    "verifyEnable": "Verify & Enable",
+    "verifying": "Verifying...",
+    "twoFactorSuccessTitle": "2FA Successfully Enabled!",
+    "twoFactorSuccessDesc": "Two-factor authentication is now protecting your account",
+    "saveBackupCodes": "Important: Save Your Backup Codes",
+    "saveBackupCodesDesc": "Store these codes in a safe place. Use them to access your account if you lose your phone.",
+    "copyAllBackupCodes": "Copy All Backup Codes",
+    "backupCodesCopied": "Backup codes copied to clipboard",
+    "completeSetup": "Complete Setup",
+    "disable2FATitle": "Disable Two-Factor Authentication",
+    "disable2FADesc": "For security reasons, please enter your password to disable 2FA",
+    "warning": "Warning:",
+    "disable2FAWarning": "Disabling 2FA will reduce the security of your account. You'll need to set it up again if you want to re-enable it.",
+    "enterPassword": "Enter Your Password",
+    "enterPasswordPlaceholder": "Enter your password",
+    "imageRemoved": "Image Removed",
+    "imageRemovedDesc": "Profile image has been removed. Remember to save your settings.",
+    "imageUploaded": "Image Uploaded",
+    "imageUploadedDesc": "Profile image has been uploaded. Remember to save your settings.",
+    "invalidFile": "Invalid File",
+    "invalidFileDesc": "Please select an image file (JPG, PNG, GIF, etc.)",
+    "fileTooLarge": "File Too Large",
+    "fileTooLargeDesc": "Please select an image smaller than 5MB",
+    "uploadFailed": "Upload Failed",
+    "toasts": {
+      "updated": "Settings Updated",
+      "updatedDesc": "Your settings have been successfully updated.",
+      "error": "Error",
+      "setupError": "Error setting up 2FA",
+      "verifyError": "Error verifying 2FA setup",
+      "verifySuccess": "2FA setup successful",
+      "disableError": "Error disabling 2FA",
+      "disableSuccess": "2FA disabled successfully",
+      "passwordRequired": "Password is required to disable 2FA",
+      "secretTokenRequired": "Secret and token are required"
+    }
+  },
+  "companyDashboard": {
+    "title": "Company Dashboard",
+    "subtitle": "Manage stores and view analytics",
+    "systemActive": "System Active",
+    "activeStores": "{{count}} Active Stores",
+    "managersCount": "{{count}} Managers",
+    "cards": {
+      "totalStores": "Total Stores",
+      "activeStores": "{{count}} active stores",
+      "totalRevenue": "Total Revenue",
+      "monthlyGrowth": "+{{percent}}% from last month",
+      "products": "Products",
+      "productsDesc": "Across all stores",
+      "customers": "Customers",
+      "customersDesc": "Total customer base"
+    },
+    "analytics": {
+      "title": "Analytics Overview",
+      "revenueComparison": "Store Revenue Comparison",
+      "customersProducts": "Customers & Products by Store"
+    },
+    "tabs": {
+      "stores": "Stores",
+      "managers": "Managers",
+      "settings": "Settings"
+    },
+    "stores": {
+      "title": "Store Locations",
+      "searchPlaceholder": "Search stores by name, address, or manager...",
+      "managerLabel": "Manager",
+      "status": "Status",
+      "revenue": "Revenue",
+      "products": "Products",
+      "actions": "Actions",
+      "addStore": "Add Store ({{used}}/{{limit}})",
+      "limitReached": "Limit Reached ({{used}}/{{limit}})",
+      "activeStores": "{{count}} Stores",
+      "active": "active stores"
+    },
+    "managers": {
+      "title": "Manager Management",
+      "searchPlaceholder": "Search managers by name, email, or role...",
+      "addManager": "Add Manager",
+      "managerCount": "{{count}} Managers",
+      "noManagers": "No managers found. Add your first manager to get started.",
+      "storeLabel": "Store",
+      "roleLabel": "Role",
+      "statusLabel": "Status",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "createManager": "Create Manager",
+      "updateManager": "Update Manager",
+      "deleteManager": "Delete Manager",
+      "deleteManagerConfirm": "Are you sure you want to delete {{name}}? This action cannot be undone.",
+      "assignStore": "Assign to Store (Optional)",
+      "noStoreAssigned": "No store assigned"
+    },
+    "settings": {
+      "title": "Company Profile",
+      "description": "Update your company information and contact details",
+      "companyName": "Company Name",
+      "registrationNumber": "Registration Number (IČO)",
+      "vatNumber": "VAT Number (DIČ)",
+      "email": "Company Email",
+      "phone": "Phone Number",
+      "address": "Business Address",
+      "saveProfile": "Save Profile Changes",
+      "systemPreferences": "System Preferences",
+      "systemPreferencesDesc": "Configure system settings and notifications",
+      "emailNotifications": "Email Notifications",
+      "emailNotificationsDesc": "Receive email alerts for important events",
+      "smsAlerts": "SMS Alerts",
+      "smsAlertsDesc": "Get SMS notifications for critical issues",
+      "weeklyReports": "Weekly Reports",
+      "weeklyReportsDesc": "Automatically generate weekly analytics reports",
+      "timezone": "Timezone",
+      "selectTimezone": "Select timezone",
+      "currency": "Default Currency",
+      "selectCurrency": "Select currency",
+      "updatePreferences": "Update Preferences",
+      "storeConfiguration": "Store Configuration",
+      "storeConfigurationDesc": "Manage store settings and operational hours",
+      "maxStores": "Maximum Number of Stores",
+      "storesAllowed": "stores allowed",
+      "currentStores": "Current: {{used}} / {{limit}} stores used",
+      "defaultOperatingHours": "Default Operating Hours",
+      "openingTime": "Opening Time",
+      "closingTime": "Closing Time",
+      "autoSyncInventory": "Auto-sync Inventory",
+      "autoSyncInventoryDesc": "Automatically sync inventory across stores",
+      "centralizedPricing": "Centralized Pricing",
+      "centralizedPricingDesc": "Use unified pricing across all locations",
+      "applyStoreSettings": "Apply Store Settings",
+      "securityAccess": "Security & Access",
+      "securityAccessDesc": "Manage security settings and user permissions",
+      "passwordPolicy": "Password Policy",
+      "requireUppercase": "Require uppercase letters",
+      "requireNumbers": "Require numbers",
+      "requireSymbols": "Require special characters",
+      "sessionTimeout": "Session Timeout",
+      "selectTimeout": "Select timeout",
+      "twoFactor": "Two-Factor Authentication",
+      "twoFactorDesc": "Enable 2FA for enhanced security",
+      "loginAuditTrail": "Login Audit Trail",
+      "loginAuditTrailDesc": "Track all user login activities",
+      "updateSecurity": "Update Security Settings",
+      "dangerZone": "Danger Zone",
+      "dangerZoneDesc": "These actions are permanent and cannot be undone",
+      "exportData": "Export Company Data",
+      "exportDataDesc": "Download all your company and store data",
+      "closeAccount": "Close Company Account",
+      "closeAccountDesc": "Permanently close your company account and all associated data",
+      "storeIsActive": "Store is active",
+      "storeActiveLabel": "Active Status",
+      "storeActiveDesc": "Enable or disable this store"
+    },
+    "dialogs": {
+      "viewStore": {
+        "title": "Store Details",
+        "storeName": "Store Name",
+        "status": "Status",
+        "address": "Address",
+        "phone": "Phone",
+        "manager": "Manager",
+        "revenue": "Revenue",
+        "products": "Products",
+        "customers": "Customers",
+        "created": "Created",
+        "close": "Close",
+        "editStore": "Edit Store"
+      },
+      "editStore": {
+        "title": "Edit Store",
+        "storeName": "Store Name",
+        "phone": "Phone",
+        "address": "Address",
+        "revenue": "Revenue",
+        "customerCount": "Customer Count",
+        "productCount": "Product Count",
+        "active": "Store is active",
+        "cancel": "Cancel",
+        "update": "Update Store"
+      },
+      "createStore": {
+        "title": "Create New Store",
+        "create": "Create Store",
+        "creating": "Creating..."
+      },
+      "deleteManager": {
+        "title": "Delete Manager",
+        "confirm": "Are you sure you want to delete {{name}}? This action cannot be undone."
+      },
+      "managerForm": {
+        "firstName": "First Name",
+        "lastName": "Last Name",
+        "email": "Email",
+        "phone": "Phone",
+        "password": "Password",
+        "role": "Role",
+        "store": "Assign to Store (Optional)",
+        "activeStatus": "Active Status",
+        "activeStatusDesc": "Enable or disable this manager account",
+        "noStore": "No store assigned"
+      }
+    }
+  },
+  "storeManagement": {
+    "title": "Store Management",
+    "subtitle": "Manage your store locations and settings",
+    "searchPlaceholder": "Search stores by name, address, or phone...",
+    "createButton": "Create Store",
+    "headerCount": "Stores ({{count}})",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "table": {
+      "storeName": "Store Name",
+      "address": "Address",
+      "phone": "Phone",
+      "status": "Status",
+      "revenue": "Revenue",
+      "products": "Products",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No stores found",
+      "titleSearch": "No stores found matching your search",
+      "description": "Get started by creating your first store",
+      "descriptionSearch": "Try adjusting your search terms",
+      "createFirst": "Create First Store"
+    },
+    "dialogs": {
+      "createTitle": "Create New Store",
+      "create": "Create Store",
+      "creating": "Creating...",
+      "editTitle": "Edit Store",
+      "update": "Update Store",
+      "updating": "Updating...",
+      "deleteTitle": "Delete Store",
+      "deleteDesc": "Are you sure you want to delete",
+      "activeLabel": "Store is active"
+    },
+    "toasts": {
+      "created": "Store Created",
+      "createdDesc": "Store has been created successfully.",
+      "updated": "Store Updated",
+      "updatedDesc": "Store has been updated successfully.",
+      "deleted": "Store Deleted",
+      "deletedDesc": "Store has been deleted successfully.",
+      "error": "Error",
+      "errorGeneric": "An error occurred"
+    }
+  },
+  "categoryManagement": {
+    "title": "Category Management",
+    "subtitle": "Organize your products with categories",
+    "searchPlaceholder": "Search categories by name or description...",
+    "createButton": "Create Category",
+    "headerCount": "Categories ({{count}})",
+    "table": {
+      "name": "Category Name",
+      "description": "Description",
+      "stores": "Stores",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No categories found",
+      "titleSearch": "No categories found matching your search",
+      "description": "Get started by creating your first category",
+      "descriptionSearch": "Try adjusting your search terms",
+      "createFirst": "Create First Category"
+    },
+    "dialogs": {
+      "createTitle": "Create New Category",
+      "create": "Create Category",
+      "creating": "Creating...",
+      "editTitle": "Edit Category",
+      "update": "Update Category",
+      "updating": "Updating...",
+      "deleteTitle": "Delete Category",
+      "deleteDesc": "Are you sure you want to delete",
+      "storesLabel": "Select Stores",
+      "allStores": "All Stores (Company-wide)",
+      "noStores": "No stores assigned"
+    },
+    "toasts": {
+      "created": "Category Created",
+      "createdDesc": "Category has been created successfully.",
+      "updated": "Category Updated",
+      "updatedDesc": "Category has been updated successfully.",
+      "deleted": "Category Deleted",
+      "deletedDesc": "Category has been deleted successfully.",
+      "error": "Error",
+      "errorGeneric": "An error occurred"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Manage your store's product catalog",
+    "searchPlaceholder": "Search products, categories, or barcodes...",
+    "addProduct": "Add Product",
+    "filters": {
+      "category": "Category",
+      "allCategories": "All Categories",
+      "stock": "Stock",
+      "allStock": "All Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "viewGrid": "Grid",
+      "viewTable": "Table"
+    },
+    "cards": {
+      "totalProducts": "Total Products",
+      "itemsInCatalog": "Items in catalog",
+      "lowStockItems": "Low Stock Items",
+      "needRestocking": "Need restocking",
+      "outOfStock": "Out of Stock",
+      "unavailable": "Unavailable items",
+      "totalValue": "Total Value",
+      "inventoryValue": "Inventory value"
+    },
+    "empty": {
+      "title": "No products found",
+      "description": "Get started by adding your first product to the catalog.",
+      "createFirst": "Add Your First Product"
+    },
+    "table": {
+      "image": "Image",
+      "name": "Name",
+      "category": "Category",
+      "store": "Store",
+      "allStores": "All stores",
+      "price": "Price",
+      "stock": "Stock",
+      "status": "Status",
+      "barcode": "Barcode",
+      "actions": "Actions",
+      "productCatalog": "Product Catalog ({{count}})"
+    },
+    "stockStatus": {
+      "in": "In Stock",
+      "low": "Low Stock",
+      "out": "Out of Stock",
+      "inStock": "In Stock",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock"
+    },
+    "dropdownActions": {
+      "viewDetails": "View Details",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "dialogs": {
+      "createTitle": "Add New Product",
+      "editTitle": "Edit Product",
+      "viewDetails": "View Details",
+      "deleteTitle": "Delete Product",
+      "deleteDesc": "Are you sure you want to delete this product? This action cannot be undone.",
+      "activeSubstancesTitle": "Active Substances",
+      "noActiveSubstances": "No active substances added yet.",
+      "content": "Content",
+      "concentration": "Concentration",
+      "productImage": "Product image",
+      "description": "Description",
+      "substanceName": "Substance name",
+      "productForm": "Product form",
+      "subtype": "Subtype",
+      "packageSize": "Package size",
+      "batchNumber": "Batch number",
+      "quantityUnit": "Quantity unit",
+      "receivedDate": "Received date",
+      "dosageInformation": "Dosage information",
+      "recommendedSingleDose": "Recommended single dose",
+      "recommendedDailyDose": "Recommended daily dose",
+      "warningUnder18": "Warning for under 18",
+      "healthWarning": "Health warning",
+      "minAge": "Minimum age",
+      "adultOnlyProduct": "Adult-only product",
+      "consumerInformation": "Consumer information",
+      "warningsAgeRestrictions": "Warnings & age restrictions"
+    },
+    "detail": {
+      "notFoundTitle": "Product Not Found",
+      "notFoundDescription": "The product you're looking for doesn't exist or you don't have access to it.",
+      "backToProducts": "Back to Products",
+      "productId": "Product ID: {{id}}",
+      "editProduct": "Edit Product",
+      "quickStatsTitle": "Quick Stats",
+      "stockLevel": "Stock Level",
+      "stockUnits": "{{count}} units",
+      "vat": "VAT",
+      "vatRate": "VAT Rate",
+      "basicInfoTitle": "Basic Information",
+      "regulatoryComplianceTitle": "Regulatory Compliance",
+      "regulatoryDosageTitle": "Regulatory & Dosage Information",
+      "noActiveSubstances": "No active substances added to this product."
+    },
+    "toasts": {
+      "created": "Product created successfully",
+      "updated": "Product updated successfully",
+      "deleted": "Product deleted successfully",
+      "error": "Error",
+      "errorGeneric": "An error occurred"
+    }
+  },
+  "storeDetail": {
+    "notFoundTitle": "Store Not Found",
+    "notFoundDescription": "Unable to load store information.",
+    "notFoundHelp": "Please contact support if you believe this is an error.",
+    "header": {
+      "address": "Address",
+      "phone": "Phone"
+    },
+    "stats": {
+      "totalRevenue": "Total Revenue",
+      "products": "Products",
+      "staffMembers": "Staff Members"
+    },
+    "info": {
+      "sectionTitle": "Store Information",
+      "storeName": "Store Name",
+      "status": "Status",
+      "address": "Address",
+      "noAddress": "No address provided",
+      "phone": "Phone",
+      "storeOwnerEmail": "Store Owner Email",
+      "customers": "Customers",
+      "createdAt": "Created At"
+    },
+    "staff": {
+      "sectionTitle": "Staff Members",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "created": "Created",
+      "none": "No staff members assigned to this store."
+    }
+  },
+  "storeOwnerDashboard": {
+    "cards": {
+      "totalRevenue": "Total Revenue",
+      "revenueChange": "{{value}} vs yesterday",
+      "todaysSales": "Today's Sales",
+      "todaysTransactions": "{{count}} transactions",
+      "products": "Products",
+      "productsLowOut": "{{low}} low stock, {{out}} out",
+      "staff": "Staff Members",
+      "staffActive": "Active team members"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "analytics": "Analytics",
+      "products": "Products",
+      "staff": "Staff"
+    },
+    "overview": {
+      "salesTrend": "7-Day Sales Trend",
+      "paymentMethods": "Payment Methods",
+      "payment": {
+        "cash": "Cash",
+        "card": "Card"
+      },
+      "quickActionsTitle": "Quick Actions",
+      "manageProductsTitle": "Manage Products",
+      "manageProductsDesc": "View and manage inventory",
+      "inventoryTitle": "Inventory",
+      "inventoryDesc": "Track stock levels",
+      "manageStaffTitle": "Manage Staff",
+      "manageStaffDesc": "View and manage team"
+    },
+    "analytics": {
+      "salesByDayTitle": "Sales by Day (Last 7 Days)",
+      "transactionsByDayTitle": "Transactions by Day",
+      "additionalStatsTitle": "Additional Statistics",
+      "totalCustomers": "Total Customers",
+      "inventoryValue": "Inventory Value",
+      "totalTransactions": "Total Transactions"
+    },
+    "productsTab": {
+      "title": "Product Overview",
+      "viewAll": "View All Products",
+      "totalProducts": "Total Products",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "noProducts": "No products found"
+    },
+    "staffTab": {
+      "title": "Staff Members",
+      "manageStaff": "Manage Staff",
+      "noStaff": "No staff members found"
+    }
+  },
+  "branchDetails": {
+    "errorTitle": "Error",
+    "notFoundTitle": "Branch Not Found",
+    "notFoundDescription": "The branch you're looking for doesn't exist or you don't have permission to view it.",
+    "backToBranches": "Back to Branches",
+    "backToStores": "Back to Stores",
+    "retry": "Retry",
+    "salesTable": {
+      "noSalesFound": "No sales found for this branch.",
+      "saleId": "Sale ID",
+      "total": "Total",
+      "paymentMethod": "Payment Method",
+      "date": "Date"
+    },
+    "managersTable": {
+      "title": "Branch Managers",
+      "viewAll": "View all managers",
+      "noManagersFound": "No managers found for this branch.",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "status": "Status",
+      "joined": "Joined",
+      "viewAllCount": "View all {{count}} managers"
+    }
+  },
+  "managerManagement": {
+    "title": "Manager Management",
+    "subtitle": "Manage your team members and store managers",
+    "searchPlaceholder": "Search managers by name, email, phone, or store...",
+    "createButton": "Create Manager",
+    "headerCount": "Managers ({{count}})",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "store": "Store",
+      "status": "Status",
+      "actions": "Actions"
+    },
+    "empty": {
+      "title": "No managers found",
+      "titleFiltered": "No managers found matching your filters",
+      "description": "Get started by creating your first manager",
+      "descriptionFiltered": "Try adjusting your search or filters",
+      "createFirst": "Create First Manager"
+    },
+    "dialogs": {
+      "createTitle": "Create New Manager",
+      "editTitle": "Edit Manager",
+      "deleteTitle": "Delete Manager",
+      "deleteDesc": "Are you sure you want to delete",
+      "activeLabel": "Active Status",
+      "activeDesc": "Enable or disable this manager account",
+      "storeLabel": "Store",
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "creating": "Creating...",
+      "updating": "Updating..."
+    },
+    "toasts": {
+      "created": "Manager Created",
+      "createdDesc": "Manager has been created successfully.",
+      "updated": "Manager Updated",
+      "updatedDesc": "Manager has been updated successfully.",
+      "deleted": "Manager Deleted",
+      "deletedDesc": "Manager has been deleted successfully.",
+      "error": "Error",
+      "errorGeneric": "An error occurred",
+      "statusUpdateSuccess": "Status Updated",
+      "statusUpdateDesc": "Manager status has been updated successfully.",
+      "statusUpdateError": "Failed to update status"
+    }
+  },
+  "storeOwnerManagers": {
+    "headerTitle": "Store Managers",
+    "headerSubtitle": "View all managers assigned to your store",
+    "errorTitle": "Error Loading Managers",
+    "errorDescription": "Unable to load managers"
+  },
+  "salesHistory": {
+    "header": {
+      "title": "Sales History",
+      "subtitle": "Transaction analytics and history",
+      "realtime": "Real-time updates"
+    },
+    "cards": {
+      "totalSales": "Total Sales",
+      "totalSalesDesc": "All time transactions",
+      "totalRevenue": "Total Revenue",
+      "totalRevenueDesc": "Lifetime earnings",
+      "todaysRevenue": "Today's Revenue",
+      "noChange": "No change",
+      "vsYesterday": "vs yesterday",
+      "avgOrderValue": "Avg. Order Value",
+      "avgOrderValueDesc": "Per transaction"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by sale ID or payment method...",
+      "date": "Date:",
+      "payment": "Payment:",
+      "allMethods": "All Methods",
+      "cashOnly": "Cash Only",
+      "cardOnly": "Card Only",
+      "clear": "Clear Filters"
+    },
+    "list": {
+      "title": "Transaction History ({{count}})",
+      "loading": "Loading sales history...",
+      "emptyTitle": "No sales found",
+      "emptyDesc": "No transactions match your current filters.",
+      "recentBadge": "Recent",
+      "customerFallback": "Customer",
+      "noContactInfo": "No contact info",
+      "walkInCustomer": "Walk-in customer",
+      "itemsCount": "{{count}} item{{count, plural, one {} other {s}}}",
+      "detailsButton": "Details"
+    },
+    "details": {
+      "title": "Sale Details",
+      "description": "Complete transaction information and receipt",
+      "saleId": "Sale ID",
+      "dateTime": "Date & Time",
+      "customerInfoTitle": "Customer Information",
+      "customerName": "Name",
+      "customerPhone": "Phone",
+      "customerEmail": "Email",
+      "walkInCustomerFull": "Walk-in customer (No contact information provided)",
+      "itemsTitle": "Items Purchased",
+      "itemsHeader": {
+        "item": "Item",
+        "qty": "Qty",
+        "unitPrice": "Unit Price",
+        "total": "Total"
+      },
+      "noItems": "No item details available",
+      "paymentSummaryTitle": "Payment Summary",
+      "paymentMethodLabel": "Payment Method:",
+      "vat": {
+        "breakdownTitle": "VAT Breakdown",
+        "netAmount": "Net Amount:",
+        "rateLine": "VAT {{rate}}% (Net: ${{net}}):",
+        "totalVat": "Total VAT:"
+      },
+      "totalAmount": "Total Amount:",
+      "transactionSuccess": "Transaction completed successfully",
+      "footerProcessedOn": "Transaction processed on {{date}}",
+      "footerIds": "Store ID: {{storeId}} | Sale ID: {{saleId}}",
+      "relativeTime": {
+        "today": "Today, {{time}}",
+        "yesterday": "Yesterday, {{time}}",
+        "daysAgo": "{{count}} days ago"
+      }
+    },
+    "return": {
+      "title": "Process Return",
+      "description": "Select items to return and specify refund method",
+      "selectItemsLabel": "Select Items to Return",
+      "noItemsReturnTitle": "This sale does not have item records available for return processing.",
+      "noItemsReturnDesc": "Returns are only available for sales with proper item tracking.",
+      "itemLine": "Original Qty: {{quantity}} | Available: {{availableQty}} | Price: ${{price}} | VAT: {{vatRate}}%",
+      "alreadyReturned": "Already Returned: {{count}}",
+      "returningLine": "Returning: {{quantity}} (Refund: ${{refund}})",
+      "qtyPlaceholder": "Qty",
+      "summaryTitle": "Return Summary",
+      "summaryItem": "Item {{index}}",
+      "totalRefund": "Total Refund:",
+      "refundMethodLabel": "Refund Method",
+      "refundMethod": {
+        "cash": "Cash",
+        "card": "Card"
+      },
+      "reasonLabel": "Return Reason (Optional)",
+      "reasonPlaceholder": "Enter reason for return...",
+      "openButton": "Process Return",
+      "processing": "Processing...",
+      "processButton": "Process Return"
+    }
+  },
+  "returnsHistory": {
+    "header": {
+      "title": "Returns History",
+      "subtitle": "View and manage return transactions",
+      "autoRefresh": "Auto-refresh: 30s"
+    },
+    "cards": {
+      "totalReturns": "Total Returns",
+      "allTime": "All time",
+      "totalRefunds": "Total Refunds",
+      "todaysRefunds": "Today's Refunds",
+      "vsYesterday": "{{value}}% vs yesterday",
+      "averageRefund": "Average Refund",
+      "perReturn": "Per return"
+    },
+    "filters": {
+      "title": "Filters",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by sale ID, method, reason...",
+      "date": "Date",
+      "status": "Status",
+      "refundMethod": "Refund Method",
+      "allStatuses": "All Statuses",
+      "allMethods": "All Methods",
+      "cash": "Cash",
+      "card": "Card",
+      "clear": "Clear Filters"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed",
+      "rejected": "Rejected"
+    },
+    "list": {
+      "title": "Returns ({{count}})",
+      "loading": "Loading returns...",
+      "emptyTitle": "No returns found",
+      "emptyDesc": "Returns will appear here once processed",
+      "recentBadge": "Recent",
+      "returnId": "Return #{{id}}",
+      "saleIdShort": "Sale: {{id}}",
+      "relativeTime": {
+        "today": "Today, {{time}}",
+        "yesterday": "Yesterday, {{time}}",
+        "daysAgo": "{{count}} days ago"
+      }
+    },
+    "details": {
+      "title": "Return Details",
+      "description": "Complete return transaction information",
+      "header": {
+        "returnId": "Return ID",
+        "saleId": "Sale ID",
+        "dateTime": "Date & Time",
+        "status": "Status"
+      },
+      "itemsTitle": "Returned Items",
+      "itemsHeader": {
+        "item": "Item",
+        "qty": "Qty",
+        "unitPrice": "Unit Price",
+        "vatRate": "VAT Rate",
+        "refundAmount": "Refund Amount"
+      },
+      "noItems": "No item details available",
+      "refundSummaryTitle": "Refund Summary",
+      "refundMethodLabel": "Refund Method:",
+      "reasonLabel": "Return Reason",
+      "notesLabel": "Notes",
+      "totalRefund": "Total Refund:",
+      "processedBy": "Processed by user at {{date}}",
+      "footerProcessedOn": "Return processed on {{date}}",
+      "footerIds": "Store ID: {{storeId}} | Return ID: #{{id}}"
+    }
+  },
+  "stockTransactions": {
+    "header": {
+      "title": "Stock Transactions",
+      "subtitle": "Complete audit trail of all stock movements",
+      "realtime": "Real-time updates"
+    },
+    "cards": {
+      "totalTransactions": "Total Transactions",
+      "allTimeMovements": "All time movements",
+      "increases": "Stock Increases",
+      "increasesDesc": "Items added to stock",
+      "decreases": "Stock Decreases",
+      "decreasesDesc": "Items removed from stock",
+      "netChange": "Net Change",
+      "netChangeDesc": "Overall stock movement"
+    },
+    "filters": {
+      "title": "Filters",
+      "searchLabel": "Search Products",
+      "searchPlaceholder": "Search by product name or barcode...",
+      "transactionType": "Transaction Type",
+      "allTypes": "All Types",
+      "date": "Date"
+    },
+    "types": {
+      "sale": "Sale",
+      "return": "Return",
+      "adjustment": "Adjustment",
+      "transfer_in": "Transfer In",
+      "transfer_out": "Transfer Out",
+      "received": "Received",
+      "damaged": "Damaged",
+      "expired": "Expired"
+    },
+    "list": {
+      "title": "Transaction History",
+      "loading": "Loading transactions...",
+      "empty": "No stock transactions found",
+      "headers": {
+        "dateTime": "Date & Time",
+        "product": "Product",
+        "type": "Type",
+        "quantityChange": "Quantity Change",
+        "before": "Before",
+        "after": "After",
+        "reason": "Reason",
+        "user": "User"
+      },
+      "productFallback": "Product #{{id}}",
+      "barcode": "Barcode: {{barcode}}",
+      "systemUser": "System",
+      "relativeTime": {
+        "today": "Today, {{time}}",
+        "yesterday": "Yesterday, {{time}}",
+        "daysAgo": "{{count}} days ago"
+      }
+    }
+  },
+  "pos": {
+    "header": {
+      "title": "Point of Sale",
+      "storeLabel": "Store #{{id}}"
+    },
+    "toasts": {
+      "itemAdded": "Item added to cart",
+      "addErrorTitle": "Error adding to cart",
+      "addErrorDesc": "Failed to add item to cart",
+      "updateErrorTitle": "Error updating cart",
+      "updateErrorDesc": "Failed to update cart item",
+      "itemRemoved": "Item removed from cart",
+      "removeErrorTitle": "Error removing from cart",
+      "removeErrorDesc": "Failed to remove item from cart",
+      "saleSuccess": "Sale processed successfully!",
+      "saleErrorTitle": "Error processing sale",
+      "saleErrorDesc": "Failed to process sale"
+    },
+    "errors": {
+      "productOutOfStock": "Product out of stock",
+      "stockLimitExceeded": "Cannot exceed available stock"
+    },
+    "storeSelection": {
+      "loading": "Loading stores...",
+      "title": "Select Store for POS",
+      "description": "Choose which store you want to operate the Point of Sale for"
+    },
+    "noStoreAssigned": {
+      "title": "No store assigned",
+      "description": "Please contact your administrator to assign a store."
+    },
+    "products": {
+      "searchPlaceholder": "Search products or scan barcode...",
+      "categoryPlaceholder": "Category",
+      "allCategories": "All Categories",
+      "lowStock": "Low Stock",
+      "outOfStock": "Out of Stock",
+      "inStockLabel": "{{count}} in stock"
+    },
+    "cart": {
+      "title": "Cart ({{count}} items)",
+      "emptyTitle": "Your cart is empty",
+      "emptyDescription": "Add products to start a sale",
+      "each": "each",
+      "checkoutButton": "Checkout"
+    },
+    "summary": {
+      "netAmount": "Net Amount:",
+      "vatRateLabel": "VAT {{rate}}%:",
+      "totalVat": "Total VAT:",
+      "total": "Total:"
+    },
+    "manualItem": {
+      "title": "Add Manual Item",
+      "nameLabel": "Item Name",
+      "namePlaceholder": "Enter item name",
+      "priceLabel": "Price",
+      "vatLabel": "VAT Rate (%)",
+      "vatHint": "Enter percentage (e.g., 21 for 21%)",
+      "addButton": "Add Item"
+    }
+  },
+  "managerDashboard": {
+    "loading": "Loading dashboard data...",
+    "storeError": {
+      "title": "Store Access Error",
+      "unableToLoad": "Unable to load store information",
+      "noStoreAssigned": "No store assigned to your account",
+      "help": "Please contact your administrator to assign a store to your account."
+    },
+    "header": {
+      "title": "Manager Dashboard",
+      "subtitle": "Managing {{name}} \u2022 {{address}}",
+      "storeActive": "Store Active"
+    },
+    "tabs": {
+      "analytics": "Analytics",
+      "pos": "POS",
+      "inventory": "Inventory",
+      "sales": "Sales History"
+    },
+    "analytics": {
+      "overview": {
+        "totalProducts": {
+          "title": "Total Products",
+          "subtitle": "Items in catalog"
+        },
+        "lowStock": {
+          "title": "Low Stock Items",
+          "subtitle": "Need restocking"
+        },
+        "todaysSales": {
+          "title": "Today's Sales",
+          "subtitle": "Transactions today"
+        },
+        "revenueToday": {
+          "title": "Revenue Today",
+          "subtitle": "Daily earnings"
+        }
+      },
+      "secondary": {
+        "monthlyRevenue": {
+          "title": "Monthly Revenue",
+          "subtitle": "+8% from last month"
+        },
+        "averageSale": {
+          "title": "Average Sale",
+          "subtitle": "Per transaction"
+        },
+        "customerTransactions": {
+          "title": "Customer Transactions",
+          "subtitle": "Total sales"
+        }
+      },
+      "charts": {
+        "salesTrend": "Sales Trend (Last 7 Days)",
+        "salesByCategory": "Sales by Category",
+        "paymentMethods": "Payment Methods",
+        "recentSales": "Recent Sales",
+        "noRecentSales": "No recent sales"
+      },
+      "paymentMethods": {
+        "card": "Card Payments",
+        "cash": "Cash Payments"
+      },
+      "quickActions": {
+        "title": "Quick Actions",
+        "newSale": "New Sale",
+        "checkInventory": "Check Inventory",
+        "salesHistory": "Sales History"
+      }
+    },
+    "pos": {
+      "header": {
+        "title": "Point of Sale - {{name}}",
+        "subtitle": "Process sales and manage transactions"
+      },
+      "searchPlaceholder": "Search products by name, category, or barcode...",
+      "products": {
+        "stockLeft": "{{count}} left"
+      },
+      "cartSection": {
+        "title": "Shopping Cart",
+        "empty": "Cart is empty",
+        "each": "each",
+        "priceBreakdown": "Price Breakdown",
+        "netAmount": "Net Amount:",
+        "vatRate": "VAT ({{rate}}%):",
+        "totalVat": "Total VAT:",
+        "total": "Total:",
+        "paymentMethod": "Payment Method",
+        "cash": "Cash",
+        "card": "Card",
+        "processButton": "Complete Sale",
+        "processing": "Processing..."
+      },
+      "toasts": {
+        "saleSuccess": "Sale completed successfully!",
+        "saleErrorTitle": "Error processing sale",
+        "saleErrorDesc": "Failed to process sale"
+      },
+      "errors": {
+        "outOfStockTitle": "Out of stock",
+        "outOfStockDesc": "This product is not available",
+        "insufficientStock": "Insufficient stock",
+        "cartEmpty": "Cart is empty"
+      }
+    },
+    "inventory": {
+      "header": {
+        "title": "Inventory Management",
+        "subtitle": "Monitor stock levels and inventory status"
+      },
+      "cards": {
+        "wellStocked": "Well Stocked",
+        "lowStock": "Low Stock",
+        "outOfStock": "Out of Stock"
+      },
+      "table": {
+        "product": "Product",
+        "currentStock": "Current Stock",
+        "status": "Status",
+        "lastUpdated": "Last Updated",
+        "units": "{{count}} units",
+        "statusWell": "Well Stocked",
+        "statusLow": "Low Stock",
+        "statusOut": "Out of Stock",
+        "na": "N/A"
+      }
+    },
+    "sales": {
+      "header": {
+        "title": "Sales History",
+        "subtitle": "View transaction history and sales data"
+      },
+      "empty": "No sales recorded yet",
+      "table": {
+        "saleId": "Sale ID",
+        "total": "Total",
+        "paymentMethod": "Payment Method",
+        "items": "Items",
+        "date": "Date",
+        "itemsCount": "{{count}} items"
+      }
+    }
+  },
+  "inventoryPage": {
+    "toasts": {
+      "stockUpdatedTitle": "Stock Updated",
+      "stockUpdatedDesc": "Product stock has been updated successfully",
+      "updateErrorTitle": "Error",
+      "updateErrorDesc": "Failed to update stock"
+    },
+    "status": {
+      "outOfStock": "Out of Stock",
+      "lowStock": "Low Stock",
+      "mediumStock": "Medium Stock",
+      "inStock": "In Stock"
+    },
+    "header": {
+      "title": "Inventory Management",
+      "subtitle": "Track and manage your store inventory",
+      "stockOverview": "Stock Overview"
+    },
+    "cards": {
+      "totalProducts": "Total Products",
+      "lowStockItems": "Low Stock Items",
+      "outOfStock": "Out of Stock",
+      "totalValue": "Total Value"
+    },
+    "search": {
+      "placeholder": "Search inventory..."
+    },
+    "table": {
+      "title": "Inventory Details ({{count}})",
+      "itemsPerPage": "Items per page:",
+      "headers": {
+        "productName": "Product Name",
+        "category": "Category",
+        "currentStock": "Current Stock",
+        "unitPrice": "Unit Price",
+        "totalValue": "Total Value",
+        "status": "Status",
+        "actions": "Actions"
+      }
+    },
+    "dialog": {
+      "addTitle": "Add Stock",
+      "removeTitle": "Remove Stock",
+      "addDescription": "Add stock to {{name}}",
+      "removeDescription": "Remove stock from {{name}}",
+      "currentStock": "Current stock: {{stock}}",
+      "quantityLabel": "Quantity",
+      "quantityPlaceholder": "Enter quantity",
+      "reasonLabel": "Reason (Optional)",
+      "reasonPlaceholder": "Reason for adjustment",
+      "previewLabel": "Preview:",
+      "updating": "Updating...",
+      "updateButton": "Update Stock"
+    }
+  },
+  "analyticsDashboard": {
+    "header": {
+      "title": "Analytics Dashboard",
+      "subtitle": "Comprehensive insights into your business performance"
+    },
+    "cards": {
+      "totalRevenue": "Total Revenue",
+      "monthlyGrowth": "+{{value}}% from last month",
+      "activeStores": "Active Stores",
+      "totalStores": "of {{count}} total stores",
+      "totalProducts": "Total Products",
+      "acrossStores": "Across all stores",
+      "totalCustomers": "Total Customers",
+      "customerBase": "Customer base"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "months": {
+      "jan": "Jan",
+      "feb": "Feb",
+      "mar": "Mar",
+      "apr": "Apr",
+      "may": "May",
+      "jun": "Jun"
+    },
+    "charts": {
+      "revenueComparison": "Store Revenue Comparison",
+      "statusDistribution": "Store Status Distribution",
+      "monthlyPerformance": "Monthly Performance Trend",
+      "customersVsProducts": "Customers vs Products by Store"
+    },
+    "topStores": {
+      "title": "Top Performing Stores",
+      "revenue": "{{value}}k revenue"
+    }
+  },
+  "managerForm": {
+    "firstName": "First Name *",
+    "firstNamePlaceholder": "Enter first name",
+    "lastName": "Last Name *",
+    "lastNamePlaceholder": "Enter last name",
+    "email": "Email *",
+    "emailPlaceholder": "Enter email address",
+    "phone": "Phone",
+    "phonePlaceholder": "Enter phone number",
+    "storeLabel": "Store",
+    "selectStorePlaceholder": "Select a store (optional)",
+    "noStoreAssigned": "No store assigned",
+    "password": "Password *",
+    "passwordPlaceholder": "Enter password (min 6 characters)"
+  },
+  "storeForm": {
+    "name": "Store Name *",
+    "namePlaceholder": "Enter store name",
+    "address": "Address *",
+    "addressPlaceholder": "Enter store address",
+    "phone": "Phone",
+    "phonePlaceholder": "Enter phone number",
+    "ownerSectionTitle": "Store Owner Account (Optional)",
+    "ownerSectionDesc": "Create a store owner account for this store. Leave blank if you don't want to create one now.",
+    "ownerEmail": "Store Owner Email",
+    "ownerEmailPlaceholder": "Enter store owner email",
+    "ownerPassword": "Store Owner Password",
+    "ownerPasswordPlaceholder": "Enter password (min 6 characters)"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "networkError": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action",
+    "notFound": "Resource not found",
+    "validationError": "Validation error"
+  },
+  "success": {
+    "saved": "Saved successfully",
+    "deleted": "Deleted successfully",
+    "created": "Created successfully",
+    "updated": "Updated successfully"
+  },
+  "language": {
+    "english": "English",
+    "czech": "Czech",
+    "selectLanguage": "Select Language"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "addUser": "Add New User",
+    "viewAnalytics": "View Analytics",
+    "systemSettings": "System Settings"
+  },
+  "notFound": {
+    "title": "404 Page Not Found",
+    "description": "Did you forget to add the page to the router?"
+  }
+}
+

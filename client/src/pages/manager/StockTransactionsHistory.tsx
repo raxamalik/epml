@@ -38,6 +38,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 import { usePagination } from "@/hooks/common/usePagination";
 import { Pagination } from "@/components/common";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StockTransaction {
   id: number;
@@ -64,6 +65,7 @@ interface StockTransaction {
 
 function StockTransactionsHistory() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [transactionTypeFilter, setTransactionTypeFilter] = useState<string>("all");
@@ -189,13 +191,17 @@ function StockTransactionsHistory() {
   const getRelativeTime = (date: string) => {
     const transactionDate = new Date(date);
     if (isToday(transactionDate)) {
-      return `Today, ${format(transactionDate, 'HH:mm')}`;
+      return t("stockTransactions.list.relativeTime.today", {
+        time: format(transactionDate, "HH:mm"),
+      });
     } else if (isYesterday(transactionDate)) {
-      return `Yesterday, ${format(transactionDate, 'HH:mm')}`;
+      return t("stockTransactions.list.relativeTime.yesterday", {
+        time: format(transactionDate, "HH:mm"),
+      });
     } else {
       const daysDiff = differenceInDays(new Date(), transactionDate);
       if (daysDiff <= 7) {
-        return `${daysDiff} days ago`;
+        return t("stockTransactions.list.relativeTime.daysAgo", { count: daysDiff });
       }
       return format(transactionDate, 'MMM dd, yyyy HH:mm');
     }
@@ -215,14 +221,18 @@ function StockTransactionsHistory() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Stock Transactions</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Complete audit trail of all stock movements</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("stockTransactions.header.title")}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t("stockTransactions.header.subtitle")}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Clock className="h-3 w-3 mr-1" />
-                Real-time updates
+                {t("stockTransactions.header.realtime")}
               </Badge>
             </div>
           </div>
@@ -234,46 +244,66 @@ function StockTransactionsHistory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Transactions</CardTitle>
+              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {t("stockTransactions.cards.totalTransactions")}
+              </CardTitle>
               <div className="p-2 bg-blue-500 rounded-lg">
                 <FileText className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalTransactions}</div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">All time movements</p>
+              <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                {totalTransactions}
+              </div>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {t("stockTransactions.cards.allTimeMovements")}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Stock Increases</CardTitle>
+              <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">
+                {t("stockTransactions.cards.increases")}
+              </CardTitle>
               <div className="p-2 bg-green-500 rounded-lg">
                 <TrendingUp className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-900 dark:text-green-100">{totalIncreases}</div>
-              <p className="text-sm text-green-700 dark:text-green-300">Items added to stock</p>
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                {totalIncreases}
+              </div>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                {t("stockTransactions.cards.increasesDesc")}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">Stock Decreases</CardTitle>
+              <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">
+                {t("stockTransactions.cards.decreases")}
+              </CardTitle>
               <div className="p-2 bg-red-500 rounded-lg">
                 <TrendingDown className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-red-900 dark:text-red-100">{totalDecreases}</div>
-              <p className="text-sm text-red-700 dark:text-red-300">Items removed from stock</p>
+              <div className="text-3xl font-bold text-red-900 dark:text-red-100">
+                {totalDecreases}
+              </div>
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {t("stockTransactions.cards.decreasesDesc")}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Net Change</CardTitle>
+              <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                {t("stockTransactions.cards.netChange")}
+              </CardTitle>
               <div className="p-2 bg-purple-500 rounded-lg">
                 <ArrowUpDown className="h-4 w-4 text-white" />
               </div>
@@ -282,7 +312,9 @@ function StockTransactionsHistory() {
               <div className={`text-3xl font-bold ${netChange >= 0 ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
                 {netChange >= 0 ? '+' : ''}{netChange}
               </div>
-              <p className="text-sm text-purple-700 dark:text-purple-300">Overall stock movement</p>
+              <p className="text-sm text-purple-700 dark:text-purple-300">
+                {t("stockTransactions.cards.netChangeDesc")}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -292,18 +324,18 @@ function StockTransactionsHistory() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
-              Filters
+              {t("stockTransactions.filters.title")}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="search">Search Products</Label>
+                <Label htmlFor="search">{t("stockTransactions.filters.searchLabel")}</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="search"
-                    placeholder="Search by product name or barcode..."
+                    placeholder={t("stockTransactions.filters.searchPlaceholder")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -312,27 +344,35 @@ function StockTransactionsHistory() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="transactionType">Transaction Type</Label>
+                <Label htmlFor="transactionType">
+                  {t("stockTransactions.filters.transactionType")}
+                </Label>
                 <Select value={transactionTypeFilter} onValueChange={setTransactionTypeFilter}>
                   <SelectTrigger id="transactionType">
-                    <SelectValue placeholder="All types" />
+                    <SelectValue placeholder={t("stockTransactions.filters.allTypes")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="sale">Sales</SelectItem>
-                    <SelectItem value="return">Returns</SelectItem>
-                    <SelectItem value="adjustment">Adjustments</SelectItem>
-                    <SelectItem value="transfer_in">Transfer In</SelectItem>
-                    <SelectItem value="transfer_out">Transfer Out</SelectItem>
-                    <SelectItem value="received">Received</SelectItem>
-                    <SelectItem value="damaged">Damaged</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
+                    <SelectItem value="all">{t("stockTransactions.filters.allTypes")}</SelectItem>
+                    <SelectItem value="sale">{t("stockTransactions.types.sale")}</SelectItem>
+                    <SelectItem value="return">{t("stockTransactions.types.return")}</SelectItem>
+                    <SelectItem value="adjustment">
+                      {t("stockTransactions.types.adjustment")}
+                    </SelectItem>
+                    <SelectItem value="transfer_in">
+                      {t("stockTransactions.types.transfer_in")}
+                    </SelectItem>
+                    <SelectItem value="transfer_out">
+                      {t("stockTransactions.types.transfer_out")}
+                    </SelectItem>
+                    <SelectItem value="received">{t("stockTransactions.types.received")}</SelectItem>
+                    <SelectItem value="damaged">{t("stockTransactions.types.damaged")}</SelectItem>
+                    <SelectItem value="expired">{t("stockTransactions.types.expired")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">{t("stockTransactions.filters.date")}</Label>
                 <Input
                   id="date"
                   type="date"
@@ -347,18 +387,22 @@ function StockTransactionsHistory() {
         {/* Transactions Table */}
         <Card className="border-slate-200 dark:border-slate-800">
           <CardHeader>
-            <CardTitle>Transaction History</CardTitle>
+            <CardTitle>{t("stockTransactions.list.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-8">
                 <Clock className="h-8 w-8 animate-spin mx-auto text-slate-400 mb-2" />
-                <p className="text-slate-600 dark:text-slate-400">Loading transactions...</p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  {t("stockTransactions.list.loading")}
+                </p>
               </div>
             ) : filteredTransactions.length === 0 ? (
               <div className="text-center py-8">
                 <Package className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                <p className="text-slate-600 dark:text-slate-400">No stock transactions found</p>
+                <p className="text-slate-600 dark:text-slate-400">
+                  {t("stockTransactions.list.empty")}
+                </p>
               </div>
             ) : (
               <>
@@ -366,14 +410,16 @@ function StockTransactionsHistory() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Date & Time</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Quantity Change</TableHead>
-                        <TableHead>Before</TableHead>
-                        <TableHead>After</TableHead>
-                        <TableHead>Reason</TableHead>
-                        <TableHead>User</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.dateTime")}</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.product")}</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.type")}</TableHead>
+                        <TableHead>
+                          {t("stockTransactions.list.headers.quantityChange")}
+                        </TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.before")}</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.after")}</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.reason")}</TableHead>
+                        <TableHead>{t("stockTransactions.list.headers.user")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -381,37 +427,69 @@ function StockTransactionsHistory() {
                         <TableRow key={transaction.id}>
                           <TableCell className="font-medium">
                             <div className="flex flex-col">
-                              <span>{format(new Date(transaction.createdAt), 'MMM dd, yyyy')}</span>
-                              <span className="text-xs text-slate-500">{getRelativeTime(transaction.createdAt)}</span>
+                              <span>
+                                {format(new Date(transaction.createdAt), "MMM dd, yyyy")}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {getRelativeTime(transaction.createdAt)}
+                              </span>
                             </div>
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col">
-                              <span className="font-medium">{transaction.productName || `Product #${transaction.productId}`}</span>
+                              <span className="font-medium">
+                                {transaction.productName ||
+                                  t("stockTransactions.list.productFallback", {
+                                    id: transaction.productId,
+                                  })}
+                              </span>
                               {transaction.productBarcode && (
-                                <span className="text-xs text-slate-500">Barcode: {transaction.productBarcode}</span>
+                                <span className="text-xs text-slate-500">
+                                  {t("stockTransactions.list.barcode", {
+                                    barcode: transaction.productBarcode,
+                                  })}
+                                </span>
                               )}
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={getTransactionTypeColor(transaction.transactionType) as any}>
-                              <span className="mr-1">{getTransactionTypeIcon(transaction.transactionType)}</span>
-                              {getTransactionTypeLabel(transaction.transactionType)}
+                            <Badge
+                              variant={getTransactionTypeColor(transaction.transactionType) as any}
+                            >
+                              <span className="mr-1">
+                                {getTransactionTypeIcon(transaction.transactionType)}
+                              </span>
+                              {t(`stockTransactions.types.${transaction.transactionType}`, {
+                                defaultValue: getTransactionTypeLabel(transaction.transactionType),
+                              })}
                             </Badge>
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {getQuantityChangeIcon(transaction.quantityChange)}
-                              <span className={`font-semibold ${transaction.quantityChange > 0 ? 'text-green-600' : transaction.quantityChange < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                                {transaction.quantityChange > 0 ? '+' : ''}{transaction.quantityChange}
+                              <span
+                                className={`font-semibold ${
+                                  transaction.quantityChange > 0
+                                    ? "text-green-600"
+                                    : transaction.quantityChange < 0
+                                      ? "text-red-600"
+                                      : "text-gray-600"
+                                }`}
+                              >
+                                {transaction.quantityChange > 0 ? "+" : ""}
+                                {transaction.quantityChange}
                               </span>
                             </div>
                           </TableCell>
                           <TableCell>{transaction.quantityBefore}</TableCell>
-                          <TableCell className="font-semibold">{transaction.quantityAfter}</TableCell>
+                          <TableCell className="font-semibold">
+                            {transaction.quantityAfter}
+                          </TableCell>
                           <TableCell>
                             {transaction.reason ? (
-                              <span className="text-sm text-slate-600 dark:text-slate-400">{transaction.reason}</span>
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                {transaction.reason}
+                              </span>
                             ) : (
                               <span className="text-sm text-slate-400">-</span>
                             )}
@@ -424,15 +502,18 @@ function StockTransactionsHistory() {
                                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                     {transaction.userName}
                                   </span>
-                                  {transaction.userEmail && transaction.userName !== transaction.userEmail && (
-                                    <span className="text-xs text-slate-500 dark:text-slate-400">
-                                      {transaction.userEmail}
-                                    </span>
-                                  )}
+                                  {transaction.userEmail &&
+                                    transaction.userName !== transaction.userEmail && (
+                                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                                        {transaction.userEmail}
+                                      </span>
+                                    )}
                                 </div>
                               </div>
                             ) : (
-                              <span className="text-sm text-slate-400">System</span>
+                              <span className="text-sm text-slate-400">
+                                {t("stockTransactions.list.systemUser")}
+                              </span>
                             )}
                           </TableCell>
                         </TableRow>

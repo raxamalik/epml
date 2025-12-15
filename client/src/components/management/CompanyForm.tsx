@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { CompanyFormData } from "@/lib/utils/validation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface CompanyFormProps {
   form: UseFormReturn<CompanyFormData>;
@@ -10,13 +11,14 @@ interface CompanyFormProps {
 }
 
 export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="col-span-2">
-        <Label htmlFor="name">Company Name *</Label>
+        <Label htmlFor="name">{t("companyForm.companyName")}</Label>
         <Input
           id="name"
-          placeholder="Enter company name"
+          placeholder={t("companyForm.companyNamePlaceholder")}
           {...form.register("name")}
         />
         {form.formState.errors.name && (
@@ -25,10 +27,10 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div>
-        <Label htmlFor="registrationNumber">Registration Number (IČO) *</Label>
+        <Label htmlFor="registrationNumber">{t("companyForm.registrationNumber")}</Label>
         <Input
           id="registrationNumber"
-          placeholder="12345678"
+          placeholder={t("companyForm.registrationNumberPlaceholder")}
           {...form.register("registrationNumber")}
         />
         {form.formState.errors.registrationNumber && (
@@ -37,10 +39,10 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div>
-        <Label htmlFor="vatNumber">VAT Number (DIČ)</Label>
+        <Label htmlFor="vatNumber">{t("companyForm.vatNumber")}</Label>
         <Input
           id="vatNumber"
-          placeholder="CZ12345678"
+          placeholder={t("companyForm.vatNumberPlaceholder")}
           {...form.register("vatNumber")}
         />
         {form.formState.errors.vatNumber && (
@@ -49,10 +51,10 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div className="col-span-2">
-        <Label htmlFor="address">Full Address *</Label>
+        <Label htmlFor="address">{t("companyForm.address")}</Label>
         <Textarea
           id="address"
-          placeholder="Street, City, Postal Code"
+          placeholder={t("companyForm.addressPlaceholder")}
           rows={2}
           {...form.register("address")}
         />
@@ -62,11 +64,11 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email">{t("companyForm.email")}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="company@example.com"
+          placeholder={t("companyForm.emailPlaceholder")}
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -75,10 +77,10 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div>
-        <Label htmlFor="phone">Phone *</Label>
+        <Label htmlFor="phone">{t("companyForm.phone")}</Label>
         <Input
           id="phone"
-          placeholder="+420 123 456 789"
+          placeholder={t("companyForm.phonePlaceholder")}
           {...form.register("phone")}
         />
         {form.formState.errors.phone && (
@@ -87,10 +89,10 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       </div>
       
       <div>
-        <Label htmlFor="contactPerson">Contact Person *</Label>
+        <Label htmlFor="contactPerson">{t("companyForm.contactPerson")}</Label>
         <Input
           id="contactPerson"
-          placeholder="Full name"
+          placeholder={t("companyForm.contactPersonPlaceholder")}
           {...form.register("contactPerson")}
         />
         {form.formState.errors.contactPerson && (
@@ -100,11 +102,11 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       
       {mode === "create" && (
         <div>
-          <Label htmlFor="password">Login Password *</Label>
+          <Label htmlFor="password">{t("companyForm.password")}</Label>
           <Input
             id="password"
             type="password"
-            placeholder="Set login password for this company"
+            placeholder={t("companyForm.passwordPlaceholder")}
             {...form.register("password")}
           />
           {form.formState.errors.password && (
@@ -114,7 +116,7 @@ export function CompanyForm({ form, mode = "create" }: CompanyFormProps) {
       )}
       
       <div>
-        <Label htmlFor="maxBranches">Max Branches</Label>
+        <Label htmlFor="maxBranches">{t("companyForm.maxBranches")}</Label>
         <Input
           id="maxBranches"
           type="number"

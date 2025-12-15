@@ -14,6 +14,7 @@ import { DeleteConfirmDialog, EmptyState, SearchBar, Pagination } from "@/compon
 import { usePagination } from "@/hooks/common/usePagination";
 import { useFilters } from "@/hooks/common/useFilters";
 import { ActiveSubstanceForm } from "@/components/active-substance/ActiveSubstanceForm";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ActiveSubstance {
   id: number;
@@ -26,6 +27,7 @@ interface ActiveSubstance {
 
 export default function ActiveSubstances() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -89,14 +91,14 @@ export default function ActiveSubstances() {
       queryClient.invalidateQueries({ queryKey: ['/api/active-substances'] });
       setIsCreateDialogOpen(false);
       toast({
-        title: "Active Substance Created",
-        description: "Active substance has been created successfully.",
+        title: t("activeSubstances.toasts.created"),
+        description: t("activeSubstances.toasts.createdDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create active substance",
+        title: t("activeSubstances.toasts.error"),
+        description: error.message || t("activeSubstances.toasts.errorCreate"),
         variant: "destructive",
       });
     },
@@ -113,14 +115,14 @@ export default function ActiveSubstances() {
       setIsEditDialogOpen(false);
       setSelectedSubstance(null);
       toast({
-        title: "Active Substance Updated",
-        description: "Active substance has been updated successfully.",
+        title: t("activeSubstances.toasts.updated"),
+        description: t("activeSubstances.toasts.updatedDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update active substance",
+        title: t("activeSubstances.toasts.error"),
+        description: error.message || t("activeSubstances.toasts.errorUpdate"),
         variant: "destructive",
       });
     },
@@ -137,14 +139,14 @@ export default function ActiveSubstances() {
       setIsDeleteDialogOpen(false);
       setSubstanceToDelete(null);
       toast({
-        title: "Active Substance Deleted",
-        description: "Active substance has been deleted successfully.",
+        title: t("activeSubstances.toasts.deleted"),
+        description: t("activeSubstances.toasts.deletedDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete active substance",
+        title: t("activeSubstances.toasts.error"),
+        description: error.message || t("activeSubstances.toasts.errorDelete"),
         variant: "destructive",
       });
     },
@@ -200,8 +202,8 @@ export default function ActiveSubstances() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <Card>
             <CardContent className="p-12 text-center">
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Access Denied</h3>
-              <p className="text-slate-500">You don't have permission to access active substances.</p>
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t("activeSubstances.accessDenied")}</h3>
+              <p className="text-slate-500">{t("activeSubstances.accessDeniedDesc")}</p>
             </CardContent>
           </Card>
         </div>
@@ -214,7 +216,7 @@ export default function ActiveSubstances() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Loading active substances...</p>
+          <p className="text-slate-600">{t("activeSubstances.loading")}</p>
         </div>
       </div>
     );
@@ -233,20 +235,20 @@ export default function ActiveSubstances() {
                     <FlaskConical className="h-8 w-8" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold">Active Substances</h1>
+                    <h1 className="text-3xl font-bold">{t("activeSubstances.title")}</h1>
                     <p className="text-blue-100 text-lg mt-1">
-                      Manage active substances and their regulatory limits
+                      {t("activeSubstances.description")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">System Active</span>
+                    <span className="text-sm">{t("activeSubstances.systemActive")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <FlaskConical className="h-4 w-4" />
-                    <span className="text-sm">{total} Substances</span>
+                    <span className="text-sm">{t("activeSubstances.substancesCount", { count: total })}</span>
                   </div>
                 </div>
               </div>
@@ -262,7 +264,7 @@ export default function ActiveSubstances() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search substances by name..."
+                  placeholder={t("activeSubstances.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -271,7 +273,7 @@ export default function ActiveSubstances() {
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Create Substance
+                {t("activeSubstances.createButton")}
               </Button>
             </div>
           </CardContent>
@@ -286,11 +288,11 @@ export default function ActiveSubstances() {
                   <FlaskConical className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Active Substances ({total})
+                  {t("activeSubstances.table.title", { count: total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}:</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => {
@@ -314,14 +316,14 @@ export default function ActiveSubstances() {
           <CardContent className="p-0">
             {substances.length === 0 ? (
               <EmptyState
-                title="No active substances found"
-                description={debouncedSearch ? "Try adjusting your search terms" : "Get started by creating your first active substance"}
+                title={t("activeSubstances.empty.title")}
+                description={debouncedSearch ? t("activeSubstances.empty.descSearch") : t("activeSubstances.empty.desc")}
                 icon={<FlaskConical className="h-12 w-12 mx-auto text-muted-foreground" />}
                 action={
                   !debouncedSearch && (
                     <Button onClick={() => setIsCreateDialogOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
-                      Create First Substance
+                      {t("activeSubstances.empty.createFirst")}
                     </Button>
                   )
                 }
@@ -332,12 +334,12 @@ export default function ActiveSubstances() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Max Single Dose</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Max Daily Dose</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Max Concentration (%)</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Created</TableHead>
-                      <TableHead className="w-[120px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.name")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.maxSingleDose")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.maxDailyDose")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.maxConcentration")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.created")}</TableHead>
+                      <TableHead className="w-[120px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("activeSubstances.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -416,7 +418,7 @@ export default function ActiveSubstances() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Active Substance</DialogTitle>
+              <DialogTitle>{t("activeSubstances.create.title")}</DialogTitle>
             </DialogHeader>
             <ActiveSubstanceForm
               onSubmit={handleCreateSubstance}
@@ -435,7 +437,7 @@ export default function ActiveSubstances() {
         }}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Active Substance</DialogTitle>
+              <DialogTitle>{t("activeSubstances.edit.title")}</DialogTitle>
             </DialogHeader>
             {selectedSubstance && (
               <ActiveSubstanceForm
@@ -465,8 +467,8 @@ export default function ActiveSubstances() {
             if (!open) setSubstanceToDelete(null);
           }}
           onConfirm={confirmDeleteSubstance}
-          title="Delete Active Substance"
-          description="Are you sure you want to delete"
+          title={t("activeSubstances.delete.title")}
+          description={t("activeSubstances.delete.description")}
           itemName={substanceToDelete?.name}
           isLoading={deleteMutation.isPending}
         />

@@ -1,4 +1,5 @@
-import { format, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, type Locale } from "date-fns";
+import { enUS, cs } from "date-fns/locale";
 
 /**
  * Format a date string to a readable date-time string
@@ -41,11 +42,21 @@ export function formatDateTime(dateString: string): string {
 /**
  * Format a date string to a relative time string (e.g., "2 hours ago")
  * @param dateString - ISO date string
+ * @param locale - Optional locale code ('en' or 'cz')
  * @returns Relative time string
  */
-export function formatRelativeTime(dateString: string): string {
+export function formatRelativeTime(dateString: string, locale?: string): string {
   try {
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true });
+    const localeMap: Record<string, Locale> = {
+      'en': enUS,
+      'cz': cs,
+      'cs': cs,
+    };
+    const selectedLocale = locale ? localeMap[locale] || enUS : enUS;
+    return formatDistanceToNow(new Date(dateString), { 
+      addSuffix: true,
+      locale: selectedLocale
+    });
   } catch (error) {
     return dateString;
   }

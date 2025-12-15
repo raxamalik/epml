@@ -10,6 +10,7 @@ import { Calendar, Search, Filter, AlertCircle, Info, AlertTriangle, XCircle, Re
 import { Link } from "wouter";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { formatDateTime, formatJsonData } from "@/lib/utils/date";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface AuditLog {
   id: number;
@@ -46,6 +47,7 @@ const severityColors = {
 };
 
 export default function AuditLogs() {
+  const { t } = useTranslation();
   const [filters, setFilters] = useState({
     action: "all",
     entityType: "all",
@@ -140,10 +142,10 @@ export default function AuditLogs() {
           <CardHeader>
             <CardTitle className="text-red-800 dark:text-red-200 flex items-center gap-2">
               <XCircle className="h-5 w-5" />
-              Access Denied
+              {t("auditLogs.accessDenied")}
             </CardTitle>
             <CardDescription className="text-red-600 dark:text-red-400">
-              {error.message || "You don't have permission to view audit logs."}
+              {error.message || t("auditLogs.accessDeniedDesc")}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -154,9 +156,9 @@ export default function AuditLogs() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Audit Logs</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{t("auditLogs.title")}</h1>
         <p className="text-gray-600 dark:text-gray-300">
-          Monitor all system activities and user actions for security and compliance
+          {t("auditLogs.description")}
         </p>
       </div>
 
@@ -165,18 +167,18 @@ export default function AuditLogs() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
-            Filters
+            {t("auditLogs.filters")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="search">Search</Label>
+              <Label htmlFor="search">{t("auditLogs.search")}</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="search"
-                  placeholder="Search descriptions, emails, actions..."
+                  placeholder={t("auditLogs.searchPlaceholder")}
                   value={filters.search}
                   onChange={(e) => handleFilterChange("search", e.target.value)}
                   className="pl-10"
@@ -185,63 +187,63 @@ export default function AuditLogs() {
             </div>
             
             <div>
-              <Label htmlFor="action">Action</Label>
+              <Label htmlFor="action">{t("auditLogs.action")}</Label>
               <Select value={filters.action} onValueChange={(value) => handleFilterChange("action", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All actions" />
+                  <SelectValue placeholder={t("auditLogs.allActions")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All actions</SelectItem>
-                  <SelectItem value="user_login">User Login</SelectItem>
-                  <SelectItem value="user_logout">User Logout</SelectItem>
-                  <SelectItem value="product_create">Product Create</SelectItem>
-                  <SelectItem value="product_update">Product Update</SelectItem>
-                  <SelectItem value="sale_create">Sale Create</SelectItem>
-                  <SelectItem value="user_create">User Create</SelectItem>
-                  <SelectItem value="user_update">User Update</SelectItem>
-                  <SelectItem value="store_create">Store Create</SelectItem>
-                  <SelectItem value="store_update">Store Update</SelectItem>
-                  <SelectItem value="company_create">Company Create</SelectItem>
-                  <SelectItem value="company_update">Company Update</SelectItem>
+                  <SelectItem value="all">{t("auditLogs.allActions")}</SelectItem>
+                  <SelectItem value="user_login">{t("auditLogs.actions.userLogin")}</SelectItem>
+                  <SelectItem value="user_logout">{t("auditLogs.actions.userLogout")}</SelectItem>
+                  <SelectItem value="product_create">{t("auditLogs.actions.productCreate")}</SelectItem>
+                  <SelectItem value="product_update">{t("auditLogs.actions.productUpdate")}</SelectItem>
+                  <SelectItem value="sale_create">{t("auditLogs.actions.saleCreate")}</SelectItem>
+                  <SelectItem value="user_create">{t("auditLogs.actions.userCreate")}</SelectItem>
+                  <SelectItem value="user_update">{t("auditLogs.actions.userUpdate")}</SelectItem>
+                  <SelectItem value="store_create">{t("auditLogs.actions.storeCreate")}</SelectItem>
+                  <SelectItem value="store_update">{t("auditLogs.actions.storeUpdate")}</SelectItem>
+                  <SelectItem value="company_create">{t("auditLogs.actions.companyCreate")}</SelectItem>
+                  <SelectItem value="company_update">{t("auditLogs.actions.companyUpdate")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="entityType">Entity Type</Label>
+              <Label htmlFor="entityType">{t("auditLogs.entityType")}</Label>
               <Select value={filters.entityType} onValueChange={(value) => handleFilterChange("entityType", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All types" />
+                  <SelectValue placeholder={t("auditLogs.allTypes")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
-                  <SelectItem value="product">Product</SelectItem>
-                  <SelectItem value="sale">Sale</SelectItem>
-                  <SelectItem value="store">Store</SelectItem>
-                  <SelectItem value="company">Company</SelectItem>
+                  <SelectItem value="all">{t("auditLogs.allTypes")}</SelectItem>
+                  <SelectItem value="user">{t("auditLogs.entityTypes.user")}</SelectItem>
+                  <SelectItem value="product">{t("auditLogs.entityTypes.product")}</SelectItem>
+                  <SelectItem value="sale">{t("auditLogs.entityTypes.sale")}</SelectItem>
+                  <SelectItem value="store">{t("auditLogs.entityTypes.store")}</SelectItem>
+                  <SelectItem value="company">{t("auditLogs.entityTypes.company")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="severity">Severity</Label>
+              <Label htmlFor="severity">{t("auditLogs.severity")}</Label>
               <Select value={filters.severity} onValueChange={(value) => handleFilterChange("severity", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All severities" />
+                  <SelectValue placeholder={t("auditLogs.allSeverities")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All severities</SelectItem>
-                  <SelectItem value="info">Info</SelectItem>
-                  <SelectItem value="warning">Warning</SelectItem>
-                  <SelectItem value="error">Error</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
+                  <SelectItem value="all">{t("auditLogs.allSeverities")}</SelectItem>
+                  <SelectItem value="info">{t("auditLogs.severities.info")}</SelectItem>
+                  <SelectItem value="warning">{t("auditLogs.severities.warning")}</SelectItem>
+                  <SelectItem value="error">{t("auditLogs.severities.error")}</SelectItem>
+                  <SelectItem value="critical">{t("auditLogs.severities.critical")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div>
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="startDate">{t("auditLogs.startDate")}</Label>
               <Input
                 id="startDate"
                 type="date"
@@ -251,7 +253,7 @@ export default function AuditLogs() {
             </div>
 
             <div>
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate">{t("auditLogs.endDate")}</Label>
               <Input
                 id="endDate"
                 type="date"
@@ -262,7 +264,7 @@ export default function AuditLogs() {
 
             <div className="md:col-span-2 flex items-end gap-2">
               <Button onClick={clearFilters} variant="outline" className="flex-1">
-                Clear All Filters
+                {t("auditLogs.clearAllFilters")}
               </Button>
             </div>
           </div>
@@ -282,7 +284,7 @@ export default function AuditLogs() {
                 className="flex items-center gap-2"
               >
                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                Refresh
+                {t("auditLogs.refresh")}
               </Button>
               <Button 
                 onClick={toggleAutoRefresh} 
@@ -291,16 +293,16 @@ export default function AuditLogs() {
                 className="flex items-center gap-2"
               >
                 <RotateCcw className="h-4 w-4" />
-                Auto-refresh {autoRefresh ? 'ON' : 'OFF'}
+                {t("auditLogs.autoRefresh")} {autoRefresh ? t("auditLogs.autoRefreshOn") : t("auditLogs.autoRefreshOff")}
               </Button>
               {autoRefresh && (
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Updates every 10 seconds
+                  {t("auditLogs.updatesEvery")}
                 </span>
               )}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              Total: {totalCount} entries
+              {t("auditLogs.totalEntries", { count: totalCount })}
             </div>
           </div>
         </CardContent>
@@ -311,9 +313,13 @@ export default function AuditLogs() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Audit Log Entries</CardTitle>
+              <CardTitle>{t("auditLogs.auditLogEntries")}</CardTitle>
               <CardDescription>
-                Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} entries
+                {t("auditLogs.showingEntries", {
+                  start: ((currentPage - 1) * limit) + 1,
+                  end: Math.min(currentPage * limit, totalCount),
+                  total: totalCount
+                })}
               </CardDescription>
             </div>
             {totalPages > 1 && (
@@ -325,10 +331,10 @@ export default function AuditLogs() {
                   size="sm"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  {t("auditLogs.previous")}
                 </Button>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Page {currentPage} of {totalPages}
+                  {t("auditLogs.pageOf", { current: currentPage, total: totalPages })}
                 </span>
                 <Button
                   onClick={() => goToPage(currentPage + 1)}
@@ -336,7 +342,7 @@ export default function AuditLogs() {
                   variant="outline"
                   size="sm"
                 >
-                  Next
+                  {t("auditLogs.next")}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -356,9 +362,9 @@ export default function AuditLogs() {
           ) : filteredLogs.length === 0 ? (
             <div className="text-center py-8">
               <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No audit logs found</h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">{t("auditLogs.noLogsFound")}</h3>
               <p className="text-gray-500 dark:text-gray-400">
-                Try adjusting your filters to see more results.
+                {t("auditLogs.noLogsFoundDesc")}
               </p>
             </div>
           ) : (
@@ -393,42 +399,42 @@ export default function AuditLogs() {
                   
                   <div className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
                     {log.userEmail && (
-                      <div><strong>User:</strong> {log.userEmail} ({log.userRole})</div>
+                      <div><strong>{t("auditLogs.user")}:</strong> {log.userEmail} ({log.userRole})</div>
                     )}
                     {log.ipAddress && (
-                      <div><strong>IP Address:</strong> {log.ipAddress}</div>
+                      <div><strong>{t("auditLogs.ipAddress")}:</strong> {log.ipAddress}</div>
                     )}
                     {log.entityId && (
-                      <div><strong>Entity ID:</strong> {log.entityId}</div>
+                      <div><strong>{t("auditLogs.entityId")}:</strong> {log.entityId}</div>
                     )}
                     {log.storeId && (
-                      <div><strong>Store ID:</strong> {log.storeId}</div>
+                      <div><strong>{t("auditLogs.storeId")}:</strong> {log.storeId}</div>
                     )}
                     {log.companyId && (
-                      <div><strong>Company ID:</strong> {log.companyId}</div>
+                      <div><strong>{t("auditLogs.companyId")}:</strong> {log.companyId}</div>
                     )}
                     
                     {(log.oldValues || log.newValues || log.metadata) && (
                       <details className="mt-2">
                         <summary className="cursor-pointer text-blue-600 dark:text-blue-400 hover:underline">
-                          View Details
+                          {t("auditLogs.viewDetails")}
                         </summary>
                         <div className="mt-2 p-3 bg-gray-100 dark:bg-gray-800 rounded text-xs">
                           {log.oldValues && (
                             <div className="mb-2">
-                              <strong>Old Values:</strong>
+                              <strong>{t("auditLogs.oldValues")}:</strong>
                               <pre className="mt-1 overflow-x-auto">{formatJsonData(log.oldValues)}</pre>
                             </div>
                           )}
                           {log.newValues && (
                             <div className="mb-2">
-                              <strong>New Values:</strong>
+                              <strong>{t("auditLogs.newValues")}:</strong>
                               <pre className="mt-1 overflow-x-auto">{formatJsonData(log.newValues)}</pre>
                             </div>
                           )}
                           {log.metadata && (
                             <div>
-                              <strong>Metadata:</strong>
+                              <strong>{t("auditLogs.metadata")}:</strong>
                               <pre className="mt-1 overflow-x-auto">{formatJsonData(log.metadata)}</pre>
                             </div>
                           )}
@@ -445,7 +451,11 @@ export default function AuditLogs() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6 pt-4 border-t">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {((currentPage - 1) * limit) + 1} to {Math.min(currentPage * limit, totalCount)} of {totalCount} entries
+                {t("auditLogs.showingEntries", {
+                  start: ((currentPage - 1) * limit) + 1,
+                  end: Math.min(currentPage * limit, totalCount),
+                  total: totalCount
+                })}
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -454,7 +464,7 @@ export default function AuditLogs() {
                   variant="outline"
                   size="sm"
                 >
-                  First
+                  {t("auditLogs.first")}
                 </Button>
                 <Button
                   onClick={() => goToPage(currentPage - 1)}
@@ -463,10 +473,10 @@ export default function AuditLogs() {
                   size="sm"
                 >
                   <ChevronLeft className="h-4 w-4" />
-                  Previous
+                  {t("auditLogs.previous")}
                 </Button>
                 <span className="text-sm text-gray-600 dark:text-gray-400">
-                  Page {currentPage} of {totalPages}
+                  {t("auditLogs.pageOf", { current: currentPage, total: totalPages })}
                 </span>
                 <Button
                   onClick={() => goToPage(currentPage + 1)}
@@ -474,7 +484,7 @@ export default function AuditLogs() {
                   variant="outline"
                   size="sm"
                 >
-                  Next
+                  {t("auditLogs.next")}
                   <ChevronRight className="h-4 w-4" />
                 </Button>
                 <Button
@@ -483,7 +493,7 @@ export default function AuditLogs() {
                   variant="outline"
                   size="sm"
                 >
-                  Last
+                  {t("auditLogs.last")}
                 </Button>
               </div>
             </div>

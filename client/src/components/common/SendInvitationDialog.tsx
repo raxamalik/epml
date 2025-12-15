@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface SendInvitationDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ export function SendInvitationDialog({
   itemEmail,
   isLoading = false,
 }: SendInvitationDialogProps) {
+  const { t } = useTranslation();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -55,13 +57,13 @@ export function SendInvitationDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{t("dialogs.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {isLoading ? "Sending..." : "Send Invitation"}
+            {isLoading ? t("dialogs.sending") : t("dialogs.sendInvitation")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserPlus, Store, Settings } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
+import { enUS, cs } from "date-fns/locale";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function RecentActivity() {
+  const { t, currentLanguage } = useTranslation();
   const { data: activities, isLoading } = useQuery({
     queryKey: ["/api/activities"],
   });
@@ -13,7 +16,7 @@ export function RecentActivity() {
     return (
       <Card className="lg:col-span-2 border-slate-200">
         <CardHeader>
-          <CardTitle>Recent Activity</CardTitle>
+          <CardTitle>{t("dashboard.recentActivity")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -53,7 +56,7 @@ export function RecentActivity() {
   return (
     <Card className="lg:col-span-2 border-0 bg-white/60 backdrop-blur-sm shadow-lg">
       <CardHeader className="pb-4">
-        <CardTitle className="text-slate-800 font-semibold">Recent Activity</CardTitle>
+        <CardTitle className="text-slate-800 font-semibold">{t("dashboard.recentActivity")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flow-root">
@@ -78,12 +81,15 @@ export function RecentActivity() {
                         <p className="text-sm font-medium text-slate-900">{activity.description}</p>
                         {activity.metadata?.storeName && (
                           <p className="text-xs text-slate-600 bg-slate-100 px-2 py-1 rounded-md inline-block mt-1">
-                            Store: {activity.metadata.storeName}
+                            {t("dashboard.recentUsers.store")}: {activity.metadata.storeName}
                           </p>
                         )}
                       </div>
                       <div className="text-right text-xs text-slate-500 bg-slate-50 px-2 py-1 rounded-lg">
-                        {formatDistanceToNow(new Date(activity.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(activity.createdAt), { 
+                          addSuffix: true,
+                          locale: currentLanguage === 'cz' ? cs : enUS
+                        })}
                       </div>
                     </div>
                   </div>

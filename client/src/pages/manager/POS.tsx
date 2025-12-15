@@ -30,6 +30,7 @@ import {
   List
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -64,6 +65,7 @@ export default function POS() {
   const { storeSlug } = useParams<{ storeSlug?: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
@@ -197,12 +199,12 @@ export default function POS() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
-      toast({ title: "Item added to cart" });
+      toast({ title: t("pos.toasts.itemAdded") });
     },
     onError: (error: any) => {
       toast({ 
-        title: "Error adding to cart", 
-        description: error.message || "Failed to add item to cart",
+        title: t("pos.toasts.addErrorTitle"), 
+        description: error.message || t("pos.toasts.addErrorDesc"),
         variant: "destructive" 
       });
     },
@@ -222,8 +224,8 @@ export default function POS() {
     },
     onError: (error: any) => {
       toast({ 
-        title: "Error updating cart", 
-        description: error.message || "Failed to update cart item",
+        title: t("pos.toasts.updateErrorTitle"), 
+        description: error.message || t("pos.toasts.updateErrorDesc"),
         variant: "destructive" 
       });
     },
@@ -237,12 +239,12 @@ export default function POS() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
-      toast({ title: "Item removed from cart" });
+      toast({ title: t("pos.toasts.itemRemoved") });
     },
     onError: (error: any) => {
       toast({ 
-        title: "Error removing from cart", 
-        description: error.message || "Failed to remove item from cart",
+        title: t("pos.toasts.removeErrorTitle"), 
+        description: error.message || t("pos.toasts.removeErrorDesc"),
         variant: "destructive" 
       });
     },
@@ -270,7 +272,7 @@ export default function POS() {
       setCashReceived("");
       setCustomerInfo({ name: "", phone: "", email: "" });
       setShowCustomerInfo(false);
-      toast({ title: "Sale processed successfully!" });
+      toast({ title: t("pos.toasts.saleSuccess") });
       
       // Invalidate all related queries to update dashboard in real-time
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
@@ -282,8 +284,8 @@ export default function POS() {
     },
     onError: (error: any) => {
       toast({ 
-        title: "Error processing sale", 
-        description: error.message,
+        title: t("pos.toasts.saleErrorTitle"), 
+        description: error.message || t("pos.toasts.saleErrorDesc"),
         variant: "destructive" 
       });
     },
@@ -291,7 +293,7 @@ export default function POS() {
 
   const addToCart = (product: Product) => {
     if (product.stock <= 0) {
-      toast({ title: "Product out of stock", variant: "destructive" });
+      toast({ title: t("pos.errors.productOutOfStock"), variant: "destructive" });
       return;
     }
     addToCartMutation.mutate({ productId: product.id, quantity: 1 });
@@ -335,7 +337,7 @@ export default function POS() {
       // Update backend cart item
       const product = products.find((p: Product) => p.id === productId);
       if (product && quantity > product.stock) {
-        toast({ title: "Cannot exceed available stock", variant: "destructive" });
+        toast({ title: t("pos.errors.stockLimitExceeded"), variant: "destructive" });
         return;
       }
 
@@ -523,7 +525,7 @@ export default function POS() {
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
             <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
-            <h3 className="text-lg font-semibold">Loading stores...</h3>
+            <h3 className="text-lg font-semibold">{t("pos.storeSelection.loading")}</h3>
           </div>
         </div>
       );
@@ -534,11 +536,13 @@ export default function POS() {
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader>
-              <CardTitle className="text-center">Select Store for POS</CardTitle>
+              <CardTitle className="text-center">
+                {t("pos.storeSelection.title")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center text-sm text-muted-foreground mb-4">
-                Choose which store you want to operate the Point of Sale for
+                {t("pos.storeSelection.description")}
               </div>
               <div className="space-y-2">
                 {stores.map((store: any) => (
@@ -566,8 +570,10 @@ export default function POS() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">No store assigned</h3>
-          <p className="text-muted-foreground">Please contact your administrator to assign a store.</p>
+          <h3 className="text-lg font-semibold">{t("pos.noStoreAssigned.title")}</h3>
+          <p className="text-muted-foreground">
+            {t("pos.noStoreAssigned.description")}
+          </p>
         </div>
       </div>
     );
@@ -581,8 +587,12 @@ export default function POS() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Point of Sale</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Store #{storeId}</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("pos.header.title")}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t("pos.header.storeLabel", { id: storeId })}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -612,7 +622,7 @@ export default function POS() {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
-                      placeholder="Search products or scan barcode..."
+                      placeholder={t("pos.products.searchPlaceholder")}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
@@ -621,10 +631,10 @@ export default function POS() {
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800">
                       <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Category" />
+                      <SelectValue placeholder={t("pos.products.categoryPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="all">{t("pos.products.allCategories")}</SelectItem>
                       {categories.map((category: any) => (
                         <SelectItem key={category.id} value={category.name}>
                           {category.name}
@@ -696,12 +706,12 @@ export default function POS() {
                             </Avatar>
                             {product.stock <= 5 && product.stock > 0 && (
                               <Badge variant="destructive" className="absolute top-2 right-2 text-xs">
-                                Low Stock
+                                {t("pos.products.lowStock")}
                               </Badge>
                             )}
                             {product.stock <= 0 && (
                               <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                                Out of Stock
+                                {t("pos.products.outOfStock")}
                               </Badge>
                             )}
                           </div>
@@ -715,7 +725,7 @@ export default function POS() {
                                 ${parseFloat(product.price.toString()).toFixed(2)}
                               </span>
                               <Badge variant="outline" className="text-xs">
-                                {product.stock} in stock
+                                {t("pos.products.inStockLabel", { count: product.stock })}
                               </Badge>
                             </div>
                           </div>
@@ -743,7 +753,7 @@ export default function POS() {
                               ${parseFloat(product.price.toString()).toFixed(2)}
                             </div>
                             <Badge variant="outline" className="text-xs">
-                              {product.stock} in stock
+                              {t("pos.products.inStockLabel", { count: product.stock })}
                             </Badge>
                           </div>
                         </>
@@ -775,15 +785,19 @@ export default function POS() {
               <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
                 <CardTitle className="flex items-center">
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  Cart ({cart.length} items)
+                  {t("pos.cart.title", { count: cart.length })}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {cart.length === 0 ? (
                   <div className="text-center py-12">
                     <ShoppingCart className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                    <p className="text-slate-500 dark:text-slate-400">Your cart is empty</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-500">Add products to start a sale</p>
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {t("pos.cart.emptyTitle")}
+                    </p>
+                    <p className="text-sm text-slate-400 dark:text-slate-500">
+                      {t("pos.cart.emptyDescription")}
+                    </p>
                   </div>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
@@ -804,7 +818,8 @@ export default function POS() {
                             {item.product.name}
                           </h4>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            ${parseFloat(item.product.price.toString()).toFixed(2)} each
+                            ${parseFloat(item.product.price.toString()).toFixed(2)}{" "}
+                            {t("pos.cart.each")}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -902,25 +917,27 @@ export default function POS() {
                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-b-lg">
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span>Net Amount:</span>
+                      <span>{t("pos.summary.netAmount")}</span>
                       <span>${getNetAmount().toFixed(2)}</span>
                     </div>
                     
                     {/* VAT Breakdown by Rate */}
                     {Object.entries(getVATBreakdown()).map(([rate, breakdown]) => (
                       <div key={rate} className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                        <span>VAT {breakdown.rate}%:</span>
+                        <span>
+                          {t("pos.summary.vatRateLabel", { rate: breakdown.rate })}
+                        </span>
                         <span>${breakdown.vat.toFixed(2)}</span>
                       </div>
                     ))}
                     
                     <div className="flex justify-between text-sm font-medium">
-                      <span>Total VAT:</span>
+                      <span>{t("pos.summary.totalVat")}</span>
                       <span>${getTotalVAT().toFixed(2)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
-                      <span>Total:</span>
+                      <span>{t("pos.summary.total")}</span>
                       <span className="text-green-600 dark:text-green-400">
                         ${getTotalAmount().toFixed(2)}
                       </span>
@@ -932,7 +949,7 @@ export default function POS() {
                     size="lg"
                   >
                     <CreditCard className="h-5 w-5 mr-2" />
-                    Checkout
+                    {t("pos.cart.checkoutButton")}
                   </Button>
                 </div>
               )}
@@ -945,20 +962,20 @@ export default function POS() {
       <Dialog open={showManualItem} onOpenChange={setShowManualItem}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Manual Item</DialogTitle>
+            <DialogTitle>{t("pos.manualItem.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="manual-name">Item Name</Label>
+              <Label htmlFor="manual-name">{t("pos.manualItem.nameLabel")}</Label>
               <Input
                 id="manual-name"
                 value={manualItem.name}
                 onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                placeholder="Enter item name"
+                placeholder={t("pos.manualItem.namePlaceholder")}
               />
             </div>
             <div>
-              <Label htmlFor="manual-price">Price</Label>
+              <Label htmlFor="manual-price">{t("pos.manualItem.priceLabel")}</Label>
               <Input
                 id="manual-price"
                 type="number"
@@ -969,7 +986,7 @@ export default function POS() {
               />
             </div>
             <div>
-              <Label htmlFor="manual-vatRate">VAT Rate (%)</Label>
+              <Label htmlFor="manual-vatRate">{t("pos.manualItem.vatLabel")}</Label>
               <Input
                 id="manual-vatRate"
                 type="number"
@@ -981,15 +998,15 @@ export default function POS() {
                 placeholder="21"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Enter percentage (e.g., 21 for 21%)
+                {t("pos.manualItem.vatHint")}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowManualItem(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
-            <Button onClick={addManualItem}>Add Item</Button>
+            <Button onClick={addManualItem}>{t("pos.manualItem.addButton")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

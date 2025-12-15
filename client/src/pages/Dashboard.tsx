@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { AnalyticsCards } from "@/components/dashboard/AnalyticsCards";
 import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { QuickActions } from "@/components/dashboard/QuickActions";
@@ -8,6 +9,7 @@ import { Shield, BarChart3, Users, Settings } from "lucide-react";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 space-y-8">
@@ -21,24 +23,24 @@ export default function Dashboard() {
                   <Shield className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Super Admin Dashboard</h1>
+                  <h1 className="text-2xl font-bold">{t("dashboard.super.title")}</h1>
                   <p className="text-indigo-100 text-sm">
-                    Complete platform oversight and management
+                    {t("dashboard.super.subtitle")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm">System Active</span>
+                  <span className="text-sm">{t("dashboard.super.systemActive")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  <span className="text-sm">All Users & Companies</span>
+                  <span className="text-sm">{t("dashboard.super.allUsers")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
-                  <span className="text-sm">Full Access Control</span>
+                  <span className="text-sm">{t("dashboard.super.fullAccess")}</span>
                 </div>
               </div>
             </div>
@@ -57,7 +59,7 @@ export default function Dashboard() {
                 href="/manager" 
                 className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg backdrop-blur-sm border border-white/30 transition-all duration-200 hover:scale-105 inline-flex items-center gap-2"
               >
-                🏪 Manager Dashboard
+                🏪 {t("dashboard.super.managerButton")}
               </a>
             </div>
           </div>

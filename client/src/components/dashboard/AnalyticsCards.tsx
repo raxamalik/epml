@@ -2,8 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Store, DollarSign, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function AnalyticsCards() {
+  const { t } = useTranslation();
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["/api/analytics"],
   });
@@ -24,7 +26,7 @@ export function AnalyticsCards() {
 
   const cards = [
     {
-      title: "Total Users",
+      title: t("dashboard.analytics.totalUsers"),
       value: analytics?.totalUsers || 0,
       icon: Users,
       bgColor: "bg-blue-50",
@@ -32,7 +34,7 @@ export function AnalyticsCards() {
       change: "+12.5%",
     },
     {
-      title: "Active Stores",
+      title: t("dashboard.analytics.activeStores"),
       value: analytics?.activeStores || 0,
       icon: Store,
       bgColor: "bg-emerald-50",
@@ -40,7 +42,7 @@ export function AnalyticsCards() {
       change: "+8.2%",
     },
     {
-      title: "Monthly Revenue",
+      title: t("dashboard.analytics.monthlyRevenue"),
       value: "$84,532",
       icon: DollarSign,
       bgColor: "bg-amber-50",
@@ -48,12 +50,12 @@ export function AnalyticsCards() {
       change: "+15.3%",
     },
     {
-      title: "System Uptime",
+      title: t("dashboard.analytics.systemUptime"),
       value: "99.98%",
       icon: Activity,
       bgColor: "bg-green-50",
       iconColor: "text-green-500",
-      change: "All systems operational",
+      change: t("dashboard.analytics.allSystemsOperational"),
       isUptime: true,
     },
   ];
@@ -80,7 +82,7 @@ export function AnalyticsCards() {
                       {card.change}
                     </span>
                     {!card.isUptime && (
-                      <span className="text-slate-500 ml-2">from last month</span>
+                      <span className="text-slate-500 ml-2">{t("dashboard.analytics.fromLastMonth")}</span>
                     )}
                   </div>
                 </div>

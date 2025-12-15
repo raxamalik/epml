@@ -3,26 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserPlus, BarChart3, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function QuickActions() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   const actions = [
     {
-      title: "Add New User",
+      title: t("quickActions.addUser"),
       icon: UserPlus,
       onClick: () => setLocation("/portal-admins"),
       roles: ["super_admin"],
     },
     {
-      title: "View Analytics",
+      title: t("quickActions.viewAnalytics"),
       icon: BarChart3,
       onClick: () => setLocation("/analytics"),
       roles: ["store_owner", "manager"],
     },
     {
-      title: "System Settings",
+      title: t("quickActions.systemSettings"),
       icon: Settings,
       onClick: () => setLocation("/settings"),
       roles: ["super_admin", "portal_admin", "store_owner", "manager"],
@@ -37,7 +39,7 @@ export function QuickActions() {
     <>
       <Card className="border-0 bg-white/60 backdrop-blur-sm shadow-lg">
         <CardHeader className="pb-4">
-          <CardTitle className="text-slate-800 font-semibold">Quick Actions</CardTitle>
+          <CardTitle className="text-slate-800 font-semibold">{t("quickActions.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {availableActions.map((action, index) => {

@@ -33,6 +33,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import { format, subDays, isToday, isYesterday, startOfDay, endOfDay } from "date-fns";
 
 interface Product {
@@ -77,6 +78,7 @@ export default function ManagerDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   // Get tab from URL parameters
   const urlParams = new URLSearchParams(window.location.search);
@@ -262,25 +264,36 @@ export default function ManagerDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/stores', storeId, 'sales'] });
       queryClient.invalidateQueries({ queryKey: ['/api/stores', storeId, 'products'] });
-      toast({ title: "Sale completed successfully!" });
+      toast({ title: t("managerDashboard.pos.toasts.saleSuccess") });
       setCart([]);
     },
     onError: (error: any) => {
-      toast({ title: "Error processing sale", description: error.message, variant: "destructive" });
+      toast({
+        title: t("managerDashboard.pos.toasts.saleErrorTitle"),
+        description: error.message || t("managerDashboard.pos.toasts.saleErrorDesc"),
+        variant: "destructive",
+      });
     }
   });
 
   // POS Functions
   const addToCart = (product: Product) => {
     if (product.stock <= 0) {
-      toast({ title: "Out of stock", description: "This product is not available", variant: "destructive" });
+      toast({
+        title: t("managerDashboard.pos.errors.outOfStockTitle"),
+        description: t("managerDashboard.pos.errors.outOfStockDesc"),
+        variant: "destructive",
+      });
       return;
     }
 
     const existingItem = cart.find(item => item.product.id === product.id);
     if (existingItem) {
       if (existingItem.quantity >= product.stock) {
-        toast({ title: "Insufficient stock", variant: "destructive" });
+        toast({
+          title: t("managerDashboard.pos.errors.insufficientStock"),
+          variant: "destructive",
+        });
         return;
       }
       setCart(cart.map(item => 
@@ -305,7 +318,10 @@ export default function ManagerDashboard() {
     
     const product = products?.data?.find((p: Product) => p.id === productId);
     if (product && newQuantity > product.stock) {
-      toast({ title: "Insufficient stock", variant: "destructive" });
+      toast({
+        title: t("managerDashboard.pos.errors.insufficientStock"),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -352,7 +368,10 @@ export default function ManagerDashboard() {
 
   const processSale = () => {
     if (cart.length === 0) {
-      toast({ title: "Cart is empty", variant: "destructive" });
+      toast({
+        title: t("managerDashboard.pos.errors.cartEmpty"),
+        variant: "destructive",
+      });
       return;
     }
 
@@ -381,7 +400,7 @@ export default function ManagerDashboard() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2">Loading dashboard data...</p>
+          <p className="mt-2">{t("managerDashboard.loading")}</p>
         </div>
       </div>
     );
@@ -392,12 +411,16 @@ export default function ManagerDashboard() {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">Store Access Error</h3>
+          <h3 className="text-lg font-medium mb-2">
+            {t("managerDashboard.storeError.title")}
+          </h3>
           <p className="text-muted-foreground mb-4">
-            {storeError ? "Unable to load store information" : "No store assigned to your account"}
+            {storeError
+              ? t("managerDashboard.storeError.unableToLoad")
+              : t("managerDashboard.storeError.noStoreAssigned")}
           </p>
           <p className="text-sm text-muted-foreground">
-            Please contact your administrator to assign a store to your account.
+            {t("managerDashboard.storeError.help")}
           </p>
         </div>
       </div>
@@ -415,15 +438,20 @@ export default function ManagerDashboard() {
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Manager Dashboard</h1>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("managerDashboard.header.title")}
+                </h1>
                 <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Managing {store.name} • {store.address}
+                  {t("managerDashboard.header.subtitle", {
+                    name: store.name,
+                    address: store.address,
+                  })}
                 </p>
               </div>
             </div>
             <Badge className="bg-gradient-to-r from-green-500 to-emerald-500 text-white border-none">
               <Store className="h-4 w-4 mr-1" />
-              Store Active
+              {t("managerDashboard.header.storeActive")}
             </Badge>
           </div>
         </div>
@@ -503,33 +531,33 @@ export default function ManagerDashboard() {
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
           <TabsList className="grid w-full grid-cols-4 h-16 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-xl rounded-xl p-1 gap-1 mb-8">
-            <TabsTrigger 
-              value="analytics" 
+            <TabsTrigger
+              value="analytics"
               className="tabs-trigger-analytics w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <BarChart3 className="h-4 w-4" />
-              Analytics
+              {t("managerDashboard.tabs.analytics")}
             </TabsTrigger>
-            <TabsTrigger 
-              value="pos" 
+            <TabsTrigger
+              value="pos"
               className="tabs-trigger-pos w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <Calculator className="h-4 w-4" />
-              POS
+              {t("managerDashboard.tabs.pos")}
             </TabsTrigger>
-            <TabsTrigger 
-              value="inventory" 
+            <TabsTrigger
+              value="inventory"
               className="tabs-trigger-inventory w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <TrendingUp className="h-4 w-4" />
-              Inventory
+              {t("managerDashboard.tabs.inventory")}
             </TabsTrigger>
-            <TabsTrigger 
-              value="sales" 
+            <TabsTrigger
+              value="sales"
               className="tabs-trigger-sales w-full h-full flex items-center justify-center gap-2 px-2 py-0 text-sm font-medium rounded-lg transition-all duration-200 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <DollarSign className="h-4 w-4" />
-              Sales History
+              {t("managerDashboard.tabs.sales")}
             </TabsTrigger>
           </TabsList>
 

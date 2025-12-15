@@ -8,9 +8,12 @@ import { Edit } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
+import { enUS, cs } from "date-fns/locale";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function RecentUsers() {
   const { user: currentUser } = useAuth();
+  const { t, currentLanguage } = useTranslation();
   const [, setLocation] = useLocation();
   const { data: users, isLoading, error } = useQuery({
     queryKey: ["/api/users"],
@@ -27,7 +30,7 @@ export function RecentUsers() {
     return (
       <Card className="mt-8 border-slate-200">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Users</CardTitle>
+          <CardTitle>{t("dashboard.recentUsers.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -47,12 +50,12 @@ export function RecentUsers() {
     return (
       <Card className="mt-8 border-0 bg-white/60 backdrop-blur-sm shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
-          <CardTitle className="text-slate-800 font-semibold">Recent Users</CardTitle>
+          <CardTitle className="text-slate-800 font-semibold">{t("dashboard.recentUsers.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl">
-            <p className="text-slate-600 font-medium">No users found in the system.</p>
-            <p className="text-sm text-slate-500 mt-2">Users will appear here once they register.</p>
+            <p className="text-slate-600 font-medium">{t("dashboard.recentUsers.noUsers")}</p>
+            <p className="text-sm text-slate-500 mt-2">{t("dashboard.recentUsers.noUsersDesc")}</p>
           </div>
         </CardContent>
       </Card>
@@ -75,7 +78,7 @@ export function RecentUsers() {
   return (
     <Card className="mt-8 border-0 bg-white/60 backdrop-blur-sm shadow-lg">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
-        <CardTitle className="text-slate-800 font-semibold">Recent Users</CardTitle>
+        <CardTitle className="text-slate-800 font-semibold">{t("dashboard.recentUsers.title")}</CardTitle>
         <Button 
           variant="link" 
           size="sm" 
@@ -83,7 +86,7 @@ export function RecentUsers() {
           className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent hover:from-blue-600 hover:to-purple-700 font-semibold"
           data-testid="button-view-all-users"
         >
-          View all
+          {t("dashboard.recentUsers.viewAll")}
         </Button>
       </CardHeader>
       <CardContent>
@@ -92,22 +95,22 @@ export function RecentUsers() {
             <thead className="bg-gradient-to-r from-slate-50 to-gray-50">
               <tr>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  User
+                  {t("dashboard.recentUsers.user")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Role
+                  {t("dashboard.recentUsers.role")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Store
+                  {t("dashboard.recentUsers.store")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Status
+                  {t("dashboard.recentUsers.status")}
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                  Joined
+                  {t("dashboard.recentUsers.joined")}
                 </th>
                 <th className="relative px-6 py-4">
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">{t("dashboard.recentUsers.actions")}</span>
                 </th>
               </tr>
             </thead>
@@ -135,15 +138,18 @@ export function RecentUsers() {
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-700">
-                    {user.store?.name || "No store assigned"}
+                    {user.store?.name || t("dashboard.recentUsers.noStoreAssigned")}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <Badge className={`font-semibold shadow-sm border-0 ${user.isActive ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white" : "bg-gradient-to-r from-red-500 to-rose-600 text-white"}`}>
-                      {user.isActive ? "Active" : "Inactive"}
+                      {user.isActive ? t("users.active") : t("users.inactive")}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">
-                    {formatDistanceToNow(new Date(user.createdAt), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(user.createdAt), { 
+                      addSuffix: true,
+                      locale: currentLanguage === 'cz' ? cs : enUS
+                    })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <Button 

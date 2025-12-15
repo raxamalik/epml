@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Plus, Edit } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ActiveSubstanceFormData {
   name: string;
@@ -27,6 +28,7 @@ export function ActiveSubstanceForm({
   onCancel,
   isLoading = false,
 }: ActiveSubstanceFormProps) {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<ActiveSubstanceFormData>({
     name: initialData?.name || "",
     maxSingleDose: initialData?.maxSingleDose || "",
@@ -51,19 +53,19 @@ export function ActiveSubstanceForm({
     const newErrors: Partial<Record<keyof ActiveSubstanceFormData, string>> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Name is required";
+      newErrors.name = t("activeSubstanceForm.nameRequired");
     }
 
     if (formData.maxSingleDose && (isNaN(parseFloat(formData.maxSingleDose)) || parseFloat(formData.maxSingleDose) < 0)) {
-      newErrors.maxSingleDose = "Must be a valid positive number";
+      newErrors.maxSingleDose = t("activeSubstanceForm.invalidNumber");
     }
 
     if (formData.maxDailyDose && (isNaN(parseFloat(formData.maxDailyDose)) || parseFloat(formData.maxDailyDose) < 0)) {
-      newErrors.maxDailyDose = "Must be a valid positive number";
+      newErrors.maxDailyDose = t("activeSubstanceForm.invalidNumber");
     }
 
     if (formData.maxConcentration && (isNaN(parseFloat(formData.maxConcentration)) || parseFloat(formData.maxConcentration) < 0 || parseFloat(formData.maxConcentration) > 100)) {
-      newErrors.maxConcentration = "Must be a valid number between 0 and 100";
+      newErrors.maxConcentration = t("activeSubstanceForm.invalidConcentration");
     }
 
     setErrors(newErrors);
@@ -81,10 +83,10 @@ export function ActiveSubstanceForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="name">Name *</Label>
+          <Label htmlFor="name">{t("activeSubstanceForm.name")}</Label>
           <Input
             id="name"
-            placeholder="Enter substance name (e.g. Mitragynine)"
+            placeholder={t("activeSubstanceForm.namePlaceholder")}
             value={formData.name}
             onChange={(e) => {
               setFormData({ ...formData, name: e.target.value });
@@ -97,13 +99,13 @@ export function ActiveSubstanceForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxSingleDose">Max Single Dose</Label>
+          <Label htmlFor="maxSingleDose">{t("activeSubstanceForm.maxSingleDose")}</Label>
           <Input
             id="maxSingleDose"
             type="number"
             step="0.001"
             min="0"
-            placeholder="e.g. 125"
+            placeholder={t("activeSubstanceForm.maxSingleDosePlaceholder")}
             value={formData.maxSingleDose}
             onChange={(e) => {
               setFormData({ ...formData, maxSingleDose: e.target.value });
@@ -112,17 +114,17 @@ export function ActiveSubstanceForm({
             className="bg-slate-50 dark:bg-slate-800"
           />
           {errors.maxSingleDose && <p className="text-sm text-red-500">{errors.maxSingleDose}</p>}
-          <p className="text-xs text-muted-foreground">Maximum allowed single dose (e.g. 125 mg)</p>
+          <p className="text-xs text-muted-foreground">{t("activeSubstanceForm.maxSingleDoseDesc")}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxDailyDose">Max Daily Dose</Label>
+          <Label htmlFor="maxDailyDose">{t("activeSubstanceForm.maxDailyDose")}</Label>
           <Input
             id="maxDailyDose"
             type="number"
             step="0.001"
             min="0"
-            placeholder="e.g. 375"
+            placeholder={t("activeSubstanceForm.maxDailyDosePlaceholder")}
             value={formData.maxDailyDose}
             onChange={(e) => {
               setFormData({ ...formData, maxDailyDose: e.target.value });
@@ -131,18 +133,18 @@ export function ActiveSubstanceForm({
             className="bg-slate-50 dark:bg-slate-800"
           />
           {errors.maxDailyDose && <p className="text-sm text-red-500">{errors.maxDailyDose}</p>}
-          <p className="text-xs text-muted-foreground">Maximum allowed daily dose (e.g. 375 mg)</p>
+          <p className="text-xs text-muted-foreground">{t("activeSubstanceForm.maxDailyDoseDesc")}</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="maxConcentration">Max Concentration (%)</Label>
+          <Label htmlFor="maxConcentration">{t("activeSubstanceForm.maxConcentration")}</Label>
           <Input
             id="maxConcentration"
             type="number"
             step="0.01"
             min="0"
             max="100"
-            placeholder="e.g. 2.5"
+            placeholder={t("activeSubstanceForm.maxConcentrationPlaceholder")}
             value={formData.maxConcentration}
             onChange={(e) => {
               setFormData({ ...formData, maxConcentration: e.target.value });
@@ -151,7 +153,7 @@ export function ActiveSubstanceForm({
             className="bg-slate-50 dark:bg-slate-800"
           />
           {errors.maxConcentration && <p className="text-sm text-red-500">{errors.maxConcentration}</p>}
-          <p className="text-xs text-muted-foreground">Maximum allowed concentration (0-100%)</p>
+          <p className="text-xs text-muted-foreground">{t("activeSubstanceForm.maxConcentrationDesc")}</p>
         </div>
       </div>
 
@@ -160,7 +162,7 @@ export function ActiveSubstanceForm({
       {/* Form Actions */}
       <div className="flex justify-end gap-4 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           type="submit"
@@ -168,18 +170,18 @@ export function ActiveSubstanceForm({
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
         >
           {isLoading ? (
-            <>{isEditMode ? "Updating..." : "Creating..."}</>
+            <>{isEditMode ? t("activeSubstanceForm.updating") : t("activeSubstanceForm.creating")}</>
           ) : (
             <>
               {isEditMode ? (
                 <>
                   <Edit className="h-4 w-4 mr-2" />
-                  Update Substance
+                  {t("activeSubstanceForm.updateButton")}
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Substance
+                  {t("activeSubstanceForm.createButton")}
                 </>
               )}
             </>

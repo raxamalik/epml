@@ -19,6 +19,7 @@ import { z } from "zod";
 import { DeleteConfirmDialog, EmptyState, SearchBar, Pagination } from "@/components/common";
 import { usePagination } from "@/hooks/common/usePagination";
 import { useFilters } from "@/hooks/common/useFilters";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ProductCategory {
   id: number;
@@ -44,6 +45,7 @@ export default function CategoryManagement() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -146,14 +148,14 @@ export default function CategoryManagement() {
       setSelectedStoreIds([]);
       setSelectAllStores(true);
       toast({
-        title: "Category Created",
-        description: "Category has been created successfully.",
+        title: t("categoryManagement.toasts.created"),
+        description: t("categoryManagement.toasts.createdDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create category",
+        title: t("categoryManagement.toasts.error"),
+        description: error.message || t("categoryManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -173,14 +175,14 @@ export default function CategoryManagement() {
       setSelectedStoreIds([]);
       setSelectAllStores(true);
       toast({
-        title: "Category Updated",
-        description: "Category has been updated successfully.",
+        title: t("categoryManagement.toasts.updated"),
+        description: t("categoryManagement.toasts.updatedDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to update category",
+        title: t("categoryManagement.toasts.error"),
+        description: error.message || t("categoryManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -197,14 +199,14 @@ export default function CategoryManagement() {
       setIsDeleteDialogOpen(false);
       setCategoryToDelete(null);
       toast({
-        title: "Category Deleted",
-        description: "Category has been deleted successfully.",
+        title: t("categoryManagement.toasts.deleted"),
+        description: t("categoryManagement.toasts.deletedDesc"),
       });
     },
     onError: (error: any) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to delete category",
+        title: t("categoryManagement.toasts.error"),
+        description: error.message || t("categoryManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -331,20 +333,20 @@ export default function CategoryManagement() {
                     <Tag className="h-8 w-8" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold">Category Management</h1>
+                    <h1 className="text-3xl font-bold">{t("categoryManagement.title")}</h1>
                     <p className="text-blue-100 text-lg mt-1">
-                      Organize your products with categories
+                      {t("categoryManagement.subtitle")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">System Active</span>
+                    <span className="text-sm">{t("companyDashboard.systemActive")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Tag className="h-4 w-4" />
-                    <span className="text-sm">{total} Categories</span>
+                    <span className="text-sm">{t("categoryManagement.headerCount", { count: total })}</span>
                   </div>
                 </div>
               </div>
@@ -360,7 +362,7 @@ export default function CategoryManagement() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search categories by name or description..."
+                  placeholder={t("categoryManagement.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -369,7 +371,7 @@ export default function CategoryManagement() {
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Create Category
+                {t("categoryManagement.createButton")}
               </Button>
             </div>
           </CardContent>
@@ -384,11 +386,11 @@ export default function CategoryManagement() {
                   <Tag className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Categories ({total})
+                  {t("categoryManagement.headerCount", { count: total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => {
@@ -410,32 +412,32 @@ export default function CategoryManagement() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            {categories.length === 0 ? (
-              <EmptyState
-                title="No categories found"
-                description={debouncedSearch ? "Try adjusting your search terms" : "Get started by creating your first category"}
-                icon={<Tag className="h-12 w-12 mx-auto text-muted-foreground" />}
-                action={
-                  !debouncedSearch && (
-                    <Button onClick={() => setIsCreateDialogOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create First Category
-                    </Button>
-                  )
-                }
-                className="border-0"
-              />
-            ) : (
+                {categories.length === 0 ? (
+                  <EmptyState
+                    title={debouncedSearch ? t("categoryManagement.empty.titleSearch") : t("categoryManagement.empty.title")}
+                    description={debouncedSearch ? t("categoryManagement.empty.descriptionSearch") : t("categoryManagement.empty.description")}
+                    icon={<Tag className="h-12 w-12 mx-auto text-muted-foreground" />}
+                    action={
+                      !debouncedSearch && (
+                        <Button onClick={() => setIsCreateDialogOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          {t("categoryManagement.empty.createFirst")}
+                        </Button>
+                      )
+                    }
+                    className="border-0"
+                  />
+                ) : (
               <>
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Category Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Description</TableHead>
-                      {isCompanyAdmin && <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Stores</TableHead>}
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Created</TableHead>
-                      <TableHead className="w-[120px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.name")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.description")}</TableHead>
+                      {isCompanyAdmin && <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.stores")}</TableHead>}
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.status")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.created")}</TableHead>
+                      <TableHead className="w-[120px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("categoryManagement.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -476,7 +478,7 @@ export default function CategoryManagement() {
                       )}
                       <TableCell className="py-4">
                         <Badge variant={category.isActive ? "default" : "secondary"}>
-                          {category.isActive ? "Active" : "Inactive"}
+                          {category.isActive ? t("categoryManagement.status.active") : t("categoryManagement.status.inactive")}
                         </Badge>
                       </TableCell>
                       <TableCell className="py-4">
@@ -535,11 +537,11 @@ export default function CategoryManagement() {
         }}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Create New Category</DialogTitle>
+              <DialogTitle>{t("categoryManagement.dialogs.createTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreateCategory)} className="space-y-4">
               <div>
-                <Label htmlFor="create-name">Category Name *</Label>
+                <Label htmlFor="create-name">{t("categoryManagement.table.name")} *</Label>
                 <Input
                   id="create-name"
                   {...createForm.register("name")}
@@ -551,7 +553,7 @@ export default function CategoryManagement() {
                 )}
               </div>
               <div>
-                <Label htmlFor="create-description">Description</Label>
+                <Label htmlFor="create-description">{t("categoryManagement.table.description")}</Label>
                 <Input
                   id="create-description"
                   {...createForm.register("description")}
@@ -565,7 +567,7 @@ export default function CategoryManagement() {
                 <div className="space-y-3 border rounded-lg p-4 bg-slate-50 dark:bg-slate-800">
                   <div className="flex items-center gap-2">
                     <Store className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                    <Label className="text-base font-semibold">Select Stores</Label>
+                    <Label className="text-base font-semibold">{t("categoryManagement.dialogs.storesLabel")}</Label>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
@@ -578,7 +580,7 @@ export default function CategoryManagement() {
                         htmlFor="select-all-stores"
                         className="text-sm font-medium cursor-pointer flex-1"
                       >
-                        All Stores (Company-wide)
+                        {t("categoryManagement.dialogs.allStores")}
                       </Label>
                     </div>
                     <div className="border-t border-slate-200 dark:border-slate-600 pt-2 space-y-2 max-h-48 overflow-y-auto">
@@ -605,10 +607,10 @@ export default function CategoryManagement() {
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
                     {selectAllStores
-                      ? "Category will be available to all stores in your company"
+                      ? t("categoryManagement.dialogs.allStores")
                       : selectedStoreIds.length > 0
-                      ? `Category will be available to ${selectedStoreIds.length} selected store(s)`
-                      : "Select stores or choose 'All Stores' for company-wide category"}
+                      ? t("categoryManagement.headerCount", { count: selectedStoreIds.length })
+                      : t("categoryManagement.dialogs.allStores")}
                   </p>
                 </div>
               )}
@@ -619,16 +621,16 @@ export default function CategoryManagement() {
                   setSelectedStoreIds([]);
                   setSelectAllStores(true);
                 }}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={createCategoryMutation.isPending}>
                   {createCategoryMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
+                      {t("categoryManagement.dialogs.creating")}
                     </>
                   ) : (
-                    "Create Category"
+                    t("categoryManagement.dialogs.create")
                   )}
                 </Button>
               </DialogFooter>
@@ -647,11 +649,11 @@ export default function CategoryManagement() {
         }}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Edit Category</DialogTitle>
+              <DialogTitle>{t("categoryManagement.dialogs.editTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={editForm.handleSubmit(handleUpdateCategory)} className="space-y-4">
               <div>
-                <Label htmlFor="edit-name">Category Name *</Label>
+                <Label htmlFor="edit-name">{t("categoryManagement.table.name")} *</Label>
                 <Input
                   id="edit-name"
                   {...editForm.register("name")}
@@ -663,7 +665,7 @@ export default function CategoryManagement() {
                 )}
               </div>
               <div>
-                <Label htmlFor="edit-description">Description</Label>
+                <Label htmlFor="edit-description">{t("categoryManagement.table.description")}</Label>
                 <Input
                   id="edit-description"
                   {...editForm.register("description")}
@@ -677,7 +679,7 @@ export default function CategoryManagement() {
                 <div className="space-y-3 border rounded-lg p-4 bg-slate-50 dark:bg-slate-800">
                   <div className="flex items-center gap-2">
                     <Store className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                    <Label className="text-base font-semibold">Select Stores</Label>
+                    <Label className="text-base font-semibold">{t("categoryManagement.dialogs.storesLabel")}</Label>
                   </div>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2 p-2 rounded hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer">
@@ -690,7 +692,7 @@ export default function CategoryManagement() {
                         htmlFor="edit-select-all-stores"
                         className="text-sm font-medium cursor-pointer flex-1"
                       >
-                        All Stores (Company-wide)
+                        {t("categoryManagement.dialogs.allStores")}
                       </Label>
                     </div>
                     <div className="border-t border-slate-200 dark:border-slate-600 pt-2 space-y-2 max-h-48 overflow-y-auto">
@@ -732,16 +734,16 @@ export default function CategoryManagement() {
                   setSelectedStoreIds([]);
                   setSelectAllStores(true);
                 }}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={updateCategoryMutation.isPending}>
                   {updateCategoryMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {t("categoryManagement.dialogs.updating")}
                     </>
                   ) : (
-                    "Update Category"
+                    t("categoryManagement.dialogs.update")
                   )}
                 </Button>
               </DialogFooter>
@@ -757,8 +759,8 @@ export default function CategoryManagement() {
             if (!open) setCategoryToDelete(null);
           }}
           onConfirm={confirmDeleteCategory}
-          title="Delete Category"
-          description="Are you sure you want to delete"
+          title={t("categoryManagement.dialogs.deleteTitle")}
+          description={t("categoryManagement.dialogs.deleteDesc")}
           itemName={categoryToDelete?.name}
           isLoading={deleteCategoryMutation.isPending}
         />

@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { StoreFormData } from "@/lib/utils/validation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StoreFormProps {
   form: UseFormReturn<StoreFormData>;
@@ -10,13 +11,15 @@ interface StoreFormProps {
 }
 
 export function StoreForm({ form, mode = "create" }: StoreFormProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       <div>
-        <Label htmlFor="name">Store Name *</Label>
+        <Label htmlFor="name">{t("storeForm.name")}</Label>
         <Input
           id="name"
-          placeholder="Enter store name"
+          placeholder={t("storeForm.namePlaceholder")}
           {...form.register("name")}
         />
         {form.formState.errors.name && (
@@ -25,10 +28,10 @@ export function StoreForm({ form, mode = "create" }: StoreFormProps) {
       </div>
 
       <div>
-        <Label htmlFor="address">Address *</Label>
+        <Label htmlFor="address">{t("storeForm.address")}</Label>
         <Textarea
           id="address"
-          placeholder="Enter store address"
+          placeholder={t("storeForm.addressPlaceholder")}
           rows={2}
           {...form.register("address")}
         />
@@ -38,10 +41,10 @@ export function StoreForm({ form, mode = "create" }: StoreFormProps) {
       </div>
 
       <div>
-        <Label htmlFor="phone">Phone</Label>
+        <Label htmlFor="phone">{t("storeForm.phone")}</Label>
         <Input
           id="phone"
-          placeholder="Enter phone number"
+          placeholder={t("storeForm.phonePlaceholder")}
           {...form.register("phone")}
         />
         {form.formState.errors.phone && (
@@ -53,18 +56,18 @@ export function StoreForm({ form, mode = "create" }: StoreFormProps) {
         <>
           <div className="pt-4 border-t">
             <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-3">
-              Store Owner Account (Optional)
+              {t("storeForm.ownerSectionTitle")}
             </p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Create a store owner account for this store. Leave blank if you don't want to create one now.
+              {t("storeForm.ownerSectionDesc")}
             </p>
             
             <div>
-              <Label htmlFor="ownerEmail">Store Owner Email</Label>
+              <Label htmlFor="ownerEmail">{t("storeForm.ownerEmail")}</Label>
               <Input
                 id="ownerEmail"
                 type="email"
-                placeholder="Enter store owner email"
+                placeholder={t("storeForm.ownerEmailPlaceholder")}
                 {...form.register("ownerEmail")}
               />
               {form.formState.errors.ownerEmail && (
@@ -73,11 +76,11 @@ export function StoreForm({ form, mode = "create" }: StoreFormProps) {
             </div>
 
             <div className="mt-4">
-              <Label htmlFor="ownerPassword">Store Owner Password</Label>
+              <Label htmlFor="ownerPassword">{t("storeForm.ownerPassword")}</Label>
               <Input
                 id="ownerPassword"
                 type="password"
-                placeholder="Enter password (min 6 characters)"
+                placeholder={t("storeForm.ownerPasswordPlaceholder")}
                 {...form.register("ownerPassword")}
               />
               {form.formState.errors.ownerPassword && (

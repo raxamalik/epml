@@ -30,6 +30,7 @@ import { subDays, startOfDay, endOfDay, isToday, isYesterday } from "date-fns";
 import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StoreData {
   id: number;
@@ -80,6 +81,7 @@ export default function StoreOwnerDashboard() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const storeId = user?.storeId;
   const [activeTab, setActiveTab] = useState('overview');
@@ -232,8 +234,8 @@ export default function StoreOwnerDashboard() {
   const salesTrendData = getSalesTrendData();
 
   const paymentMethodData = [
-    { name: 'Cash', value: paymentStats.cash.percentage, revenue: paymentStats.cash.revenue },
-    { name: 'Card', value: paymentStats.card.percentage, revenue: paymentStats.card.revenue }
+    { name: t("storeOwnerDashboard.overview.payment.cash"), value: paymentStats.cash.percentage, revenue: paymentStats.cash.revenue },
+    { name: t("storeOwnerDashboard.overview.payment.card"), value: paymentStats.card.percentage, revenue: paymentStats.card.revenue }
   ];
 
   if (storeLoading) {
@@ -261,12 +263,12 @@ export default function StoreOwnerDashboard() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Store Not Found</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("storeDetail.notFoundTitle")}</h2>
               <p className="text-muted-foreground mb-4">
-                {(storeError as Error)?.message || "Unable to load store information"}
+                {(storeError as Error)?.message || t("storeDetail.notFoundDescription")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Please contact support if you believe this is an error.
+                {t("storeDetail.notFoundHelp")}
               </p>
             </div>
           </CardContent>
@@ -285,7 +287,7 @@ export default function StoreOwnerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeOwnerDashboard.cards.totalRevenue")}</p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
                     {formatCurrencyWithSymbol(store.revenue || 0)}
                   </p>
@@ -296,7 +298,9 @@ export default function StoreOwnerDashboard() {
                       <TrendingDown className="h-4 w-4 text-red-500" />
                     )}
                     <span className={`text-xs ${revenueChange >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                      {revenueChange >= 0 ? '+' : ''}{revenueChange.toFixed(1)}% vs yesterday
+                      {t("storeOwnerDashboard.cards.revenueChange", {
+                        value: `${revenueChange >= 0 ? "+" : ""}${revenueChange.toFixed(1)}%`,
+                      })}
                     </span>
                   </div>
                 </div>
@@ -311,12 +315,12 @@ export default function StoreOwnerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Today's Sales</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeOwnerDashboard.cards.todaysSales")}</p>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                     {formatCurrencyWithSymbol(todayRevenue)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {todaysSales.length} transactions
+                    {t("storeOwnerDashboard.cards.todaysTransactions", { count: todaysSales.length })}
                   </p>
                 </div>
                 <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
@@ -330,12 +334,15 @@ export default function StoreOwnerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Products</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeOwnerDashboard.cards.products")}</p>
                   <p className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
                     {products.length}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    {lowStockProducts} low stock, {outOfStockProducts} out
+                    {t("storeOwnerDashboard.cards.productsLowOut", {
+                      low: lowStockProducts,
+                      out: outOfStockProducts,
+                    })}
                   </p>
                 </div>
                 <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
@@ -349,12 +356,12 @@ export default function StoreOwnerDashboard() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Staff Members</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeOwnerDashboard.cards.staff")}</p>
                   <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
                     {managers.length}
                   </p>
                   <p className="text-xs text-muted-foreground mt-2">
-                    Active team members
+                    {t("storeOwnerDashboard.cards.staffActive")}
                   </p>
                 </div>
                 <div className="p-3 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
@@ -370,19 +377,19 @@ export default function StoreOwnerDashboard() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Activity className="h-4 w-4" />
-              Overview
+              {t("storeOwnerDashboard.tabs.overview")}
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
-              Analytics
+              {t("storeOwnerDashboard.tabs.analytics")}
             </TabsTrigger>
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
-              Products
+              {t("storeOwnerDashboard.tabs.products")}
             </TabsTrigger>
             <TabsTrigger value="staff" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
-              Staff
+              {t("storeOwnerDashboard.tabs.staff")}
             </TabsTrigger>
           </TabsList>
 
@@ -394,7 +401,7 @@ export default function StoreOwnerDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <TrendingUp className="h-5 w-5" />
-                    7-Day Sales Trend
+                    {t("storeOwnerDashboard.overview.salesTrend")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -421,7 +428,7 @@ export default function StoreOwnerDashboard() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <PieChart className="h-5 w-5" />
-                    Payment Methods
+                    {t("storeOwnerDashboard.overview.paymentMethods")}
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -449,11 +456,11 @@ export default function StoreOwnerDashboard() {
                   </ResponsiveContainer>
                   <div className="mt-4 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Cash</span>
+                      <span className="text-sm">{t("storeOwnerDashboard.overview.payment.cash")}</span>
                       <span className="font-semibold">{formatCurrencyWithSymbol(paymentStats.cash.revenue)}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm">Card</span>
+                      <span className="text-sm">{t("storeOwnerDashboard.overview.payment.card")}</span>
                       <span className="font-semibold">{formatCurrencyWithSymbol(paymentStats.card.revenue)}</span>
                     </div>
                   </div>
@@ -464,7 +471,7 @@ export default function StoreOwnerDashboard() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
+                <CardTitle>{t("storeOwnerDashboard.overview.quickActionsTitle")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -475,10 +482,10 @@ export default function StoreOwnerDashboard() {
                   >
                     <div className="flex items-center gap-2 w-full">
                       <Package className="h-5 w-5" />
-                      <span className="font-semibold">Manage Products</span>
+                      <span className="font-semibold">{t("storeOwnerDashboard.overview.manageProductsTitle")}</span>
                       <ArrowRight className="h-4 w-4 ml-auto" />
                     </div>
-                    <span className="text-sm text-muted-foreground">View and manage inventory</span>
+                    <span className="text-sm text-muted-foreground">{t("storeOwnerDashboard.overview.manageProductsDesc")}</span>
                   </Button>
                   
                   <Button 
@@ -488,10 +495,10 @@ export default function StoreOwnerDashboard() {
                   >
                     <div className="flex items-center gap-2 w-full">
                       <ShoppingCart className="h-5 w-5" />
-                      <span className="font-semibold">Inventory</span>
+                      <span className="font-semibold">{t("storeOwnerDashboard.overview.inventoryTitle")}</span>
                       <ArrowRight className="h-4 w-4 ml-auto" />
                     </div>
-                    <span className="text-sm text-muted-foreground">Track stock levels</span>
+                    <span className="text-sm text-muted-foreground">{t("storeOwnerDashboard.overview.inventoryDesc")}</span>
                   </Button>
                   
                   <Button 
@@ -501,10 +508,10 @@ export default function StoreOwnerDashboard() {
                   >
                     <div className="flex items-center gap-2 w-full">
                       <Users className="h-5 w-5" />
-                      <span className="font-semibold">Manage Staff</span>
+                      <span className="font-semibold">{t("storeOwnerDashboard.overview.manageStaffTitle")}</span>
                       <ArrowRight className="h-4 w-4 ml-auto" />
                     </div>
-                    <span className="text-sm text-muted-foreground">View and manage team</span>
+                    <span className="text-sm text-muted-foreground">{t("storeOwnerDashboard.overview.manageStaffDesc")}</span>
                   </Button>
                 </div>
               </CardContent>
@@ -516,7 +523,7 @@ export default function StoreOwnerDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Sales by Day (Last 7 Days)</CardTitle>
+                  <CardTitle>{t("storeOwnerDashboard.analytics.salesByDayTitle")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -533,7 +540,7 @@ export default function StoreOwnerDashboard() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Transactions by Day</CardTitle>
+                  <CardTitle>{t("storeOwnerDashboard.analytics.transactionsByDayTitle")}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
@@ -551,20 +558,20 @@ export default function StoreOwnerDashboard() {
 
             <Card>
               <CardHeader>
-                <CardTitle>Additional Statistics</CardTitle>
+                <CardTitle>{t("storeOwnerDashboard.analytics.additionalStatsTitle")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Customers</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.analytics.totalCustomers")}</p>
                     <p className="text-2xl font-bold">{store.customerCount || 0}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Inventory Value</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.analytics.inventoryValue")}</p>
                     <p className="text-2xl font-bold">{formatCurrencyWithSymbol(totalInventoryValue)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Transactions</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.analytics.totalTransactions")}</p>
                     <p className="text-2xl font-bold">{sales.length}</p>
                   </div>
                 </div>
@@ -577,9 +584,9 @@ export default function StoreOwnerDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Product Overview</CardTitle>
+                  <CardTitle>{t("storeOwnerDashboard.productsTab.title")}</CardTitle>
                   <Button onClick={() => setLocation('/products')}>
-                    View All Products
+                    {t("storeOwnerDashboard.productsTab.viewAll")}
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
@@ -587,15 +594,15 @@ export default function StoreOwnerDashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground">Total Products</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.productsTab.totalProducts")}</p>
                     <p className="text-2xl font-bold">{products.length}</p>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground">Low Stock</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.productsTab.lowStock")}</p>
                     <p className="text-2xl font-bold text-orange-500">{lowStockProducts}</p>
                   </div>
                   <div className="p-4 border rounded-lg">
-                    <p className="text-sm text-muted-foreground">Out of Stock</p>
+                    <p className="text-sm text-muted-foreground">{t("storeOwnerDashboard.productsTab.outOfStock")}</p>
                     <p className="text-2xl font-bold text-red-500">{outOfStockProducts}</p>
                   </div>
                 </div>
@@ -609,7 +616,7 @@ export default function StoreOwnerDashboard() {
                 ) : products.length === 0 ? (
                   <div className="text-center py-8">
                     <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No products found</p>
+                    <p className="text-muted-foreground">{t("storeOwnerDashboard.productsTab.noProducts")}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -638,9 +645,9 @@ export default function StoreOwnerDashboard() {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle>Staff Members</CardTitle>
+                  <CardTitle>{t("storeOwnerDashboard.staffTab.title")}</CardTitle>
                   <Button onClick={() => setLocation('/store-owner/managers')}>
-                    Manage Staff
+                    {t("storeOwnerDashboard.staffTab.manageStaff")}
                     <ArrowRight className="h-4 w-4 ml-2" />
                   </Button>
                 </div>
@@ -655,7 +662,7 @@ export default function StoreOwnerDashboard() {
                 ) : managers.length === 0 ? (
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">No staff members found</p>
+                    <p className="text-muted-foreground">{t("storeOwnerDashboard.staffTab.noStaff")}</p>
                   </div>
                 ) : (
                   <div className="space-y-2">

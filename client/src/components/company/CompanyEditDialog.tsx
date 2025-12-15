@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export type EditableCompany = {
   id: number;
@@ -57,6 +58,7 @@ export function CompanyEditDialog({
   company,
   onUpdated,
 }: CompanyEditDialogProps) {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const [formData, setFormData] = useState<EditFormData>(emptyForm);
 
@@ -98,8 +100,8 @@ export function CompanyEditDialog({
       onUpdated?.(updatedCompany);
       onOpenChange(false);
       toast({
-        title: "Success",
-        description: "Company updated successfully!",
+        title: t("success.updated"),
+        description: t("companyManagement.toasts.updated"),
       });
     },
     onError: (error: Error) => {
@@ -122,11 +124,11 @@ export function CompanyEditDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Company</DialogTitle>
+          <DialogTitle>{t("companyEdit.title")}</DialogTitle>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Label htmlFor="editName">Company Name</Label>
+            <Label htmlFor="editName">{t("companyForm.companyName")}</Label>
             <Input
               id="editName"
               value={formData.name}
@@ -134,7 +136,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editRegNumber">Registration Number</Label>
+            <Label htmlFor="editRegNumber">{t("companyForm.registrationNumber")}</Label>
             <Input
               id="editRegNumber"
               value={formData.registrationNumber}
@@ -142,7 +144,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editVatNumber">VAT Number</Label>
+            <Label htmlFor="editVatNumber">{t("companyForm.vatNumber")}</Label>
             <Input
               id="editVatNumber"
               value={formData.vatNumber}
@@ -150,7 +152,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editEmail">Email</Label>
+            <Label htmlFor="editEmail">{t("companyForm.email")}</Label>
             <Input
               id="editEmail"
               type="email"
@@ -159,7 +161,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div className="col-span-2">
-            <Label htmlFor="editAddress">Address</Label>
+            <Label htmlFor="editAddress">{t("companyForm.address")}</Label>
             <Textarea
               id="editAddress"
               value={formData.address}
@@ -167,7 +169,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editPhone">Phone</Label>
+            <Label htmlFor="editPhone">{t("companyForm.phone")}</Label>
             <Input
               id="editPhone"
               value={formData.phone}
@@ -175,7 +177,7 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editContactPerson">Contact Person</Label>
+            <Label htmlFor="editContactPerson">{t("companyForm.contactPerson")}</Label>
             <Input
               id="editContactPerson"
               value={formData.contactPerson}
@@ -183,17 +185,17 @@ export function CompanyEditDialog({
             />
           </div>
           <div>
-            <Label htmlFor="editPassword">Login Password</Label>
+            <Label htmlFor="editPassword">{t("companyForm.password")}</Label>
             <Input
               id="editPassword"
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder="Leave empty to keep current password"
+              placeholder={t("companyForm.passwordPlaceholder")}
             />
           </div>
           <div>
-            <Label htmlFor="editMaxBranches">Max Branches</Label>
+            <Label htmlFor="editMaxBranches">{t("companyForm.maxBranches")}</Label>
             <Input
               id="editMaxBranches"
               type="number"
@@ -206,13 +208,13 @@ export function CompanyEditDialog({
         
         <div className="flex justify-end space-x-2 mt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel")}
           </Button>
           <Button 
             onClick={handleSubmit}
             disabled={updateCompanyMutation.isPending}
           >
-            {updateCompanyMutation.isPending ? "Updating..." : "Update Company"}
+            {updateCompanyMutation.isPending ? t("companyEdit.updating") : t("companyEdit.updateButton")}
           </Button>
         </div>
       </DialogContent>

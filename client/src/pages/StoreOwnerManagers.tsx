@@ -20,6 +20,7 @@ import { managerFormSchema, ManagerFormData } from "@/lib/utils/validation";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 import { formatDate } from "@/lib/utils/date";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Manager {
   id: string;
@@ -44,6 +45,7 @@ export default function StoreOwnerManagers() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -130,14 +132,14 @@ export default function StoreOwnerManagers() {
       setIsCreateDialogOpen(false);
       createForm.reset();
       toast({
-        title: "Manager Created",
-        description: "Manager has been created successfully.",
+        title: t("managerManagement.toasts.created"),
+        description: t("managerManagement.toasts.createdDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -159,14 +161,14 @@ export default function StoreOwnerManagers() {
       setSelectedManager(null);
       editForm.reset();
       toast({
-        title: "Manager Updated",
-        description: "Manager has been updated successfully.",
+        title: t("managerManagement.toasts.updated"),
+        description: t("managerManagement.toasts.updatedDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -183,14 +185,14 @@ export default function StoreOwnerManagers() {
       setIsDeleteDialogOpen(false);
       setManagerToDelete(null);
       toast({
-        title: "Manager Deleted",
-        description: "Manager has been deleted successfully.",
+        title: t("managerManagement.toasts.deleted"),
+        description: t("managerManagement.toasts.deletedDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -205,14 +207,14 @@ export default function StoreOwnerManagers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/managers"] });
       toast({
-        title: "Status Updated",
-        description: "Manager status has been updated successfully.",
+        title: t("managerManagement.toasts.statusUpdateSuccess"),
+        description: t("managerManagement.toasts.statusUpdateDesc"),
       });
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
+        title: t("managerManagement.toasts.error"),
+        description: error.message || t("managerManagement.toasts.errorGeneric"),
         variant: "destructive",
       });
     },
@@ -278,9 +280,9 @@ export default function StoreOwnerManagers() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Error Loading Managers</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("storeOwnerManagers.errorTitle")}</h2>
               <p className="text-muted-foreground">
-                {(error as Error)?.message || "Unable to load managers"}
+                {(error as Error)?.message || t("storeOwnerManagers.errorDescription")}
               </p>
             </div>
           </CardContent>
@@ -303,9 +305,9 @@ export default function StoreOwnerManagers() {
                       <Users className="h-8 w-8" />
                     </div>
                     <div>
-                      <h1 className="text-3xl font-bold mb-2">Store Managers</h1>
+                      <h1 className="text-3xl font-bold mb-2">{t("storeOwnerManagers.headerTitle")}</h1>
                       <p className="text-blue-100 text-lg">
-                        View all managers assigned to your store
+                        {t("storeOwnerManagers.headerSubtitle")}
                       </p>
                     </div>
                   </div>
@@ -330,7 +332,7 @@ export default function StoreOwnerManagers() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search managers by name, email, or phone..."
+                  placeholder={t("managerManagement.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -345,7 +347,7 @@ export default function StoreOwnerManagers() {
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Create Manager
+                {t("managerManagement.createButton")}
               </Button>
             </form>
           </CardContent>
@@ -360,7 +362,7 @@ export default function StoreOwnerManagers() {
                   <Users className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Managers ({pagination.total})
+                  {t("managerManagement.headerCount", { count: pagination.total })}
                 </span>
               </CardTitle>
             </div>
@@ -369,16 +371,16 @@ export default function StoreOwnerManagers() {
             {managers.length === 0 ? (
               <EmptyState
                 title={debouncedSearch || status !== "all"
-                  ? "No managers found matching your filters"
-                  : "No managers found"}
+                  ? t("managerManagement.empty.titleFiltered")
+                  : t("managerManagement.empty.title")}
                 description={!debouncedSearch && status === "all"
-                  ? "Get started by creating your first manager"
-                  : "Try adjusting your search or filters"}
+                  ? t("managerManagement.empty.description")
+                  : t("managerManagement.empty.descriptionFiltered")}
                 icon={<User className="h-12 w-12 mx-auto text-muted-foreground" />}
                 action={!debouncedSearch && status === "all" ? (
                   <Button onClick={() => setIsCreateDialogOpen(true)}>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create First Manager
+                    {t("managerManagement.empty.createFirst")}
                   </Button>
                 ) : undefined}
                 className="border-0"
@@ -388,11 +390,11 @@ export default function StoreOwnerManagers() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Email</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Phone</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.name")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.email")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.phone")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.status")}</TableHead>
+                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("managerManagement.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -461,23 +463,23 @@ export default function StoreOwnerManagers() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New Manager</DialogTitle>
+              <DialogTitle>{t("managerManagement.dialogs.createTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreateManager)} className="space-y-4">
               <ManagerForm form={createForm} stores={[]} mode="create" hideStoreSelect={true} />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={createManagerMutation.isPending}>
                   {createManagerMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
+                      {t("managerManagement.dialogs.creating")}
                     </>
                   ) : (
-                    "Create Manager"
+                    t("managerManagement.createButton")
                   )}
                 </Button>
               </DialogFooter>
@@ -489,23 +491,23 @@ export default function StoreOwnerManagers() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit Manager</DialogTitle>
+              <DialogTitle>{t("managerManagement.dialogs.editTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={editForm.handleSubmit(handleUpdateManager)} className="space-y-4">
               <ManagerForm form={editForm} stores={[]} mode="edit" hideStoreSelect={true} />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={updateManagerMutation.isPending}>
                   {updateManagerMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {t("managerManagement.dialogs.updating")}
                     </>
                   ) : (
-                    "Update Manager"
+                    t("managerManagement.updateButton")
                   )}
                 </Button>
               </DialogFooter>
@@ -525,8 +527,8 @@ export default function StoreOwnerManagers() {
               deleteManagerMutation.mutate(parseInt(managerToDelete.id));
             }
           }}
-          title="Delete Manager"
-          description="Are you sure you want to delete"
+          title={t("managerManagement.dialogs.deleteTitle")}
+          description={t("managerManagement.dialogs.deleteDesc")}
           itemName={managerToDelete ? `${managerToDelete.firstName} ${managerToDelete.lastName}` : undefined}
           isLoading={deleteManagerMutation.isPending}
         />

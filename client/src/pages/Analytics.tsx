@@ -12,11 +12,28 @@ import {
   ShoppingCart,
   Activity
 } from "lucide-react";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RechartsPieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
+  Area,
+  AreaChart,
+} from "recharts";
+import { useTranslation } from "@/hooks/useTranslation";
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
 export default function Analytics() {
+  const { t } = useTranslation();
   const { data: stores = [], isLoading: storesLoading } = useQuery<any[]>({
     queryKey: ["/api/company/stores"],
   });
@@ -29,8 +46,12 @@ export default function Analytics() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Analytics Dashboard</h1>
-          <p className="text-slate-600">Comprehensive insights into your business performance</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {t("analyticsDashboard.header.title")}
+          </h1>
+          <p className="text-slate-600">
+            {t("analyticsDashboard.header.subtitle")}
+          </p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -58,25 +79,31 @@ export default function Analytics() {
 
   // Prepare chart data
   const revenueChartData = stores?.map((store: any) => ({
-    name: store.name.length > 12 ? store.name.substring(0, 12) + '...' : store.name,
+    name: store.name.length > 12 ? store.name.substring(0, 12) + "..." : store.name,
     revenue: store.revenue || 0,
     customers: store.customerCount || 0,
     products: store.productCount || 0,
   })) || [];
 
   const statusPieData = [
-    { name: 'Active', value: analytics?.activeStores || 0 },
-    { name: 'Inactive', value: (analytics?.totalStores || 0) - (analytics?.activeStores || 0) }
+    {
+      name: t("analyticsDashboard.status.active"),
+      value: analytics?.activeStores || 0,
+    },
+    {
+      name: t("analyticsDashboard.status.inactive"),
+      value: (analytics?.totalStores || 0) - (analytics?.activeStores || 0),
+    },
   ];
 
   // Monthly performance data (simulated for demonstration)
   const monthlyData = [
-    { month: 'Jan', revenue: 45000, customers: 1200, orders: 890 },
-    { month: 'Feb', revenue: 52000, customers: 1350, orders: 980 },
-    { month: 'Mar', revenue: 48000, customers: 1280, orders: 920 },
-    { month: 'Apr', revenue: 61000, customers: 1450, orders: 1150 },
-    { month: 'May', revenue: 58000, customers: 1380, orders: 1080 },
-    { month: 'Jun', revenue: 67000, customers: 1520, orders: 1220 },
+    { month: t("analyticsDashboard.months.jan"), revenue: 45000, customers: 1200, orders: 890 },
+    { month: t("analyticsDashboard.months.feb"), revenue: 52000, customers: 1350, orders: 980 },
+    { month: t("analyticsDashboard.months.mar"), revenue: 48000, customers: 1280, orders: 920 },
+    { month: t("analyticsDashboard.months.apr"), revenue: 61000, customers: 1450, orders: 1150 },
+    { month: t("analyticsDashboard.months.may"), revenue: 58000, customers: 1380, orders: 1080 },
+    { month: t("analyticsDashboard.months.jun"), revenue: 67000, customers: 1520, orders: 1220 },
   ];
 
   const topPerformingStores = stores?.slice(0, 5).map((store: any) => ({
@@ -88,53 +115,83 @@ export default function Analytics() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Analytics Dashboard</h1>
-        <p className="text-slate-600 mt-2">Comprehensive insights into your business performance</p>
+        <h1 className="text-2xl font-bold text-slate-900">
+          {t("analyticsDashboard.header.title")}
+        </h1>
+        <p className="text-slate-600 mt-2">
+          {t("analyticsDashboard.header.subtitle")}
+        </p>
       </div>
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("analyticsDashboard.cards.totalRevenue")}
+            </CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€{analytics?.totalRevenue?.toLocaleString() || '0'}</div>
-            <p className="text-xs text-muted-foreground">+{analytics?.monthlyGrowth || 0}% from last month</p>
+            <div className="text-2xl font-bold">
+              €{analytics?.totalRevenue?.toLocaleString() || "0"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("analyticsDashboard.cards.monthlyGrowth", {
+                value: analytics?.monthlyGrowth || 0,
+              })}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Stores</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("analyticsDashboard.cards.activeStores")}
+            </CardTitle>
             <Store className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics?.activeStores || 0}</div>
-            <p className="text-xs text-muted-foreground">of {analytics?.totalStores || 0} total stores</p>
+            <p className="text-xs text-muted-foreground">
+              {t("analyticsDashboard.cards.totalStores", {
+                count: analytics?.totalStores || 0,
+              })}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("analyticsDashboard.cards.totalProducts")}
+            </CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.totalProducts?.toLocaleString() || '0'}</div>
-            <p className="text-xs text-muted-foreground">Across all stores</p>
+            <div className="text-2xl font-bold">
+              {analytics?.totalProducts?.toLocaleString() || "0"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("analyticsDashboard.cards.acrossStores")}
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("analyticsDashboard.cards.totalCustomers")}
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{analytics?.totalCustomers?.toLocaleString() || '0'}</div>
-            <p className="text-xs text-muted-foreground">Customer base</p>
+            <div className="text-2xl font-bold">
+              {analytics?.totalCustomers?.toLocaleString() || "0"}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {t("analyticsDashboard.cards.customerBase")}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -146,7 +203,7 @@ export default function Analytics() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5" />
-              Store Revenue Comparison
+              {t("analyticsDashboard.charts.revenueComparison")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -183,7 +240,7 @@ export default function Analytics() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PieChart className="h-5 w-5" />
-              Store Status Distribution
+              {t("analyticsDashboard.charts.statusDistribution")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -218,7 +275,7 @@ export default function Analytics() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5" />
-              Monthly Performance Trend
+              {t("analyticsDashboard.charts.monthlyPerformance")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -241,7 +298,7 @@ export default function Analytics() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Customers vs Products by Store
+              {t("analyticsDashboard.charts.customersVsProducts")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -272,7 +329,7 @@ export default function Analytics() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Top Performing Stores
+            {t("analyticsDashboard.topStores.title")}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -290,11 +347,19 @@ export default function Analytics() {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
-                    <p className="font-semibold">€{store.revenue?.toLocaleString() || '0'}</p>
-                    <p className="text-xs text-slate-600">{store.performance}k revenue</p>
+                    <p className="font-semibold">
+                      €{store.revenue?.toLocaleString() || "0"}
+                    </p>
+                    <p className="text-xs text-slate-600">
+                      {t("analyticsDashboard.topStores.revenue", {
+                        value: store.performance,
+                      })}
+                    </p>
                   </div>
                   <Badge variant={store.isActive ? "default" : "secondary"}>
-                    {store.isActive ? "Active" : "Inactive"}
+                    {store.isActive
+                      ? t("analyticsDashboard.status.active")
+                      : t("analyticsDashboard.status.inactive")}
                   </Badge>
                 </div>
               </div>

@@ -8,4 +8,5 @@ export { ActivateDeactivateDialog } from "./ActivateDeactivateDialog";
 export { SendInvitationDialog } from "./SendInvitationDialog";
 export { TableActions } from "./TableActions";
 export { Pagination } from "./Pagination";
+export { LanguageSwitcher } from "./LanguageSwitcher";
 

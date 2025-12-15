@@ -56,6 +56,7 @@ import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { usePagination } from "@/hooks/common/usePagination";
 import { Pagination } from "@/components/common";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Sale {
   id: string;
@@ -101,6 +102,7 @@ function SalesHistory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -412,13 +414,13 @@ function SalesHistory() {
   const getRelativeTime = (date: string) => {
     const saleDate = new Date(date);
     if (isToday(saleDate)) {
-      return `Today, ${format(saleDate, 'HH:mm')}`;
+      return t("salesHistory.details.relativeTime.today", { time: format(saleDate, "HH:mm") });
     } else if (isYesterday(saleDate)) {
-      return `Yesterday, ${format(saleDate, 'HH:mm')}`;
+      return t("salesHistory.details.relativeTime.yesterday", { time: format(saleDate, "HH:mm") });
     } else {
       const daysDiff = differenceInDays(new Date(), saleDate);
       if (daysDiff <= 7) {
-        return `${daysDiff} days ago`;
+        return t("salesHistory.details.relativeTime.daysAgo", { count: daysDiff });
       }
       return format(saleDate, 'MMM dd, yyyy');
     }
@@ -450,14 +452,18 @@ function SalesHistory() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Sales History</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Transaction analytics and history</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("salesHistory.header.title")}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t("salesHistory.header.subtitle")}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Clock className="h-3 w-3 mr-1" />
-                Real-time updates
+                {t("salesHistory.header.realtime")}
               </Badge>
             </div>
           </div>
@@ -469,39 +475,53 @@ function SalesHistory() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Sales</CardTitle>
+              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                {t("salesHistory.cards.totalSales")}
+              </CardTitle>
               <div className="p-2 bg-blue-500 rounded-lg">
                 <ShoppingCart className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{totalSales}</div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">All time transactions</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {t("salesHistory.cards.totalSalesDesc")}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">Total Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">
+                {t("salesHistory.cards.totalRevenue")}
+              </CardTitle>
               <div className="p-2 bg-green-500 rounded-lg">
                 <DollarSign className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-900 dark:text-green-100">${totalRevenue.toFixed(2)}</div>
-              <p className="text-sm text-green-700 dark:text-green-300">Lifetime earnings</p>
+              <div className="text-3xl font-bold text-green-900 dark:text-green-100">
+                ${totalRevenue.toFixed(2)}
+              </div>
+              <p className="text-sm text-green-700 dark:text-green-300">
+                {t("salesHistory.cards.totalRevenueDesc")}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">Today's Revenue</CardTitle>
+              <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
+                {t("salesHistory.cards.todaysRevenue")}
+              </CardTitle>
               <div className="p-2 bg-purple-500 rounded-lg">
                 <Calendar className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">${todaysRevenue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-purple-900 dark:text-purple-100">
+                ${todaysRevenue.toFixed(2)}
+              </div>
               <div className="flex items-center text-sm">
                 {revenueGrowth > 0 ? (
                   <>
@@ -514,23 +534,33 @@ function SalesHistory() {
                     <span className="text-red-600">{revenueGrowth.toFixed(1)}%</span>
                   </>
                 ) : (
-                  <span className="text-purple-700 dark:text-purple-300">No change</span>
+                  <span className="text-purple-700 dark:text-purple-300">
+                    {t("salesHistory.cards.noChange")}
+                  </span>
                 )}
-                <span className="text-purple-700 dark:text-purple-300 ml-1">vs yesterday</span>
+                <span className="text-purple-700 dark:text-purple-300 ml-1">
+                  {t("salesHistory.cards.vsYesterday")}
+                </span>
               </div>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">Avg. Order Value</CardTitle>
+              <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">
+                {t("salesHistory.cards.avgOrderValue")}
+              </CardTitle>
               <div className="p-2 bg-orange-500 rounded-lg">
                 <BarChart3 className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">${averageOrderValue.toFixed(2)}</div>
-              <p className="text-sm text-orange-700 dark:text-orange-300">Per transaction</p>
+              <div className="text-3xl font-bold text-orange-900 dark:text-orange-100">
+                ${averageOrderValue.toFixed(2)}
+              </div>
+              <p className="text-sm text-orange-700 dark:text-orange-300">
+                {t("salesHistory.cards.avgOrderValueDesc")}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -542,7 +572,7 @@ function SalesHistory() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search by sale ID or payment method..."
+                  placeholder={t("salesHistory.filters.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 bg-slate-50 dark:bg-slate-800"
@@ -551,7 +581,7 @@ function SalesHistory() {
               
               <div className="flex gap-3">
                 <div className="flex items-center space-x-2">
-                  <Label>Date:</Label>
+                  <Label>{t("salesHistory.filters.date")}</Label>
                   <Input
                     type="date"
                     value={dateFilter}
@@ -561,15 +591,15 @@ function SalesHistory() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <Label>Payment:</Label>
+                  <Label>{t("salesHistory.filters.payment")}</Label>
                   <select
                     value={paymentFilter}
                     onChange={(e) => setPaymentFilter(e.target.value as any)}
                     className="px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-md bg-slate-50 dark:bg-slate-800 text-sm"
                   >
-                    <option value="all">All Methods</option>
-                    <option value="cash">Cash Only</option>
-                    <option value="card">Card Only</option>
+                    <option value="all">{t("salesHistory.filters.allMethods")}</option>
+                    <option value="cash">{t("salesHistory.filters.cashOnly")}</option>
+                    <option value="card">{t("salesHistory.filters.cardOnly")}</option>
                   </select>
                 </div>
 
@@ -581,7 +611,7 @@ function SalesHistory() {
                       setPaymentFilter('all');
                     }}
                   >
-                    Clear Filters
+                    {t("salesHistory.filters.clear")}
                   </Button>
                 )}
               </div>
@@ -591,23 +621,25 @@ function SalesHistory() {
 
         {/* Sales List */}
         <Card className="shadow-lg border-slate-200 dark:border-slate-800">
-          <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Transaction History ({totalSales})
-            </CardTitle>
+            <CardHeader className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900">
+              <CardTitle className="flex items-center gap-2">
+                <Receipt className="h-5 w-5" />
+                {t("salesHistory.list.title", { count: totalSales })}
+              </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            {isLoading ? (
+              {isLoading ? (
               <div className="p-8 text-center">
                 <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-slate-500">Loading sales history...</p>
+                <p className="text-slate-500">{t("salesHistory.list.loading")}</p>
               </div>
             ) : sales.length === 0 ? (
               <div className="p-12 text-center">
                 <Receipt className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">No sales found</h3>
-                <p className="text-slate-500">No transactions match your current filters.</p>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
+                  {t("salesHistory.list.emptyTitle")}
+                </h3>
+                <p className="text-slate-500">{t("salesHistory.list.emptyDesc")}</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -636,7 +668,7 @@ function SalesHistory() {
                               </p>
                               {isRecent && (
                                 <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                                  Recent
+                                  {t("salesHistory.list.recentBadge")}
                                 </Badge>
                               )}
                             </div>
@@ -663,14 +695,16 @@ function SalesHistory() {
                               {customerInfo ? (
                                 <>
                                   <p className="text-sm font-medium text-slate-900 dark:text-white">
-                                    {customerInfo.name || 'Customer'}
+                                    {customerInfo.name || t("salesHistory.list.customerFallback")}
                                   </p>
                                   <p className="text-xs text-slate-500">
-                                    {customerInfo.phone || customerInfo.email || 'No contact info'}
+                                    {customerInfo.phone || customerInfo.email || t("salesHistory.list.noContactInfo")}
                                   </p>
                                 </>
                               ) : (
-                                <p className="text-sm text-slate-500">Walk-in customer</p>
+                                <p className="text-sm text-slate-500">
+                                  {t("salesHistory.list.walkInCustomer")}
+                                </p>
                               )}
                             </div>
                           </div>
@@ -679,7 +713,7 @@ function SalesHistory() {
                           <div className="hidden lg:flex items-center space-x-2">
                             <Package className="h-4 w-4 text-slate-400" />
                             <span className="text-sm text-slate-600 dark:text-slate-400">
-                              {saleItems.length} item{saleItems.length !== 1 ? 's' : ''}
+                              {t("salesHistory.list.itemsCount", { count: saleItems.length })}
                             </span>
                           </div>
                         </div>
@@ -707,7 +741,7 @@ function SalesHistory() {
                             className="ml-4"
                           >
                             <Eye className="h-4 w-4 mr-1" />
-                            Details
+                            {t("salesHistory.list.detailsButton")}
                           </Button>
                         </div>
                       </div>
@@ -720,7 +754,7 @@ function SalesHistory() {
           {sales.length > 0 && (
             <div className="p-4 border-t flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label>Items per page:</Label>
+                <Label>{t("common.itemsPerPage")}</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => setPageSize(parseInt(value))}
@@ -752,10 +786,10 @@ function SalesHistory() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
-              Sale Details
+              {t("salesHistory.details.title")}
             </DialogTitle>
             <DialogDescription>
-              Complete transaction information and receipt
+              {t("salesHistory.details.description")}
             </DialogDescription>
           </DialogHeader>
           
@@ -765,11 +799,15 @@ function SalesHistory() {
               <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 p-4 rounded-lg">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-slate-500">Sale ID</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("salesHistory.details.saleId")}
+                    </Label>
                     <p className="font-mono font-medium">{selectedSale.id}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500">Date & Time</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("salesHistory.details.dateTime")}
+                    </Label>
                     <p className="font-medium">
                       {format(new Date(selectedSale.createdAt), 'MMM dd, yyyy')}
                     </p>
@@ -784,7 +822,7 @@ function SalesHistory() {
               <div>
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <User className="h-4 w-4" />
-                  Customer Information
+                  {t("salesHistory.details.customerInfoTitle")}
                 </h4>
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                   {(() => {
@@ -794,19 +832,25 @@ function SalesHistory() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {customerInfo.name && (
                             <div>
-                              <Label className="text-xs text-slate-500">Name</Label>
+                              <Label className="text-xs text-slate-500">
+                                {t("salesHistory.details.customerName")}
+                              </Label>
                               <p className="font-medium">{customerInfo.name}</p>
                             </div>
                           )}
                           {customerInfo.phone && (
                             <div>
-                              <Label className="text-xs text-slate-500">Phone</Label>
+                              <Label className="text-xs text-slate-500">
+                                {t("salesHistory.details.customerPhone")}
+                              </Label>
                               <p className="font-medium">{customerInfo.phone}</p>
                             </div>
                           )}
                           {customerInfo.email && (
                             <div>
-                              <Label className="text-xs text-slate-500">Email</Label>
+                              <Label className="text-xs text-slate-500">
+                                {t("salesHistory.details.customerEmail")}
+                              </Label>
                               <p className="font-medium">{customerInfo.email}</p>
                             </div>
                           )}
@@ -816,7 +860,7 @@ function SalesHistory() {
                       return (
                         <div className="flex items-center gap-2 text-slate-500">
                           <AlertCircle className="h-4 w-4" />
-                          <span>Walk-in customer (No contact information provided)</span>
+                          <span>{t("salesHistory.details.walkInCustomerFull")}</span>
                         </div>
                       );
                     }
@@ -828,16 +872,22 @@ function SalesHistory() {
               <div>
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Items Purchased
+                  {t("salesHistory.details.itemsTitle")}
                 </h4>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead className="text-center">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
+                        <TableHead>{t("salesHistory.details.itemsHeader.item")}</TableHead>
+                        <TableHead className="text-center">
+                          {t("salesHistory.details.itemsHeader.qty")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                          {t("salesHistory.details.itemsHeader.unitPrice")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                          {t("salesHistory.details.itemsHeader.total")}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -845,12 +895,12 @@ function SalesHistory() {
                         const items = parseSaleItems(selectedSale.items);
                         if (items.length === 0) {
                           return (
-                            <TableRow>
-                              <TableCell colSpan={4} className="text-center text-slate-500 py-8">
-                                <AlertCircle className="h-6 w-6 mx-auto mb-2" />
-                                No item details available
-                              </TableCell>
-                            </TableRow>
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-slate-500 py-8">
+                              <AlertCircle className="h-6 w-6 mx-auto mb-2" />
+                              {t("salesHistory.details.noItems")}
+                            </TableCell>
+                          </TableRow>
                           );
                         }
                         return items.map((item: any, index: number) => (
@@ -886,11 +936,11 @@ function SalesHistory() {
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Payment Summary
+                  {t("salesHistory.details.paymentSummaryTitle")}
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Payment Method:</span>
+                    <span>{t("salesHistory.details.paymentMethodLabel")}</span>
                     <Badge variant={getPaymentMethodColor(selectedSale.paymentMethod) as any} className="flex items-center gap-1">
                       {getPaymentMethodIcon(selectedSale.paymentMethod)}
                       {selectedSale.paymentMethod.charAt(0).toUpperCase() + selectedSale.paymentMethod.slice(1)}
@@ -902,24 +952,31 @@ function SalesHistory() {
                     <>
                       <Separator />
                       <div className="space-y-2">
-                        <h5 className="font-medium text-sm">VAT Breakdown</h5>
+                        <h5 className="font-medium text-sm">
+                          {t("salesHistory.details.vat.breakdownTitle")}
+                        </h5>
                         
                         <div className="flex justify-between text-sm">
-                          <span>Net Amount:</span>
+                          <span>{t("salesHistory.details.vat.netAmount")}</span>
                           <span>${parseFloat(selectedSale.netAmount).toFixed(2)}</span>
                         </div>
                         
                         {Object.entries(selectedSale.vatBreakdown).map(([rate, breakdown]) => (
                           <div key={rate} className="space-y-1">
                             <div className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                              <span>VAT {breakdown.rate}% (Net: ${breakdown.net.toFixed(2)}):</span>
+                              <span>
+                                {t("salesHistory.details.vat.rateLine", {
+                                  rate: breakdown.rate,
+                                  net: breakdown.net.toFixed(2),
+                                })}
+                              </span>
                               <span>${breakdown.vat.toFixed(2)}</span>
                             </div>
                           </div>
                         ))}
                         
                         <div className="flex justify-between text-sm font-medium pt-1 border-t border-slate-200 dark:border-slate-600">
-                          <span>Total VAT:</span>
+                          <span>{t("salesHistory.details.vat.totalVat")}</span>
                           <span>${parseFloat(selectedSale.totalVAT).toFixed(2)}</span>
                         </div>
                       </div>
@@ -928,22 +985,33 @@ function SalesHistory() {
                   
                   <Separator />
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Total Amount:</span>
+                    <span className="text-lg font-semibold">
+                      {t("salesHistory.details.totalAmount")}
+                    </span>
                     <span className="text-2xl font-bold text-green-600 dark:text-green-400">
                       ${parseFloat(selectedSale.total).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-green-600">
                     <CheckCircle className="h-4 w-4" />
-                    <span>Transaction completed successfully</span>
+                    <span>{t("salesHistory.details.transactionSuccess")}</span>
                   </div>
                 </div>
               </div>
 
               {/* Receipt Footer */}
               <div className="text-center text-xs text-slate-500 border-t pt-4">
-                <p>Transaction processed on {format(new Date(selectedSale.createdAt), 'PPPP')}</p>
-                <p>Store ID: {selectedSale.storeId} | Sale ID: {selectedSale.id}</p>
+                <p>
+                  {t("salesHistory.details.footerProcessedOn", {
+                    date: format(new Date(selectedSale.createdAt), "PPPP"),
+                  })}
+                </p>
+                <p>
+                  {t("salesHistory.details.footerIds", {
+                    storeId: selectedSale.storeId,
+                    saleId: selectedSale.id,
+                  })}
+                </p>
               </div>
 
               {/* Return Button */}
@@ -954,7 +1022,7 @@ function SalesHistory() {
                   className="flex items-center gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  Process Return
+                  {t("salesHistory.return.openButton")}
                 </Button>
               </div>
             </div>
@@ -968,10 +1036,10 @@ function SalesHistory() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5" />
-              Process Return
+              {t("salesHistory.return.title")}
             </DialogTitle>
             <DialogDescription>
-              Select items to return and specify refund method
+              {t("salesHistory.return.description")}
             </DialogDescription>
           </DialogHeader>
 
@@ -979,7 +1047,9 @@ function SalesHistory() {
             <div className="space-y-6">
               {/* Sale Items List */}
               <div>
-                <Label className="text-sm font-semibold mb-3 block">Select Items to Return</Label>
+                <Label className="text-sm font-semibold mb-3 block">
+                  {t("salesHistory.return.selectItemsLabel")}
+                </Label>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {(() => {
                     // Only show items that have salesItems (from sales_items table)
@@ -988,8 +1058,10 @@ function SalesHistory() {
                       return (
                         <div className="text-center py-8 text-slate-500">
                           <AlertCircle className="h-8 w-8 mx-auto mb-2" />
-                          <p>This sale does not have item records available for return processing.</p>
-                          <p className="text-sm mt-2">Returns are only available for sales with proper item tracking.</p>
+                          <p>{t("salesHistory.return.noItemsReturnTitle")}</p>
+                          <p className="text-sm mt-2">
+                            {t("salesHistory.return.noItemsReturnDesc")}
+                          </p>
                         </div>
                       );
                     }
@@ -1018,8 +1090,6 @@ function SalesHistory() {
                       const currentReturnQty = returnItem?.quantity || 0;
                       
                       // Remaining quantity after current return
-                      const remainingQty = availableQty - currentReturnQty;
-
                       if (availableQty <= 0) return null;
 
                       return (
@@ -1028,16 +1098,26 @@ function SalesHistory() {
                             <div className="flex-1">
                               <p className="font-medium">{productName}</p>
                               <p className="text-sm text-slate-600">
-                                Original Qty: {quantity} | Available: {availableQty} | Price: ${unitPrice.toFixed(2)} | VAT: {vatRate}%
+                                {t("salesHistory.return.itemLine", {
+                                  quantity,
+                                  availableQty,
+                                  price: unitPrice.toFixed(2),
+                                  vatRate,
+                                })}
                               </p>
                               {alreadyReturnedQty > 0 && (
                                 <p className="text-sm text-orange-600 mt-1">
-                                  Already Returned: {alreadyReturnedQty}
+                                  {t("salesHistory.return.alreadyReturned", {
+                                    count: alreadyReturnedQty,
+                                  })}
                                 </p>
                               )}
                               {returnItem && (
                                 <p className="text-sm text-green-600 mt-1">
-                                  Returning: {returnItem.quantity} (Refund: ${returnItem.refundAmount.toFixed(2)})
+                                  {t("salesHistory.return.returningLine", {
+                                    quantity: returnItem.quantity,
+                                    refund: returnItem.refundAmount.toFixed(2),
+                                  })}
                                 </p>
                               )}
                             </div>
@@ -1047,7 +1127,7 @@ function SalesHistory() {
                                 min="0"
                                 max={availableQty}
                                 step="0.01"
-                                placeholder="Qty"
+                                placeholder={t("salesHistory.return.qtyPlaceholder")}
                                 className="w-20"
                                 defaultValue={currentReturnQty || ''}
                                 onChange={(e) => {
@@ -1080,17 +1160,19 @@ function SalesHistory() {
               {/* Return Items Summary */}
               {returnItems.length > 0 && (
                 <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                  <Label className="text-sm font-semibold mb-3 block">Return Summary</Label>
+                  <Label className="text-sm font-semibold mb-3 block">
+                    {t("salesHistory.return.summaryTitle")}
+                  </Label>
                   <div className="space-y-2">
                     {returnItems.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
-                        <span>Item {index + 1}</span>
+                        <span>{t("salesHistory.return.summaryItem", { index: index + 1 })}</span>
                         <span>${item.refundAmount.toFixed(2)}</span>
                       </div>
                     ))}
                     <Separator />
                     <div className="flex justify-between font-semibold">
-                      <span>Total Refund:</span>
+                      <span>{t("salesHistory.return.totalRefund")}</span>
                       <span className="text-lg">
                         ${returnItems.reduce((sum, item) => sum + item.refundAmount, 0).toFixed(2)}
                       </span>
@@ -1101,26 +1183,34 @@ function SalesHistory() {
 
               {/* Refund Method */}
               <div>
-                <Label htmlFor="refundMethod">Refund Method</Label>
+                <Label htmlFor="refundMethod">
+                  {t("salesHistory.return.refundMethodLabel")}
+                </Label>
                 <Select value={refundMethod} onValueChange={(value: any) => setRefundMethod(value)}>
                   <SelectTrigger id="refundMethod">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="cash">
+                      {t("salesHistory.return.refundMethod.cash")}
+                    </SelectItem>
+                    <SelectItem value="card">
+                      {t("salesHistory.return.refundMethod.card")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               {/* Return Reason */}
               <div>
-                <Label htmlFor="returnReason">Return Reason (Optional)</Label>
+                <Label htmlFor="returnReason">
+                  {t("salesHistory.return.reasonLabel")}
+                </Label>
                 <Textarea
                   id="returnReason"
                   value={returnReason}
                   onChange={(e) => setReturnReason(e.target.value)}
-                  placeholder="Enter reason for return..."
+                  placeholder={t("salesHistory.return.reasonPlaceholder")}
                   rows={3}
                 />
               </div>
@@ -1132,13 +1222,15 @@ function SalesHistory() {
               variant="outline"
               onClick={() => setIsReturnDialogOpen(false)}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleProcessReturn}
               disabled={returnItems.length === 0 || createReturnMutation.isPending}
             >
-              {createReturnMutation.isPending ? "Processing..." : "Process Return"}
+              {createReturnMutation.isPending
+                ? t("salesHistory.return.processing")
+                : t("salesHistory.return.processButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

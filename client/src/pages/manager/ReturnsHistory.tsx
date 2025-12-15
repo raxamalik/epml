@@ -48,6 +48,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { format, isToday, isYesterday, differenceInDays } from "date-fns";
 import { usePagination } from "@/hooks/common/usePagination";
 import { Pagination } from "@/components/common";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Return {
   id: number;
@@ -89,6 +90,7 @@ interface ReturnItem {
 
 function ReturnsHistory() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedReturn, setSelectedReturn] = useState<Return | null>(null);
@@ -262,13 +264,13 @@ function ReturnsHistory() {
   const getRelativeTime = (date: string) => {
     const returnDate = new Date(date);
     if (isToday(returnDate)) {
-      return `Today, ${format(returnDate, 'HH:mm')}`;
+      return t("returnsHistory.list.relativeTime.today", { time: format(returnDate, "HH:mm") });
     } else if (isYesterday(returnDate)) {
-      return `Yesterday, ${format(returnDate, 'HH:mm')}`;
+      return t("returnsHistory.list.relativeTime.yesterday", { time: format(returnDate, "HH:mm") });
     } else {
       const daysDiff = differenceInDays(new Date(), returnDate);
       if (daysDiff <= 7) {
-        return `${daysDiff} days ago`;
+        return t("returnsHistory.list.relativeTime.daysAgo", { count: daysDiff });
       }
       return format(returnDate, 'MMM dd, yyyy');
     }
@@ -282,14 +284,18 @@ function ReturnsHistory() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Returns History</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">View and manage return transactions</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("returnsHistory.header.title")}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t("returnsHistory.header.subtitle")}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Clock className="h-3 w-3 mr-1" />
-                Auto-refresh: 30s
+                {t("returnsHistory.header.autoRefresh")}
               </Badge>
             </div>
           </div>
@@ -301,29 +307,39 @@ function ReturnsHistory() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Returns</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {t("returnsHistory.cards.totalReturns")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{returns.length}</div>
-              <p className="text-xs text-slate-500 mt-1">All time</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {t("returnsHistory.cards.allTime")}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Refunds</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {t("returnsHistory.cards.totalRefunds")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                 ${totalRefunds.toFixed(2)}
               </div>
-              <p className="text-xs text-slate-500 mt-1">All time</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {t("returnsHistory.cards.allTime")}
+              </p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">Today's Refunds</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {t("returnsHistory.cards.todaysRefunds")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${todaysRefunds.toFixed(2)}</div>
@@ -334,7 +350,9 @@ function ReturnsHistory() {
                   <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
                 )}
                 <span className={refundGrowth >= 0 ? "text-green-500" : "text-red-500"}>
-                  {Math.abs(refundGrowth).toFixed(1)}% vs yesterday
+                  {t("returnsHistory.cards.vsYesterday", {
+                    value: Math.abs(refundGrowth).toFixed(1),
+                  })}
                 </span>
               </div>
             </CardContent>
@@ -342,30 +360,34 @@ function ReturnsHistory() {
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">Average Refund</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                {t("returnsHistory.cards.averageRefund")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">${averageRefundValue.toFixed(2)}</div>
-              <p className="text-xs text-slate-500 mt-1">Per return</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {t("returnsHistory.cards.perReturn")}
+              </p>
             </CardContent>
           </Card>
         </div>
 
         {/* Filters */}
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-            </CardTitle>
-          </CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                {t("returnsHistory.filters.title")}
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <Label htmlFor="search">Search</Label>
+                <Label htmlFor="search">{t("returnsHistory.filters.searchLabel")}</Label>
                 <Input
                   id="search"
-                  placeholder="Search by sale ID, method, reason..."
+                  placeholder={t("returnsHistory.filters.searchPlaceholder")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="mt-1"
@@ -373,7 +395,7 @@ function ReturnsHistory() {
               </div>
               
               <div>
-                <Label htmlFor="date">Date</Label>
+                <Label htmlFor="date">{t("returnsHistory.filters.date")}</Label>
                 <Input
                   id="date"
                   type="date"
@@ -384,30 +406,32 @@ function ReturnsHistory() {
               </div>
 
               <div>
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">{t("returnsHistory.filters.status")}</Label>
                 <Select value={statusFilter} onValueChange={(value: any) => setStatusFilter(value)}>
                   <SelectTrigger id="status" className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="all">{t("returnsHistory.filters.allStatuses")}</SelectItem>
+                    <SelectItem value="pending">{t("returnsHistory.status.pending")}</SelectItem>
+                    <SelectItem value="completed">{t("returnsHistory.status.completed")}</SelectItem>
+                    <SelectItem value="rejected">{t("returnsHistory.status.rejected")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <Label htmlFor="refundMethod">Refund Method</Label>
+                <Label htmlFor="refundMethod">
+                  {t("returnsHistory.filters.refundMethod")}
+                </Label>
                 <Select value={refundMethodFilter} onValueChange={(value: any) => setRefundMethodFilter(value)}>
                   <SelectTrigger id="refundMethod" className="mt-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Methods</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
+                    <SelectItem value="all">{t("returnsHistory.filters.allMethods")}</SelectItem>
+                    <SelectItem value="cash">{t("returnsHistory.filters.cash")}</SelectItem>
+                    <SelectItem value="card">{t("returnsHistory.filters.card")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -425,7 +449,7 @@ function ReturnsHistory() {
                     setRefundMethodFilter('all');
                   }}
                 >
-                  Clear Filters
+                  {t("returnsHistory.filters.clear")}
                 </Button>
               </div>
             </div>
@@ -434,23 +458,25 @@ function ReturnsHistory() {
 
         {/* Returns List */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5" />
-              Returns ({totalReturns})
-            </CardTitle>
-          </CardHeader>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <RotateCcw className="h-5 w-5" />
+                {t("returnsHistory.list.title", { count: totalReturns })}
+              </CardTitle>
+            </CardHeader>
           <CardContent>
             {isLoading ? (
               <div className="text-center py-12">
                 <BarChart3 className="h-12 w-12 mx-auto text-slate-400 mb-4 animate-pulse" />
-                <p className="text-slate-500">Loading returns...</p>
+                <p className="text-slate-500">{t("returnsHistory.list.loading")}</p>
               </div>
             ) : returns.length === 0 ? (
               <div className="text-center py-12">
                 <RotateCcw className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                <p className="text-slate-500">No returns found</p>
-                <p className="text-sm text-slate-400 mt-2">Returns will appear here once processed</p>
+                <p className="text-slate-500">{t("returnsHistory.list.emptyTitle")}</p>
+                <p className="text-sm text-slate-400 mt-2">
+                  {t("returnsHistory.list.emptyDesc")}
+                </p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -473,12 +499,16 @@ function ReturnsHistory() {
                             </div>
                             <div>
                               <p className="font-mono text-sm font-medium text-slate-900 dark:text-white">
-                                Return #{returnRecord.id}
+                                {t("returnsHistory.list.returnId", { id: returnRecord.id })}
                               </p>
-                              <p className="text-xs text-slate-500">Sale: {returnRecord.saleId.slice(-8)}</p>
+                              <p className="text-xs text-slate-500">
+                                {t("returnsHistory.list.saleIdShort", {
+                                  id: returnRecord.saleId.slice(-8),
+                                })}
+                              </p>
                               {isRecent && (
                                 <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700 mt-1">
-                                  Recent
+                                  {t("returnsHistory.list.recentBadge")}
                                 </Badge>
                               )}
                             </div>
@@ -564,10 +594,10 @@ function ReturnsHistory() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5" />
-              Return Details
+              {t("returnsHistory.details.title")}
             </DialogTitle>
             <DialogDescription>
-              Complete return transaction information
+              {t("returnsHistory.details.description")}
             </DialogDescription>
           </DialogHeader>
           
@@ -577,15 +607,21 @@ function ReturnsHistory() {
               <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 p-4 rounded-lg">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label className="text-xs text-slate-500">Return ID</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("returnsHistory.details.header.returnId")}
+                    </Label>
                     <p className="font-mono font-medium">#{selectedReturn.id}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500">Sale ID</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("returnsHistory.details.header.saleId")}
+                    </Label>
                     <p className="font-mono font-medium">{selectedReturn.saleId}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500">Date & Time</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("returnsHistory.details.header.dateTime")}
+                    </Label>
                     <p className="font-medium">
                       {format(new Date(selectedReturn.returnDate || selectedReturn.createdAt), 'MMM dd, yyyy')}
                     </p>
@@ -594,7 +630,9 @@ function ReturnsHistory() {
                     </p>
                   </div>
                   <div>
-                    <Label className="text-xs text-slate-500">Status</Label>
+                    <Label className="text-xs text-slate-500">
+                      {t("returnsHistory.details.header.status")}
+                    </Label>
                     <div className="mt-1">{getStatusBadge(selectedReturn.status)}</div>
                   </div>
                 </div>
@@ -604,17 +642,25 @@ function ReturnsHistory() {
               <div>
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <Package className="h-4 w-4" />
-                  Returned Items
+                  {t("returnsHistory.details.itemsTitle")}
                 </h4>
                 <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Item</TableHead>
-                        <TableHead className="text-center">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">VAT Rate</TableHead>
-                        <TableHead className="text-right">Refund Amount</TableHead>
+                        <TableHead>{t("returnsHistory.details.itemsHeader.item")}</TableHead>
+                        <TableHead className="text-center">
+                          {t("returnsHistory.details.itemsHeader.qty")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                          {t("returnsHistory.details.itemsHeader.unitPrice")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                          {t("returnsHistory.details.itemsHeader.vatRate")}
+                        </TableHead>
+                        <TableHead className="text-right">
+                          {t("returnsHistory.details.itemsHeader.refundAmount")}
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -654,7 +700,7 @@ function ReturnsHistory() {
                         <TableRow>
                           <TableCell colSpan={5} className="text-center text-slate-500 py-8">
                             <AlertCircle className="h-6 w-6 mx-auto mb-2" />
-                            No item details available
+                            {t("returnsHistory.details.noItems")}
                           </TableCell>
                         </TableRow>
                       )}
@@ -667,11 +713,11 @@ function ReturnsHistory() {
               <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <CreditCard className="h-4 w-4" />
-                  Refund Summary
+                  {t("returnsHistory.details.refundSummaryTitle")}
                 </h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span>Refund Method:</span>
+                    <span>{t("returnsHistory.details.refundMethodLabel")}</span>
                     {getRefundMethodBadge(selectedReturn.refundMethod)}
                   </div>
                   
@@ -679,7 +725,9 @@ function ReturnsHistory() {
                     <>
                       <Separator />
                       <div>
-                        <Label className="text-sm font-medium">Return Reason</Label>
+                        <Label className="text-sm font-medium">
+                          {t("returnsHistory.details.reasonLabel")}
+                        </Label>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                           {selectedReturn.reason}
                         </p>
@@ -691,7 +739,9 @@ function ReturnsHistory() {
                     <>
                       <Separator />
                       <div>
-                        <Label className="text-sm font-medium">Notes</Label>
+                        <Label className="text-sm font-medium">
+                          {t("returnsHistory.details.notesLabel")}
+                        </Label>
                         <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
                           {selectedReturn.notes}
                         </p>
@@ -701,16 +751,24 @@ function ReturnsHistory() {
                   
                   <Separator />
                   <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold">Total Refund:</span>
+                    <span className="text-lg font-semibold">
+                      {t("returnsHistory.details.totalRefund")}
+                    </span>
                     <span className="text-2xl font-bold text-green-600 dark:text-green-400">
                       ${parseFloat(selectedReturn.totalRefund).toFixed(2)}
                     </span>
                   </div>
                   
                   {selectedReturn.processedBy && (
-                    <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 pt-2 border-t">
+                            <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 pt-2 border-t">
                       <CheckCircle className="h-4 w-4" />
-                      <span>Processed by user at {selectedReturn.processedAt && format(new Date(selectedReturn.processedAt), 'MMM dd, yyyy HH:mm')}</span>
+                      <span>
+                        {t("returnsHistory.details.processedBy", {
+                          date:
+                            selectedReturn.processedAt &&
+                            format(new Date(selectedReturn.processedAt), "MMM dd, yyyy HH:mm"),
+                        })}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -718,8 +776,20 @@ function ReturnsHistory() {
 
               {/* Footer */}
               <div className="text-center text-xs text-slate-500 border-t pt-4">
-                <p>Return processed on {format(new Date(selectedReturn.returnDate || selectedReturn.createdAt), 'PPPP')}</p>
-                <p>Store ID: {selectedReturn.storeId} | Return ID: #{selectedReturn.id}</p>
+                <p>
+                  {t("returnsHistory.details.footerProcessedOn", {
+                    date: format(
+                      new Date(selectedReturn.returnDate || selectedReturn.createdAt),
+                      "PPPP",
+                    ),
+                  })}
+                </p>
+                <p>
+                  {t("returnsHistory.details.footerIds", {
+                    storeId: selectedReturn.storeId,
+                    id: selectedReturn.id,
+                  })}
+                </p>
               </div>
             </div>
           )}

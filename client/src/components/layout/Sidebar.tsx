@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
 import { 
@@ -23,57 +24,58 @@ import {
 } from "lucide-react";
 
 const adminNavigation = [
-  { name: "Dashboard", href: "/", icon: Home, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
-  { name: "Company Management", href: "/companies", icon: Building2, roles: ["super_admin", "portal_admin"] },
-  { name: "User Management", href: "/users", icon: Users, roles: ["super_admin", "portal_admin"] },
-  { name: "Portal Admins", href: "/portal-admins", icon: Shield, roles: ["super_admin"] },
-  { name: "Active Substances", href: "/active-substances", icon: FlaskConical, roles: ["super_admin", "portal_admin"] },
-  { name: "Store Management", href: "/stores", icon: Store, roles: ["company_admin"] },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "portal_admin", "company_admin", "store_owner"] },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, roles: ["store_owner", "manager"] },
-  { name: "Settings", href: "/settings", icon: Settings, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+  { nameKey: "navigation.companyManagement", href: "/companies", icon: Building2, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.users", href: "/users", icon: Users, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.portalAdmins", href: "/portal-admins", icon: Shield, roles: ["super_admin"] },
+  { nameKey: "navigation.activeSubstances", href: "/active-substances", icon: FlaskConical, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.stores", href: "/stores", icon: Store, roles: ["company_admin"] },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "portal_admin", "company_admin", "store_owner"] },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3, roles: ["store_owner", "manager"] },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
 ];
 
 const storeOwnerNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "My Store", href: "/store-owner/store", icon: Store },
-  { name: "Categories", href: "/categories", icon: Tag },
-  { name: "Products", href: "/products", icon: Package },
-  { name: "Managers", href: "/store-owner/managers", icon: Users },
-  // { name: "Inventory", href: "/inventory", icon: ClipboardList },
-  { name: "Sales History", href: "/sales-history", icon: History },
-  { name: "Returns History", href: "/returns-history", icon: RotateCcw },
-  { name: "Stock Transactions", href: "/stock-transactions", icon: ArrowUpDown },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.myStore", href: "/store-owner/store", icon: Store },
+  { nameKey: "navigation.categories", href: "/categories", icon: Tag },
+  { nameKey: "navigation.products", href: "/products", icon: Package },
+  { nameKey: "navigation.managers", href: "/store-owner/managers", icon: Users },
+  // { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
+  { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
+  { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
+  { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 const companyNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "My Stores", href: "/stores", icon: Store },
-  { name: "Categories", href: "/categories", icon: Tag },
-  { name: "Products", href: "/products", icon: Package },
-  { name: "Managers", href: "/managers", icon: Users },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.myStores", href: "/stores", icon: Store },
+  { nameKey: "navigation.categories", href: "/categories", icon: Tag },
+  { nameKey: "navigation.products", href: "/products", icon: Package },
+  { nameKey: "navigation.managers", href: "/managers", icon: Users },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 const managerNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "POS", href: "/manager/pos", icon: ShoppingCart },
-  { name: "Inventory", href: "/inventory", icon: ClipboardList },
-  { name: "Sales History", href: "/sales-history", icon: History },
-  { name: "Returns History", href: "/returns-history", icon: RotateCcw },
-  { name: "Stock Transactions", href: "/stock-transactions", icon: ArrowUpDown },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.pos", href: "/manager/pos", icon: ShoppingCart },
+  { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
+  { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
+  { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
+  { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Determine navigation based on user role
   const getNavigation = () => {
@@ -102,7 +104,7 @@ export function Sidebar() {
               <div className="bg-primary rounded-lg p-2">
                 <Building className="h-6 w-6 text-white" />
               </div>
-              <h1 className="ml-3 text-xl font-bold text-slate-900">EPML</h1>
+              <h1 className="ml-3 text-xl font-bold text-slate-900">{t("sidebar.appName")}</h1>
             </div>
           </div>
           
@@ -126,7 +128,7 @@ export function Sidebar() {
                     "mr-3 h-5 w-5",
                     isActive ? "text-white" : "text-slate-400"
                   )} />
-                  {item.name}
+                  {t(item.nameKey)}
                 </Link>
               );
             })}
@@ -142,10 +144,10 @@ export function Sidebar() {
               />
               <div className="ml-3">
                 <p className="text-sm font-medium text-slate-700">
-                  {user?.firstName || user?.email || "User"}
+                  {user?.firstName || user?.email || t("sidebar.defaultUser")}
                 </p>
                 <p className="text-xs text-slate-500 capitalize">
-                  {user?.role?.replace('_', ' ') || "Loading..."}
+                  {user?.role?.replace('_', ' ') || t("sidebar.loading")}
                 </p>
               </div>
             </div>

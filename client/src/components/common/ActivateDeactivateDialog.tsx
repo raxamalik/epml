@@ -8,6 +8,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ActivateDeactivateDialogProps {
   open: boolean;
@@ -32,21 +33,28 @@ export function ActivateDeactivateDialog({
   isLoading = false,
   actionType = "toggle",
 }: ActivateDeactivateDialogProps) {
+  const { t } = useTranslation();
   const action = actionType === "toggle" 
     ? (isActive ? "deactivate" : "activate")
     : actionType;
   
   const actionLabel = action === "activate" 
-    ? "Activate" 
+    ? t("dialogs.activate")
     : action === "suspend"
-    ? "Suspend"
-    : "Deactivate";
+    ? t("dialogs.suspend")
+    : t("dialogs.deactivate");
   
   const actionColor = action === "activate" 
     ? "bg-green-600 hover:bg-green-700" 
     : action === "suspend"
     ? "bg-red-600 hover:bg-red-700"
     : "bg-orange-600 hover:bg-orange-700";
+  
+  const actionLoading = action === "activate"
+    ? t("dialogs.activating")
+    : action === "suspend"
+    ? t("dialogs.suspending")
+    : t("dialogs.deactivating");
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -67,13 +75,13 @@ export function ActivateDeactivateDialog({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>{t("dialogs.cancel")}</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             disabled={isLoading}
             className={actionColor}
           >
-            {isLoading ? `${actionLabel}ing...` : actionLabel}
+            {isLoading ? actionLoading : actionLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

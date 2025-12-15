@@ -71,6 +71,7 @@ import {
   Layers
 } from "lucide-react";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Product {
   id: number;
@@ -120,6 +121,7 @@ function Products() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -334,12 +336,12 @@ function Products() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
-      toast({ title: "Product created successfully!" });
+      toast({ title: t("products.toasts.created") });
       resetForm();
       setIsCreateDialogOpen(false);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message || t("products.toasts.errorGeneric"), variant: "destructive" });
     }
   });
 
@@ -350,14 +352,14 @@ function Products() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
-      toast({ title: "Product updated successfully!" });
+      toast({ title: t("products.toasts.updated") });
       resetForm();
       setIsCreateDialogOpen(false);
       setIsEditMode(false);
       setEditingProduct(null);
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message || t("products.toasts.errorGeneric"), variant: "destructive" });
     }
   });
 
@@ -368,10 +370,10 @@ function Products() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
-      toast({ title: "Product deleted successfully!" });
+      toast({ title: t("products.toasts.deleted") });
     },
     onError: (error: any) => {
-      toast({ title: "Error", description: error.message || "An error occurred", variant: "destructive" });
+      toast({ title: t("common.error"), description: error.message || t("products.toasts.errorGeneric"), variant: "destructive" });
     }
   });
 
@@ -418,7 +420,7 @@ function Products() {
 
   const handleCreateProduct = () => {
     if (!formData.name || !formData.price || !formData.categoryId) {
-      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      toast({ title: t("products.toasts.fillRequiredFields"), variant: "destructive" });
       return;
     }
 
@@ -509,12 +511,12 @@ function Products() {
       const data = await response.json();
       setUploadedImageUrl(data.imageUrl || data.url);
       setSelectedImageFromGallery('');
-      toast({ title: "Image uploaded successfully!" });
+      toast({ title: t("products.toasts.imageUploadedSuccess") });
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({ 
-        title: "Failed to upload image", 
-        description: error.message || "An error occurred while uploading the image. Please try again.",
+        title: t("products.toasts.imageUploadFailed"), 
+        description: error.message || t("products.toasts.imageUploadErrorDesc"),
         variant: "destructive" 
       });
     }
@@ -527,9 +529,9 @@ function Products() {
   };
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { label: 'Out of Stock', variant: 'destructive' as const, icon: AlertTriangle };
-    if (stock <= 10) return { label: 'Low Stock', variant: 'secondary' as const, icon: Clock };
-    return { label: 'In Stock', variant: 'default' as const, icon: CheckCircle };
+    if (stock === 0) return { label: t("products.stockStatus.outOfStock"), variant: 'destructive' as const, icon: AlertTriangle };
+    if (stock <= 10) return { label: t("products.stockStatus.lowStock"), variant: 'secondary' as const, icon: Clock };
+    return { label: t("products.stockStatus.inStock"), variant: 'default' as const, icon: CheckCircle };
   };
 
   const getProductImage = (product: Product) => {
@@ -543,8 +545,8 @@ function Products() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">No store assigned</h3>
-          <p className="text-muted-foreground">Please contact your administrator to assign a store.</p>
+          <h3 className="text-lg font-semibold">{t("products.empty.noStoreAssignedTitle")}</h3>
+          <p className="text-muted-foreground">{t("products.empty.noStoreAssignedDesc")}</p>
         </div>
       </div>
     );
@@ -561,8 +563,8 @@ function Products() {
                 <Package className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Products</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Manage your store's product catalog</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">{t("products.title")}</h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">{t("products.description")}</p>
               </div>
             </div>
             <div className="flex items-center space-x-3">
@@ -571,7 +573,7 @@ function Products() {
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Product
+                {t("products.addProduct")}
               </Button>
             </div>
           </div>
@@ -583,53 +585,53 @@ function Products() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950 dark:to-indigo-900 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">Total Products</CardTitle>
+              <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">{t("products.cards.totalProducts")}</CardTitle>
               <div className="p-2 bg-blue-500 rounded-lg">
                 <Package className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-blue-900 dark:text-blue-100">{total}</div>
-              <p className="text-sm text-blue-700 dark:text-blue-300">Items in catalog</p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">{t("products.cards.itemsInCatalog")}</p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-950 dark:to-orange-900 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-amber-900 dark:text-amber-100">Low Stock Items</CardTitle>
+              <CardTitle className="text-sm font-medium text-amber-900 dark:text-amber-100">{t("products.cards.lowStockItems")}</CardTitle>
               <div className="p-2 bg-amber-500 rounded-lg">
                 <Clock className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-amber-900 dark:text-amber-100">{lowStockProducts}</div>
-              <p className="text-sm text-amber-700 dark:text-amber-300">Need restocking</p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">{t("products.cards.needRestocking")}</p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-red-50 to-rose-100 dark:from-red-950 dark:to-rose-900 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">Out of Stock</CardTitle>
+              <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">{t("products.cards.outOfStock")}</CardTitle>
               <div className="p-2 bg-red-500 rounded-lg">
                 <AlertTriangle className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-red-900 dark:text-red-100">{outOfStockProducts}</div>
-              <p className="text-sm text-red-700 dark:text-red-300">Unavailable items</p>
+              <p className="text-sm text-red-700 dark:text-red-300">{t("products.cards.unavailable")}</p>
             </CardContent>
           </Card>
 
           <Card className="border-slate-200 dark:border-slate-800 bg-gradient-to-br from-emerald-50 to-green-100 dark:from-emerald-950 dark:to-green-900 shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-emerald-900 dark:text-emerald-100">Total Value</CardTitle>
+              <CardTitle className="text-sm font-medium text-emerald-900 dark:text-emerald-100">{t("products.cards.totalValue")}</CardTitle>
               <div className="p-2 bg-emerald-500 rounded-lg">
                 <DollarSign className="h-4 w-4 text-white" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">${totalValue.toFixed(2)}</div>
-              <p className="text-sm text-emerald-700 dark:text-emerald-300">Inventory value</p>
+              <p className="text-sm text-emerald-700 dark:text-emerald-300">{t("products.cards.inventoryValue")}</p>
             </CardContent>
           </Card>
         </div>
@@ -641,7 +643,7 @@ function Products() {
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input
-                  placeholder="Search products, categories, or barcodes..."
+                  placeholder={t("products.filters.searchPlaceholder")}
                   value={search}
                   onChange={(e) => {
                     setSearch(e.target.value);
@@ -658,10 +660,10 @@ function Products() {
                 }}>
                   <SelectTrigger className="w-48 bg-slate-50 dark:bg-slate-800">
                     <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Category" />
+                    <SelectValue placeholder={t("products.filters.category")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="all">{t("products.filters.allCategories")}</SelectItem>
                     {categories.map((category: ProductCategory) => (
                       <SelectItem key={category.id} value={category.name}>
                         {category.name}
@@ -672,17 +674,17 @@ function Products() {
 
                 <Select value={stockFilter} onValueChange={setStockFilter}>
                   <SelectTrigger className="w-40 bg-slate-50 dark:bg-slate-800">
-                    <SelectValue placeholder="Stock" />
+                    <SelectValue placeholder={t("products.filters.stock")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Stock</SelectItem>
-                    <SelectItem value="low">Low Stock</SelectItem>
-                    <SelectItem value="out">Out of Stock</SelectItem>
+                    <SelectItem value="all">{t("products.filters.allStock")}</SelectItem>
+                    <SelectItem value="low">{t("products.filters.lowStock")}</SelectItem>
+                    <SelectItem value="out">{t("products.filters.outOfStock")}</SelectItem>
                   </SelectContent>
                 </Select>
 
                 <div className="flex border rounded-lg overflow-hidden bg-slate-50 dark:bg-slate-800">
-                  <Button
+                    <Button
                     variant={viewMode === 'grid' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
@@ -690,7 +692,7 @@ function Products() {
                   >
                     <Grid className="h-4 w-4" />
                   </Button>
-                  <Button
+                    <Button
                     variant={viewMode === 'table' ? 'default' : 'ghost'}
                     size="sm"
                     onClick={() => setViewMode('table')}
@@ -708,20 +710,20 @@ function Products() {
         {isLoading ? (
           <div className="text-center py-12">
             <div className="animate-spin w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-slate-500">Loading products...</p>
+            <p className="text-slate-500">{t("common.loading")}</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <Card className="shadow-lg border-slate-200 dark:border-slate-800">
             <CardContent className="p-12 text-center">
               <Package className="h-16 w-16 mx-auto text-slate-400 mb-4" />
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">No products found</h3>
-              <p className="text-slate-500 mb-6">Get started by adding your first product to the catalog.</p>
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">{t("products.empty.title")}</h3>
+              <p className="text-slate-500 mb-6">{t("products.empty.description")}</p>
               <Button
                 onClick={() => setLocation('/products/create')}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Your First Product
+                {t("products.empty.createFirst")}
               </Button>
             </CardContent>
           </Card>
@@ -766,20 +768,20 @@ function Products() {
                             onClick={() => setLocation(`/products/${product.id}`)}
                           >
                             <Eye className="h-4 w-4 mr-2" />
-                            View Details
+                            {t("products.dropdownActions.viewDetails")}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleEditProduct(product)}
                           >
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit
+                            {t("products.dropdownActions.edit")}
                           </DropdownMenuItem>
                           <DropdownMenuItem 
                             onClick={() => handleDeleteProduct(product.id)}
                             className="text-red-600 dark:text-red-400"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
+                            {t("products.dropdownActions.delete")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -833,7 +835,7 @@ function Products() {
                   Product Catalog ({total})
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                  <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}</Label>
                   <Select
                     value={pageSize.toString()}
                     onValueChange={(value) => {
@@ -858,15 +860,15 @@ function Products() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-16">Image</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Store</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Stock</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Barcode</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-16">{t("products.table.image")}</TableHead>
+                    <TableHead>{t("products.table.name")}</TableHead>
+                    <TableHead>{t("products.table.category")}</TableHead>
+                    <TableHead>{t("products.table.store")}</TableHead>
+                    <TableHead>{t("products.table.price")}</TableHead>
+                    <TableHead>{t("products.table.stock")}</TableHead>
+                    <TableHead>{t("products.table.status")}</TableHead>
+                    <TableHead>{t("products.table.barcode")}</TableHead>
+                    <TableHead className="text-right">{t("products.table.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -905,7 +907,7 @@ function Products() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                            {product.storeName || "All Stores"}
+                            {product.storeName || t("products.table.allStores")}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -941,20 +943,20 @@ function Products() {
                                 onClick={() => setLocation(`/products/${product.id}`)}
                               >
                                 <Eye className="h-4 w-4 mr-2" />
-                                View Details
+                                {t("products.dropdownActions.viewDetails")}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleEditProduct(product)}
                               >
                                 <Edit className="h-4 w-4 mr-2" />
-                                Edit
+                                {t("products.dropdownActions.edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => handleDeleteProduct(product.id)}
                                 className="text-red-600 dark:text-red-400"
                               >
                                 <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                                {t("products.dropdownActions.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>

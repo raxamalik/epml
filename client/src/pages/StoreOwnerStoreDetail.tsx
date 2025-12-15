@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatDate } from "@/lib/utils/date";
 import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StoreData {
   id: number;
@@ -47,6 +48,7 @@ interface Manager {
 export default function StoreOwnerStoreDetail() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   // Redirect if not a store owner
   useEffect(() => {
@@ -113,12 +115,12 @@ export default function StoreOwnerStoreDetail() {
           <CardContent className="pt-6">
             <div className="text-center">
               <Store className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Store Not Found</h2>
+              <h2 className="text-xl font-semibold mb-2">{t("storeDetail.notFoundTitle")}</h2>
               <p className="text-muted-foreground mb-4">
-                {(error as Error)?.message || "Unable to load store information"}
+                {(error as Error)?.message || t("storeDetail.notFoundDescription")}
               </p>
               <p className="text-sm text-muted-foreground">
-                Please contact support if you believe this is an error.
+                {t("storeDetail.notFoundHelp")}
               </p>
             </div>
           </CardContent>
@@ -161,7 +163,7 @@ export default function StoreOwnerStoreDetail() {
                       <div className="flex items-start gap-3">
                         <MapPin className="h-5 w-5 mt-0.5 text-blue-200" />
                         <div>
-                          <p className="text-sm text-blue-100">Address</p>
+                          <p className="text-sm text-blue-100">{t("storeDetail.header.address")}</p>
                           <p className="text-white font-medium">{store.address}</p>
                         </div>
                       </div>
@@ -170,7 +172,7 @@ export default function StoreOwnerStoreDetail() {
                       <div className="flex items-start gap-3">
                         <Phone className="h-5 w-5 mt-0.5 text-blue-200" />
                         <div>
-                          <p className="text-sm text-blue-100">Phone</p>
+                          <p className="text-sm text-blue-100">{t("storeDetail.header.phone")}</p>
                           <p className="text-white font-medium">{store.phone}</p>
                         </div>
                       </div>
@@ -188,7 +190,7 @@ export default function StoreOwnerStoreDetail() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeDetail.stats.totalRevenue")}</p>
                   <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
                     {formatCurrencyWithSymbol(store.revenue || 0)}
                   </p>
@@ -204,7 +206,7 @@ export default function StoreOwnerStoreDetail() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Products</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeDetail.stats.products")}</p>
                   <p className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                     {store.productCount}
                   </p>
@@ -221,7 +223,7 @@ export default function StoreOwnerStoreDetail() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground">Staff Members</p>
+                  <p className="text-sm font-medium text-muted-foreground">{t("storeDetail.stats.staffMembers")}</p>
                   <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
                     {managers.length}
                   </p>
@@ -239,7 +241,7 @@ export default function StoreOwnerStoreDetail() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Store className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-              Store Information
+                {t("storeDetail.info.sectionTitle")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -247,7 +249,7 @@ export default function StoreOwnerStoreDetail() {
               {/* Store Name */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Store Name
+                  {t("storeDetail.info.storeName")}
                 </Label>
                 <p className="text-base font-semibold text-slate-900 dark:text-slate-100">
                   {store.name}
@@ -257,7 +259,7 @@ export default function StoreOwnerStoreDetail() {
               {/* Status */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                  Status
+                  {t("storeDetail.info.status")}
                 </Label>
                 <div>
                   <Badge variant={store.isActive ? "default" : "secondary"}>
@@ -270,10 +272,10 @@ export default function StoreOwnerStoreDetail() {
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                   <MapPin className="h-4 w-4" />
-                  Address
+                  {t("storeDetail.info.address")}
                 </Label>
                 <p className="text-base text-slate-900 dark:text-slate-100">
-                  {store.address || "No address provided"}
+                  {store.address || t("storeDetail.info.noAddress")}
                 </p>
               </div>
 
@@ -282,7 +284,7 @@ export default function StoreOwnerStoreDetail() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                     <Phone className="h-4 w-4" />
-                    Phone
+                    {t("storeDetail.info.phone")}
                   </Label>
                   <p className="text-base text-slate-900 dark:text-slate-100">
                     {store.phone}
@@ -295,7 +297,7 @@ export default function StoreOwnerStoreDetail() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                     <Mail className="h-4 w-4" />
-                    Store Owner Email
+                    {t("storeDetail.info.storeOwnerEmail")}
                   </Label>
                   <p className="text-base text-slate-900 dark:text-slate-100">
                     {store.storeOwnerEmail}
@@ -309,7 +311,7 @@ export default function StoreOwnerStoreDetail() {
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  Customers
+                  {t("storeDetail.info.customers")}
                 </Label>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                   {store.customerCount || 0}
@@ -322,7 +324,7 @@ export default function StoreOwnerStoreDetail() {
               <div className="space-y-2 md:col-span-2">
                 <Label className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
-                  Created At
+                  {t("storeDetail.info.createdAt")}
                 </Label>
                 <p className="text-base text-slate-900 dark:text-slate-100">
                   {formatDate(store.createdAt)}
@@ -337,7 +339,7 @@ export default function StoreOwnerStoreDetail() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-              Staff Members ({managers.length})
+                {t("storeDetail.staff.sectionTitle")} ({managers.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -349,17 +351,17 @@ export default function StoreOwnerStoreDetail() {
               </div>
             ) : managers.length === 0 ? (
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                No staff members assigned to this store.
+                {t("storeDetail.staff.none")}
               </p>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>{t("storeDetail.staff.name")}</TableHead>
+                    <TableHead>{t("storeDetail.staff.email")}</TableHead>
+                    <TableHead>{t("storeDetail.staff.phone")}</TableHead>
+                    <TableHead>{t("storeDetail.staff.status")}</TableHead>
+                    <TableHead>{t("storeDetail.staff.created")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>

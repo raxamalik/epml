@@ -22,6 +22,7 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { ProductActiveSubstancesList, ProductActiveSubstance } from "./ProductActiveSubstancesList";
 import { AddActiveSubstanceDialog } from "./AddActiveSubstanceDialog";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ProductFormData {
   name: string;
@@ -87,6 +88,7 @@ export function ProductForm({
   initialActiveSubstances = [],
 }: ProductFormProps) {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isAddSubstanceDialogOpen, setIsAddSubstanceDialogOpen] = useState(false);
   const [activeSubstances, setActiveSubstances] = useState<ProductActiveSubstance[]>(initialActiveSubstances);
   const [formData, setFormData] = useState<ProductFormData>({
@@ -161,13 +163,13 @@ export function ProductForm({
       if (onImageSelected) {
         onImageSelected("");
       }
-      toast({ title: "Image uploaded successfully!" });
+      toast({ title: t("products.toasts.imageUploadedSuccess") });
     } catch (error: any) {
       console.error('Image upload error:', error);
       // Show toast notification with error message
       toast({ 
-        title: "Failed to upload image", 
-        description: error.message || "An error occurred while uploading the image. Please try again.",
+        title: t("products.toasts.imageUploadFailed"), 
+        description: error.message || t("products.toasts.imageUploadErrorDesc"),
         variant: "destructive" 
       });
     }
@@ -213,10 +215,10 @@ export function ProductForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Product Image */}
       <div className="space-y-4">
-        <Label className="text-base font-medium">Product Image</Label>
+        <Label className="text-base font-medium">{t("products.dialogs.productImage")}</Label>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-3">
-            <Label className="text-sm">Upload New Image</Label>
+            <Label className="text-sm">{t("products.dialogs.uploadNewImage")}</Label>
             <div>
               <input
                 type="file"
@@ -237,13 +239,13 @@ export function ProductForm({
                 className="w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-purple-400 dark:hover:border-purple-500 bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center"
               >
                 <ImageIcon className="h-8 w-8 text-slate-400 mb-2" />
-                <span className="text-sm text-slate-500">Click to upload image</span>
+                <span className="text-sm text-slate-500">{t("products.dialogs.clickToUpload")}</span>
               </Button>
             </div>
           </div>
           
           <div className="space-y-3">
-            <Label className="text-sm">Or Select from Gallery</Label>
+            <Label className="text-sm">{t("products.dialogs.orSelectFromGallery")}</Label>
             <Button
               type="button"
               variant="outline"
@@ -252,7 +254,7 @@ export function ProductForm({
             >
               <div className="flex flex-col items-center">
                 <Palette className="h-8 w-8 text-slate-400 mb-2" />
-                <span className="text-sm text-slate-500">Browse Gallery</span>
+                <span className="text-sm text-slate-500">{t("products.dialogs.browseGallery")}</span>
               </div>
             </Button>
           </div>
@@ -260,7 +262,7 @@ export function ProductForm({
         
         {(uploadedImageUrl || selectedImageFromGallery) && (
           <div className="space-y-2">
-            <Label className="text-sm">Selected Image Preview</Label>
+            <Label className="text-sm">{t("products.dialogs.selectedImagePreview")}</Label>
             <div className="w-32 h-32 rounded-lg overflow-hidden border">
               <img
                 src={uploadedImageUrl || selectedImageFromGallery}
@@ -277,10 +279,10 @@ export function ProductForm({
       {/* Product Details */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="name">Product Name *</Label>
+          <Label htmlFor="name">{t("products.dialogs.productName")}</Label>
           <Input
             id="name"
-            placeholder="Enter product name"
+            placeholder={t("products.dialogs.productNamePlaceholder")}
             value={formData.name}
             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -289,7 +291,7 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="category">Category *</Label>
+          <Label htmlFor="category">{t("products.dialogs.category")}</Label>
           <Select value={formData.categoryId} onValueChange={(value) => {
             setFormData({ ...formData, categoryId: value });
             const selectedCat = categories.find(cat => cat.id.toString() === value);
@@ -298,7 +300,7 @@ export function ProductForm({
             }
           }}>
             <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder={t("products.dialogs.selectCategory")} />
             </SelectTrigger>
             <SelectContent>
               {categories.map((category: ProductCategory) => (
@@ -311,12 +313,12 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="price">Price *</Label>
+          <Label htmlFor="price">{t("products.dialogs.price")}</Label>
           <Input
             id="price"
             type="number"
             step="0.01"
-            placeholder="0.00"
+            placeholder={t("products.dialogs.pricePlaceholder")}
             value={formData.price}
             onChange={(e) => setFormData({ ...formData, price: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -325,7 +327,7 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="vatRate">VAT Rate (%) *</Label>
+          <Label htmlFor="vatRate">{t("products.dialogs.vatRate")}</Label>
           <Input
             id="vatRate"
             type="number"
@@ -334,21 +336,21 @@ export function ProductForm({
             max="100"
             value={formData.vatRate}
             onChange={(e) => setFormData({ ...formData, vatRate: e.target.value })}
-            placeholder="Enter VAT rate (e.g., 6 for 6%, 21 for 21%)"
+            placeholder={t("products.dialogs.vatRatePlaceholder")}
             className="bg-slate-50 dark:bg-slate-800"
             required
           />
           <p className="text-xs text-muted-foreground">
-            Enter percentage (e.g., 6 for 6%, 21 for 21%)
+            {t("products.dialogs.vatRateHint")}
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="stock">Stock Quantity</Label>
+          <Label htmlFor="stock">{t("products.dialogs.stockQuantity")}</Label>
           <Input
             id="stock"
             type="number"
-            placeholder="0"
+            placeholder={t("products.dialogs.stockQuantityPlaceholder")}
             value={formData.stock}
             onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -356,10 +358,10 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="barcode">Barcode</Label>
+          <Label htmlFor="barcode">{t("products.dialogs.barcode")}</Label>
           <Input
             id="barcode"
-            placeholder="Enter barcode"
+            placeholder={t("products.dialogs.barcodePlaceholder")}
             value={formData.barcode}
             onChange={(e) => setFormData({ ...formData, barcode: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -367,10 +369,10 @@ export function ProductForm({
         </div>
 
         <div className="space-y-2 md:col-span-2">
-          <Label htmlFor="description">Description</Label>
+          <Label htmlFor="description">{t("products.dialogs.description")}</Label>
           <Textarea
             id="description"
-            placeholder="Enter product description"
+            placeholder={t("products.dialogs.descriptionPlaceholder")}
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -383,13 +385,13 @@ export function ProductForm({
 
       {/* Regulatory Compliance Fields */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Regulatory Compliance</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("products.dialogs.regulatoryCompliance")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="substanceName">Substance Name</Label>
+            <Label htmlFor="substanceName">{t("products.dialogs.substanceName")}</Label>
             <Input
               id="substanceName"
-              placeholder="Name of the substance (according to government regulation)"
+              placeholder={t("products.dialogs.substanceNamePlaceholder")}
               value={formData.substanceName}
               onChange={(e) => setFormData({ ...formData, substanceName: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -397,26 +399,26 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="form">Product Form</Label>
+            <Label htmlFor="form">{t("products.dialogs.productForm")}</Label>
             <Select value={formData.form} onValueChange={(value) => setFormData({ ...formData, form: value })}>
               <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
-                <SelectValue placeholder="Select form" />
+                <SelectValue placeholder={t("products.dialogs.selectForm")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="liquid">Liquid</SelectItem>
-                <SelectItem value="tablet">Tablet</SelectItem>
-                <SelectItem value="powder">Powder</SelectItem>
-                <SelectItem value="capsule">Capsule</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="liquid">{t("products.dialogs.formLiquid")}</SelectItem>
+                <SelectItem value="tablet">{t("products.dialogs.formTablet")}</SelectItem>
+                <SelectItem value="powder">{t("products.dialogs.formPowder")}</SelectItem>
+                <SelectItem value="capsule">{t("products.dialogs.formCapsule")}</SelectItem>
+                <SelectItem value="other">{t("products.dialogs.formOther")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="subtype">Subtype</Label>
+            <Label htmlFor="subtype">{t("products.dialogs.subtype")}</Label>
             <Input
               id="subtype"
-              placeholder="More specific product subtype (if applicable)"
+              placeholder={t("products.dialogs.subtypePlaceholder")}
               value={formData.subtype}
               onChange={(e) => setFormData({ ...formData, subtype: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -424,10 +426,10 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="packageSize">Package Size</Label>
+            <Label htmlFor="packageSize">{t("products.dialogs.packageSize")}</Label>
             <Input
               id="packageSize"
-              placeholder="e.g. 500ml, 30 tablets"
+              placeholder={t("products.dialogs.packageSizePlaceholder")}
               value={formData.packageSize}
               onChange={(e) => setFormData({ ...formData, packageSize: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -435,7 +437,7 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="receivedDate">Received Date</Label>
+            <Label htmlFor="receivedDate">{t("products.dialogs.receivedDate")}</Label>
             <Input
               id="receivedDate"
               type="date"
@@ -446,10 +448,10 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="batchNumber">Batch Number</Label>
+            <Label htmlFor="batchNumber">{t("products.dialogs.batchNumber")}</Label>
             <Input
               id="batchNumber"
-              placeholder="Batch or lot number"
+              placeholder={t("products.dialogs.batchNumberPlaceholder")}
               value={formData.batchNumber}
               onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -457,17 +459,17 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="quantityUnit">Quantity Unit</Label>
+            <Label htmlFor="quantityUnit">{t("products.dialogs.quantityUnit")}</Label>
             <Select value={formData.quantityUnit} onValueChange={(value) => setFormData({ ...formData, quantityUnit: value })}>
               <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
-                <SelectValue placeholder="Select unit" />
+                <SelectValue placeholder={t("products.dialogs.selectUnit")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="pcs">Pieces (pcs)</SelectItem>
-                <SelectItem value="ml">Milliliters (ml)</SelectItem>
-                <SelectItem value="g">Grams (g)</SelectItem>
-                <SelectItem value="kg">Kilograms (kg)</SelectItem>
-                <SelectItem value="l">Liters (l)</SelectItem>
+                <SelectItem value="pcs">{t("products.dialogs.unitPcs")}</SelectItem>
+                <SelectItem value="ml">{t("products.dialogs.unitMl")}</SelectItem>
+                <SelectItem value="g">{t("products.dialogs.unitG")}</SelectItem>
+                <SelectItem value="kg">{t("products.dialogs.unitKg")}</SelectItem>
+                <SelectItem value="l">{t("products.dialogs.unitL")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -478,13 +480,13 @@ export function ProductForm({
 
       {/* Psychomodulatory Substance Compliance Fields */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Dosage Information</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("products.dialogs.dosageInformation")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="recommendedDoseSingle">Recommended Single Dose</Label>
+            <Label htmlFor="recommendedDoseSingle">{t("products.dialogs.recommendedSingleDose")}</Label>
             <Input
               id="recommendedDoseSingle"
-              placeholder="e.g. 2 g"
+              placeholder={t("products.dialogs.recommendedSingleDosePlaceholder")}
               value={formData.recommendedDoseSingle}
               onChange={(e) => setFormData({ ...formData, recommendedDoseSingle: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -492,10 +494,10 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="recommendedDoseDaily">Recommended Daily Dose</Label>
+            <Label htmlFor="recommendedDoseDaily">{t("products.dialogs.recommendedDailyDose")}</Label>
             <Input
               id="recommendedDoseDaily"
-              placeholder="e.g. 4 g"
+              placeholder={t("products.dialogs.recommendedDailyDosePlaceholder")}
               value={formData.recommendedDoseDaily}
               onChange={(e) => setFormData({ ...formData, recommendedDoseDaily: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -503,10 +505,10 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="dosageInfo">Dosage Info (Alternative)</Label>
+            <Label htmlFor="dosageInfo">{t("products.dialogs.dosageInfoAlternative")}</Label>
             <Textarea
               id="dosageInfo"
-              placeholder="Combined dose info in free text (alternative to single/daily dose fields)"
+              placeholder={t("products.dialogs.dosageInfoAlternativePlaceholder")}
               value={formData.dosageInfo}
               onChange={(e) => setFormData({ ...formData, dosageInfo: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -520,13 +522,13 @@ export function ProductForm({
 
       {/* Warnings and Age Restrictions */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Warnings & Age Restrictions</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("products.dialogs.warningsAgeRestrictions")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="warningUnder18">Warning for Under 18</Label>
+            <Label htmlFor="warningUnder18">{t("products.dialogs.warningUnder18")}</Label>
             <Textarea
               id="warningUnder18"
-              placeholder='Legal text: "Not intended for persons under 18..."'
+              placeholder={t("products.dialogs.warningUnder18Placeholder")}
               value={formData.warningUnder18}
               onChange={(e) => setFormData({ ...formData, warningUnder18: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -535,10 +537,10 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="warningHealth">Health Warning</Label>
+            <Label htmlFor="warningHealth">{t("products.dialogs.healthWarning")}</Label>
             <Textarea
               id="warningHealth"
-              placeholder='Legal text: "Use of this product may harm your health..."'
+              placeholder={t("products.dialogs.healthWarningPlaceholder")}
               value={formData.warningHealth}
               onChange={(e) => setFormData({ ...formData, warningHealth: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -547,13 +549,13 @@ export function ProductForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="minAge">Minimum Age</Label>
+            <Label htmlFor="minAge">{t("products.dialogs.minAge")}</Label>
             <Input
               id="minAge"
               type="number"
               min="0"
               max="100"
-              placeholder="e.g. 18"
+              placeholder={t("products.dialogs.minAgePlaceholder")}
               value={formData.minAge}
               onChange={(e) => setFormData({ ...formData, minAge: e.target.value })}
               className="bg-slate-50 dark:bg-slate-800"
@@ -568,7 +570,7 @@ export function ProductForm({
                 onCheckedChange={(checked) => setFormData({ ...formData, adultOnly: checked === true })}
               />
               <Label htmlFor="adultOnly" className="cursor-pointer">
-                Adult Only Product
+                {t("products.dialogs.adultOnlyProduct")}
               </Label>
             </div>
           </div>
@@ -579,12 +581,12 @@ export function ProductForm({
 
       {/* Consumer Information */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Consumer Information</h3>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("products.dialogs.consumerInformation")}</h3>
         <div className="space-y-2">
-          <Label htmlFor="consumerInfo">Consumer Info</Label>
+          <Label htmlFor="consumerInfo">{t("products.dialogs.consumerInfo")}</Label>
           <Textarea
             id="consumerInfo"
-            placeholder="Full consumer info (effects, risks, usage instructions)"
+            placeholder={t("products.dialogs.consumerInfoPlaceholder")}
             value={formData.consumerInfo}
             onChange={(e) => setFormData({ ...formData, consumerInfo: e.target.value })}
             className="bg-slate-50 dark:bg-slate-800"
@@ -599,7 +601,7 @@ export function ProductForm({
       {/* Active Substances Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Active Substances</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t("products.dialogs.activeSubstancesTitle")}</h3>
           <Button
             type="button"
             variant="outline"
@@ -607,7 +609,7 @@ export function ProductForm({
             onClick={() => setIsAddSubstanceDialogOpen(true)}
           >
             <Plus className="h-4 w-4 mr-2" />
-            Add Active Substance
+            {t("products.dialogs.activeSubstancesComposition")}
           </Button>
         </div>
 
@@ -627,7 +629,7 @@ export function ProductForm({
       {/* Form Actions */}
       <div className="flex justify-end gap-4 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={isLoading}>
-          Cancel
+          {t("common.cancel")}
         </Button>
         <Button
           type="submit"
@@ -635,18 +637,18 @@ export function ProductForm({
           className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
         >
           {isLoading ? (
-            <>{isEditMode ? "Updating..." : "Creating..."}</>
+            <>{isEditMode ? t("products.dialogs.updating") : t("products.dialogs.creating")}</>
           ) : (
             <>
               {isEditMode ? (
                 <>
                   <Edit className="h-4 w-4 mr-2" />
-                  Update Product
+                  {t("products.dialogs.updateProduct")}
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4 mr-2" />
-                  Create Product
+                  {t("products.dialogs.createProduct")}
                 </>
               )}
             </>

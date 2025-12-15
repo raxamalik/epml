@@ -18,9 +18,11 @@ import { usePagination } from "@/hooks/common/usePagination";
 import { formatRelativeTime } from "@/lib/utils/date";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export default function PortalAdminManagement() {
   const { user: currentUser } = useAuth();
+  const { t, currentLanguage } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
   const { currentPage: page, pageSize: limit, setPage, setPageSize } = usePagination({
     initialPage: 1,
@@ -46,8 +48,8 @@ export default function PortalAdminManagement() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <h2 className="text-xl font-semibold text-slate-900 mb-2">Access Denied</h2>
-                <p className="text-slate-600">Only super administrators can access this page.</p>
+                <h2 className="text-xl font-semibold text-slate-900 mb-2">{t("portalAdmin.accessDeniedTitle")}</h2>
+                <p className="text-slate-600">{t("portalAdmin.accessDeniedDesc")}</p>
               </div>
             </CardContent>
           </Card>
@@ -83,15 +85,15 @@ export default function PortalAdminManagement() {
       setIsCreateDialogOpen(false);
       setNewPortalAdmin({ email: "", firstName: "", lastName: "", password: "" });
       toast({
-        title: "Portal admin created",
-        description: "The portal admin has been successfully created.",
+        title: t("portalAdmin.create.success"),
+        description: t("portalAdmin.create.successDesc"),
       });
     },
     onError: (error: any) => {
       const errorMessage = error?.message || "There was an error creating the portal admin.";
       toast({
-        title: "Error creating portal admin",
-        description: errorMessage,
+        title: t("portalAdmin.create.error"),
+        description: errorMessage || t("portalAdmin.create.errorDesc"),
         variant: "destructive",
       });
     },
@@ -106,14 +108,14 @@ export default function PortalAdminManagement() {
       setIsDeleteDialogOpen(false);
       setSelectedPortalAdmin(null);
       toast({
-        title: "Portal admin deleted",
-        description: "The portal admin has been successfully deleted.",
+        title: t("portalAdmin.delete.success"),
+        description: t("portalAdmin.delete.successDesc"),
       });
     },
     onError: () => {
       toast({
-        title: "Error deleting portal admin",
-        description: "There was an error deleting the portal admin.",
+        title: t("portalAdmin.delete.error"),
+        description: t("portalAdmin.delete.errorDesc"),
         variant: "destructive",
       });
     },
@@ -122,8 +124,8 @@ export default function PortalAdminManagement() {
   const handleCreatePortalAdmin = () => {
     if (!newPortalAdmin.email || !newPortalAdmin.firstName || !newPortalAdmin.lastName || !newPortalAdmin.password) {
       toast({
-        title: "Validation error",
-        description: "Please fill in all required fields.",
+        title: t("errors.validationError"),
+        description: t("portalAdmin.create.validationError"),
         variant: "destructive",
       });
       return;
@@ -169,9 +171,9 @@ export default function PortalAdminManagement() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Portal Admin Management</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{t("portalAdmin.title")}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            Manage portal administrators who have full system access (except creating other portal admins).
+            {t("portalAdmin.description")}
           </p>
         </div>
 
@@ -183,7 +185,7 @@ export default function PortalAdminManagement() {
                 <SearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
-                  placeholder="Search portal admins by name or email..."
+                  placeholder={t("portalAdmin.searchPlaceholder")}
                 />
               </div>
               <Button 
@@ -191,7 +193,7 @@ export default function PortalAdminManagement() {
                 className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
-                Create Portal Admin
+                {t("portalAdmin.createButton")}
               </Button>
             </div>
           </CardContent>
@@ -206,11 +208,11 @@ export default function PortalAdminManagement() {
                   <Shield className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Portal Admins ({pagination.total})
+                  {t("portalAdmin.table.title", { count: pagination.total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}:</Label>
                 <Select
                   value={limit.toString()}
                   onValueChange={(value) => {
@@ -235,10 +237,10 @@ export default function PortalAdminManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Portal Admin</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Created</TableHead>
-                  <TableHead className="w-[100px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("portalAdmin.table.portalAdmin")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("portalAdmin.table.status")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("portalAdmin.table.created")}</TableHead>
+                  <TableHead className="w-[100px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("portalAdmin.table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -246,8 +248,8 @@ export default function PortalAdminManagement() {
                   <TableRow>
                     <TableCell colSpan={4} className="p-0">
                       <EmptyState
-                        title={searchQuery ? "No portal admins found matching your search" : "No portal admins found"}
-                        description={searchQuery ? "Try adjusting your search query" : "Create your first portal admin to get started"}
+                        title={searchQuery ? t("portalAdmin.table.emptyTitleSearch") : t("portalAdmin.table.emptyTitle")}
+                        description={searchQuery ? t("portalAdmin.table.emptyDescSearch") : t("portalAdmin.table.emptyDesc")}
                         icon={<Shield className="h-12 w-12 mx-auto text-muted-foreground" />}
                         className="border-0"
                       />
@@ -280,7 +282,7 @@ export default function PortalAdminManagement() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-4 text-sm text-slate-500 dark:text-slate-400">
-                        {formatRelativeTime(portalAdmin.createdAt)}
+                        {formatRelativeTime(portalAdmin.createdAt, currentLanguage)}
                       </TableCell>
                       <TableCell className="py-4">
                         <Button 
@@ -316,65 +318,65 @@ export default function PortalAdminManagement() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Create Portal Admin</DialogTitle>
+              <DialogTitle>{t("portalAdmin.create.title")}</DialogTitle>
               <DialogDescription>
-                Create a new portal administrator. Portal admins have full system access but cannot create other portal admins.
+                {t("portalAdmin.create.description")}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="firstName">First Name *</Label>
+                  <Label htmlFor="firstName">{t("portalAdmin.create.firstName")}</Label>
                   <Input
                     id="firstName"
                     value={newPortalAdmin.firstName}
                     onChange={(e) => setNewPortalAdmin({ ...newPortalAdmin, firstName: e.target.value })}
-                    placeholder="John"
+                    placeholder={t("portalAdmin.create.firstNamePlaceholder")}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="lastName">Last Name *</Label>
+                  <Label htmlFor="lastName">{t("portalAdmin.create.lastName")}</Label>
                   <Input
                     id="lastName"
                     value={newPortalAdmin.lastName}
                     onChange={(e) => setNewPortalAdmin({ ...newPortalAdmin, lastName: e.target.value })}
-                    placeholder="Doe"
+                    placeholder={t("portalAdmin.create.lastNamePlaceholder")}
                   />
                 </div>
               </div>
               
               <div>
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">{t("portalAdmin.create.email")}</Label>
                 <Input
                   id="email"
                   type="email"
                   value={newPortalAdmin.email}
                   onChange={(e) => setNewPortalAdmin({ ...newPortalAdmin, email: e.target.value })}
-                  placeholder="portal.admin@example.com"
+                  placeholder={t("portalAdmin.create.emailPlaceholder")}
                 />
               </div>
 
               <div>
-                <Label htmlFor="password">Password *</Label>
+                <Label htmlFor="password">{t("portalAdmin.create.password")}</Label>
                 <Input
                   id="password"
                   type="password"
                   value={newPortalAdmin.password}
                   onChange={(e) => setNewPortalAdmin({ ...newPortalAdmin, password: e.target.value })}
-                  placeholder="Enter a secure password"
+                  placeholder={t("portalAdmin.create.passwordPlaceholder")}
                 />
               </div>
 
               <div className="flex justify-end gap-2 pt-4">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button 
                   onClick={handleCreatePortalAdmin}
                   disabled={createPortalAdminMutation.isPending}
                   className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
                 >
-                  {createPortalAdminMutation.isPending ? "Creating..." : "Create Portal Admin"}
+                  {createPortalAdminMutation.isPending ? t("portalAdmin.create.creating") : t("portalAdmin.create.createButton")}
                 </Button>
               </div>
             </div>
@@ -385,9 +387,9 @@ export default function PortalAdminManagement() {
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Delete Portal Admin</DialogTitle>
+              <DialogTitle>{t("portalAdmin.delete.title")}</DialogTitle>
               <DialogDescription>
-                Are you sure you want to delete this portal admin? This action cannot be undone.
+                {t("portalAdmin.delete.description")}
               </DialogDescription>
             </DialogHeader>
             {selectedPortalAdmin && (
@@ -404,14 +406,14 @@ export default function PortalAdminManagement() {
             )}
             <div className="flex justify-end gap-2 pt-4">
               <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button 
                 variant="destructive"
                 onClick={handleDeleteConfirm}
                 disabled={deletePortalAdminMutation.isPending}
               >
-                {deletePortalAdminMutation.isPending ? "Deleting..." : "Delete"}
+                {deletePortalAdminMutation.isPending ? t("portalAdmin.delete.deleting") : t("portalAdmin.delete.deleteButton")}
               </Button>
             </div>
           </DialogContent>

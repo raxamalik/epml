@@ -4,6 +4,7 @@ import { CompanyForm } from "./CompanyForm";
 import { UseFormReturn } from "react-hook-form";
 import { CompanyFormData } from "@/lib/utils/validation";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface CreateCompanyDialogProps {
   open: boolean;
@@ -20,11 +21,12 @@ export function CreateCompanyDialog({
   onSubmit,
   isLoading = false,
 }: CreateCompanyDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create New Company</DialogTitle>
+          <DialogTitle>{t("companyCreate.title")}</DialogTitle>
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div className="py-4">
@@ -38,7 +40,7 @@ export function CreateCompanyDialog({
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button 
               type="submit" 
@@ -47,10 +49,10 @@ export function CreateCompanyDialog({
               {isLoading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
+                  {t("companyCreate.creating")}
                 </>
               ) : (
-                "Create Company"
+                t("companyCreate.createButton")
               )}
             </Button>
           </DialogFooter>

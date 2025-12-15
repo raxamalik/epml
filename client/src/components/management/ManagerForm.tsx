@@ -3,6 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ManagerFormData } from "@/lib/utils/validation";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Store {
   id: number;
@@ -17,14 +18,16 @@ interface ManagerFormProps {
 }
 
 export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelect = false }: ManagerFormProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="firstName">First Name *</Label>
+          <Label htmlFor="firstName">{t("managerForm.firstName")}</Label>
           <Input
             id="firstName"
-            placeholder="Enter first name"
+            placeholder={t("managerForm.firstNamePlaceholder")}
             {...form.register("firstName")}
           />
           {form.formState.errors.firstName && (
@@ -33,10 +36,10 @@ export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelec
         </div>
 
         <div>
-          <Label htmlFor="lastName">Last Name *</Label>
+          <Label htmlFor="lastName">{t("managerForm.lastName")}</Label>
           <Input
             id="lastName"
-            placeholder="Enter last name"
+            placeholder={t("managerForm.lastNamePlaceholder")}
             {...form.register("lastName")}
           />
           {form.formState.errors.lastName && (
@@ -46,11 +49,11 @@ export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelec
       </div>
 
       <div>
-        <Label htmlFor="email">Email *</Label>
+        <Label htmlFor="email">{t("managerForm.email")}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="Enter email address"
+          placeholder={t("managerForm.emailPlaceholder")}
           {...form.register("email")}
         />
         {form.formState.errors.email && (
@@ -59,10 +62,10 @@ export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelec
       </div>
 
       <div>
-        <Label htmlFor="phone">Phone</Label>
+        <Label htmlFor="phone">{t("managerForm.phone")}</Label>
         <Input
           id="phone"
-          placeholder="Enter phone number"
+          placeholder={t("managerForm.phonePlaceholder")}
           {...form.register("phone")}
         />
         {form.formState.errors.phone && (
@@ -72,16 +75,16 @@ export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelec
 
       {!hideStoreSelect && stores.length > 0 && (
         <div>
-          <Label htmlFor="storeId">Store</Label>
+          <Label htmlFor="storeId">{t("managerForm.storeLabel")}</Label>
           <Select
             value={form.watch("storeId")?.toString() || "none"}
             onValueChange={(value) => form.setValue("storeId", value === "none" ? undefined : parseInt(value))}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select a store (optional)" />
+              <SelectValue placeholder={t("managerForm.selectStorePlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="none">No store assigned</SelectItem>
+              <SelectItem value="none">{t("managerForm.noStoreAssigned")}</SelectItem>
               {stores.map((store) => (
                 <SelectItem key={store.id} value={store.id.toString()}>
                   {store.name}
@@ -94,11 +97,11 @@ export function ManagerForm({ form, stores = [], mode = "create", hideStoreSelec
 
       {mode === "create" && (
         <div>
-          <Label htmlFor="password">Password *</Label>
+          <Label htmlFor="password">{t("managerForm.password")}</Label>
           <Input
             id="password"
             type="password"
-            placeholder="Enter password (min 6 characters)"
+            placeholder={t("managerForm.passwordPlaceholder")}
             {...form.register("password")}
           />
           {form.formState.errors.password && (

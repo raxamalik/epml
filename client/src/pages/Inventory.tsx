@@ -45,6 +45,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Product {
   id: number;
@@ -61,6 +62,7 @@ function Inventory() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isAdjustDialogOpen, setIsAdjustDialogOpen] = useState(false);
@@ -132,8 +134,8 @@ function Inventory() {
     },
     onSuccess: () => {
       toast({
-        title: "Stock Updated",
-        description: "Product stock has been updated successfully",
+        title: t("inventoryPage.toasts.stockUpdatedTitle"),
+        description: t("inventoryPage.toasts.stockUpdatedDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/stores', storeId, 'products'] });
       setIsAdjustDialogOpen(false);
@@ -143,8 +145,8 @@ function Inventory() {
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: "Failed to update stock",
+        title: t("inventoryPage.toasts.updateErrorTitle"),
+        description: t("inventoryPage.toasts.updateErrorDesc"),
         variant: "destructive",
       });
     }
@@ -171,10 +173,29 @@ function Inventory() {
   };
 
   const getStockStatus = (stock: number) => {
-    if (stock === 0) return { status: 'out', color: 'destructive', label: 'Out of Stock' };
-    if (stock <= 5) return { status: 'low', color: 'secondary', label: 'Low Stock' };
-    if (stock <= 20) return { status: 'medium', color: 'default', label: 'Medium Stock' };
-    return { status: 'good', color: 'default', label: 'In Stock' };
+    if (stock === 0)
+      return {
+        status: "out",
+        color: "destructive",
+        label: t("inventoryPage.status.outOfStock"),
+      };
+    if (stock <= 5)
+      return {
+        status: "low",
+        color: "secondary",
+        label: t("inventoryPage.status.lowStock"),
+      };
+    if (stock <= 20)
+      return {
+        status: "medium",
+        color: "default",
+        label: t("inventoryPage.status.mediumStock"),
+      };
+    return {
+      status: "good",
+      color: "default",
+      label: t("inventoryPage.status.inStock"),
+    };
   };
 
   // Calculate statistics from current page products
@@ -191,12 +212,18 @@ function Inventory() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Inventory Management</h1>
-          <p className="text-muted-foreground">Track and manage your store inventory</p>
+          <h1 className="text-3xl font-bold">
+            {t("inventoryPage.header.title")}
+          </h1>
+          <p className="text-muted-foreground">
+            {t("inventoryPage.header.subtitle")}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Package2 className="h-5 w-5" />
-          <span className="font-medium">Stock Overview</span>
+          <span className="font-medium">
+            {t("inventoryPage.header.stockOverview")}
+          </span>
         </div>
       </div>
 
@@ -204,7 +231,9 @@ function Inventory() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("inventoryPage.cards.totalProducts")}
+            </CardTitle>
             <Package2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -213,7 +242,9 @@ function Inventory() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("inventoryPage.cards.lowStockItems")}
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -222,7 +253,9 @@ function Inventory() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("inventoryPage.cards.outOfStock")}
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
@@ -231,7 +264,9 @@ function Inventory() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {t("inventoryPage.cards.totalValue")}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -244,7 +279,7 @@ function Inventory() {
       <div className="flex items-center gap-2 max-w-sm">
         <Search className="h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search inventory..."
+          placeholder={t("inventoryPage.search.placeholder")}
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -257,9 +292,13 @@ function Inventory() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Inventory Details ({total})</CardTitle>
+            <CardTitle>
+              {t("inventoryPage.table.title", { count: total })}
+            </CardTitle>
             <div className="flex items-center gap-2">
-              <Label htmlFor="limit" className="text-sm text-muted-foreground">Items per page:</Label>
+              <Label htmlFor="limit" className="text-sm text-muted-foreground">
+                {t("inventoryPage.table.itemsPerPage")}
+              </Label>
               <Select
                 value={pageSize.toString()}
                 onValueChange={(value) => {
@@ -284,13 +323,21 @@ function Inventory() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Current Stock</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Total Value</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>
+                  {t("inventoryPage.table.headers.productName")}
+                </TableHead>
+                <TableHead>{t("inventoryPage.table.headers.category")}</TableHead>
+                <TableHead>
+                  {t("inventoryPage.table.headers.currentStock")}
+                </TableHead>
+                <TableHead>
+                  {t("inventoryPage.table.headers.unitPrice")}
+                </TableHead>
+                <TableHead>
+                  {t("inventoryPage.table.headers.totalValue")}
+                </TableHead>
+                <TableHead>{t("inventoryPage.table.headers.status")}</TableHead>
+                <TableHead>{t("inventoryPage.table.headers.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -303,7 +350,9 @@ function Inventory() {
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell className="font-mono">{product.stock}</TableCell>
-                    <TableCell>${parseFloat(product.price).toFixed(2)}</TableCell>
+                    <TableCell>
+                      ${parseFloat(product.price).toFixed(2)}
+                    </TableCell>
                     <TableCell>${productValue.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge variant={stockInfo.color as any}>
@@ -354,59 +403,75 @@ function Inventory() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {adjustmentType === 'add' ? 'Add Stock' : 'Remove Stock'}
+              {adjustmentType === "add"
+                ? t("inventoryPage.dialog.addTitle")
+                : t("inventoryPage.dialog.removeTitle")}
             </DialogTitle>
             <DialogDescription>
-              {adjustmentType === 'add' 
-                ? `Add stock to ${selectedProduct?.name}`
-                : `Remove stock from ${selectedProduct?.name}`
-              }
+              {adjustmentType === "add"
+                ? t("inventoryPage.dialog.addDescription", {
+                    name: selectedProduct?.name,
+                  })
+                : t("inventoryPage.dialog.removeDescription", {
+                    name: selectedProduct?.name,
+                  })}
               <br />
-              Current stock: {selectedProduct?.stock}
+              {t("inventoryPage.dialog.currentStock", {
+                stock: selectedProduct?.stock ?? 0,
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="quantity">Quantity</Label>
+              <Label htmlFor="quantity">
+                {t("inventoryPage.dialog.quantityLabel")}
+              </Label>
               <Input
                 id="quantity"
                 type="number"
                 min="1"
                 value={adjustmentQuantity}
                 onChange={(e) => setAdjustmentQuantity(e.target.value)}
-                placeholder="Enter quantity"
+                placeholder={t("inventoryPage.dialog.quantityPlaceholder")}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="reason">Reason (Optional)</Label>
+              <Label htmlFor="reason">
+                {t("inventoryPage.dialog.reasonLabel")}
+              </Label>
               <Input
                 id="reason"
                 value={adjustmentReason}
                 onChange={(e) => setAdjustmentReason(e.target.value)}
-                placeholder="Reason for adjustment"
+                placeholder={t("inventoryPage.dialog.reasonPlaceholder")}
               />
             </div>
             {adjustmentQuantity && selectedProduct && (
               <div className="p-3 bg-muted rounded-lg">
                 <p className="text-sm">
-                  <strong>Preview:</strong> {selectedProduct.stock} → {
-                    adjustmentType === 'add' 
-                      ? selectedProduct.stock + parseInt(adjustmentQuantity)
-                      : Math.max(0, selectedProduct.stock - parseInt(adjustmentQuantity))
-                  }
+                  <strong>{t("inventoryPage.dialog.previewLabel")}</strong>{" "}
+                  {selectedProduct.stock} →
+                  {adjustmentType === "add"
+                    ? selectedProduct.stock + parseInt(adjustmentQuantity)
+                    : Math.max(
+                        0,
+                        selectedProduct.stock - parseInt(adjustmentQuantity),
+                      )}
                 </p>
               </div>
             )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAdjustDialogOpen(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button 
               onClick={processStockAdjustment} 
               disabled={updateStockMutation.isPending || !adjustmentQuantity}
             >
-              {updateStockMutation.isPending ? "Updating..." : "Update Stock"}
+              {updateStockMutation.isPending
+                ? t("inventoryPage.dialog.updating")
+                : t("inventoryPage.dialog.updateButton")}
             </Button>
           </DialogFooter>
         </DialogContent>

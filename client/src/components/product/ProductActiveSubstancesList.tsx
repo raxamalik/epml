@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export interface ProductActiveSubstance {
   id?: number; // Optional for new items not yet saved
@@ -21,14 +22,16 @@ export function ProductActiveSubstancesList({
   substances,
   onRemove,
 }: ProductActiveSubstancesListProps) {
+  const { t } = useTranslation();
+
   if (substances.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Active Substances</CardTitle>
+          <CardTitle className="text-lg">{t("products.dialogs.activeSubstancesTitle")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No active substances added yet.</p>
+          <p className="text-sm text-muted-foreground">{t("products.dialogs.noActiveSubstances")}</p>
         </CardContent>
       </Card>
     );
@@ -37,16 +40,16 @@ export function ProductActiveSubstancesList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Active Substances</CardTitle>
+        <CardTitle className="text-lg">{t("products.dialogs.activeSubstancesTitle")}</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Substance Name</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead>Concentration</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead>{t("products.dialogs.substanceName")}</TableHead>
+              <TableHead>{t("products.dialogs.content")}</TableHead>
+              <TableHead>{t("products.dialogs.concentration")}</TableHead>
+              <TableHead className="w-[100px]">{t("products.table.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

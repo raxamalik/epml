@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +34,7 @@ type Company = EditableCompany & {
 
 export default function CompanyManagement() {
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   
   // Use custom hooks for pagination and filters
   const { currentPage, pageSize, setPage, setPageSize, offset } = usePagination({
@@ -122,8 +124,8 @@ export default function CompanyManagement() {
     onSuccess: () => {
       refetch();
       toast({
-        title: "Success", 
-        description: "Company created successfully!",
+        title: t("success.created"), 
+        description: t("companyManagement.toasts.created"),
       });
       setIsCreateDialogOpen(false);
       createCompanyForm.reset();
@@ -189,8 +191,8 @@ export default function CompanyManagement() {
       if (response.ok) {
         refetch();
         toast({
-          title: "Success",
-          description: `Company ${companyToAction.isActive ? 'deactivated' : 'activated'} successfully!`,
+          title: t("success.updated"),
+          description: companyToAction.isActive ? t("companyManagement.toasts.deactivated") : t("companyManagement.toasts.activated"),
         });
         setIsActivateDialogOpen(false);
         setCompanyToAction(null);
@@ -214,8 +216,8 @@ export default function CompanyManagement() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Invitation Sent!",
-        description: `Company activation invitation sent successfully`,
+        title: t("companyManagement.toasts.invitationSent"),
+        description: t("companyManagement.toasts.invitationDesc"),
       });
     },
     onError: (error: Error) => {
@@ -243,8 +245,8 @@ export default function CompanyManagement() {
     onSuccess: (data) => {
       refetch();
       toast({
-        title: "Company Suspended",
-        description: `Company suspended successfully. ${data.suspendedStores} stores and ${data.suspendedUsers} users were also suspended.`,
+        title: t("companyManagement.toasts.suspended"),
+        description: t("companyManagement.toasts.suspended", { stores: data.suspendedStores, users: data.suspendedUsers }),
       });
       setIsSuspendDialogOpen(false);
       setCompanyToAction(null);
@@ -274,8 +276,8 @@ export default function CompanyManagement() {
     onSuccess: (data) => {
       refetch();
       toast({
-        title: "Company Unsuspended",
-        description: `Company unsuspended successfully. ${data.reactivatedStores} stores and ${data.reactivatedUsers} users were also reactivated.`,
+        title: t("companyManagement.toasts.unsuspended"),
+        description: t("companyManagement.toasts.unsuspended", { stores: data.reactivatedStores, users: data.reactivatedUsers }),
       });
       setIsUnsuspendDialogOpen(false);
       setCompanyToAction(null);
@@ -305,8 +307,8 @@ export default function CompanyManagement() {
     onSuccess: (_, deletedCompanyId) => {
       refetch();
       toast({
-        title: "Success", 
-        description: "Company deleted successfully!",
+        title: t("success.deleted"), 
+        description: t("companyManagement.toasts.deleted"),
       });
     },
     onError: (error: Error) => {
@@ -391,19 +393,19 @@ export default function CompanyManagement() {
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                     <Building2 className="h-8 w-8" />
                   </div>
-                  <h1 className="text-3xl font-bold">Company Management</h1>
+                  <h1 className="text-3xl font-bold">{t("companyManagement.title")}</h1>
                 </div>
                 <p className="text-blue-100 text-lg">
-                  Manage companies, licenses, and company settings with enterprise-grade controls
+                  {t("companyManagement.description")}
                 </p>
                 <div className="flex items-center gap-6 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">System Active</span>
+                    <span className="text-sm">{t("companyManagement.systemActive")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4" />
-                    <span className="text-sm">{companies.length} Companies</span>
+                    <span className="text-sm">{t("companyManagement.companiesCount", { count: companies.length })}</span>
                   </div>
                 </div>
               </div>
@@ -434,7 +436,7 @@ export default function CompanyManagement() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search companies by name, IČO, or DIČ..."
+                  placeholder={t("companyManagement.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -452,7 +454,7 @@ export default function CompanyManagement() {
                     className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
                   >
                     <Plus className="h-5 w-5 mr-2" />
-                    Create Company
+                    {t("companyManagement.createButton")}
                   </Button>
                 </DialogTrigger>
               </Dialog>
@@ -497,11 +499,11 @@ export default function CompanyManagement() {
                   <Building2 className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Companies ({total})
+                  {t("companyManagement.table.title", { count: total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}:</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => {
@@ -526,13 +528,13 @@ export default function CompanyManagement() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Company</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Registration</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Contact</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Branches</TableHead>
-                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Users</TableHead>
-                  <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.company")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.registration")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.contact")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.status")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.branches")}</TableHead>
+                  <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.users")}</TableHead>
+                  <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("companyManagement.table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -552,9 +554,9 @@ export default function CompanyManagement() {
                     </TableCell>
                     <TableCell className="py-4">
                       <div>
-                        <div className="text-sm font-medium text-slate-700 dark:text-slate-300">IČO: {company.registrationNumber}</div>
+                        <div className="text-sm font-medium text-slate-700 dark:text-slate-300">{t("companyManagement.table.ico")}: {company.registrationNumber}</div>
                         {company.vatNumber && (
-                          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">DIČ: {company.vatNumber}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t("companyManagement.table.dic")}: {company.vatNumber}</div>
                         )}
                       </div>
                     </TableCell>
@@ -600,19 +602,19 @@ export default function CompanyManagement() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleViewDetails(company)}>
                             <Eye className="h-4 w-4 mr-2" />
-                            View Details
+                            {t("companyManagement.actions.viewDetails")}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditCompany(company)}>
                             <Edit className="h-4 w-4 mr-2" />
-                            Edit Company
+                            {t("companyManagement.actions.editCompany")}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleManageBranches(company)}>
                             <Settings className="h-4 w-4 mr-2" />
-                            View Branches
+                            {t("companyManagement.actions.viewBranches")}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleSendInvitation(company)}>
                             <Send className="h-4 w-4 mr-2" />
-                            Send Invitation
+                            {t("companyManagement.actions.sendInvitation")}
                           </DropdownMenuItem>
                           {isSuperAdmin && (
                             <>
@@ -623,7 +625,7 @@ export default function CompanyManagement() {
                                   className="text-green-600 dark:text-green-400 focus:text-green-700 dark:focus:text-green-300"
                                 >
                                   <CheckCircle className="h-4 w-4 mr-2" />
-                                  Unsuspend Company
+                                  {t("companyManagement.actions.unsuspendCompany")}
                                 </DropdownMenuItem>
                               ) : (
                                 <DropdownMenuItem 
@@ -631,7 +633,7 @@ export default function CompanyManagement() {
                                   className="text-orange-600 dark:text-orange-400 focus:text-orange-700 dark:focus:text-orange-300"
                                 >
                                   <Ban className="h-4 w-4 mr-2" />
-                                  Suspend Company
+                                  {t("companyManagement.actions.suspendCompany")}
                                 </DropdownMenuItem>
                               )}
                               <DropdownMenuItem 
@@ -639,7 +641,7 @@ export default function CompanyManagement() {
                                 disabled={false}
                               >
                                 <Power className="h-4 w-4 mr-2" />
-                                {company.isActive ? 'Deactivate' : 'Activate'} Company
+                                {company.isActive ? t("companyManagement.actions.deactivateCompany") : t("companyManagement.actions.activateCompany")}
                               </DropdownMenuItem>
                             </>
                           )}
@@ -649,7 +651,7 @@ export default function CompanyManagement() {
                             className="text-red-600 dark:text-red-400 focus:text-red-700 dark:focus:text-red-300"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Company
+                            {t("companyManagement.actions.deleteCompany")}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -680,8 +682,8 @@ export default function CompanyManagement() {
             if (!open) setCompanyToAction(null);
           }}
           onConfirm={confirmSuspendCompany}
-          title="Suspend Company"
-          description="Are you sure you want to suspend"
+          title={t("companyManagement.dialogs.suspend.title")}
+          description={t("companyManagement.dialogs.suspend.description")}
           itemName={companyToAction?.name}
           isActive={true}
           isLoading={suspendCompanyMutation.isPending}
@@ -696,8 +698,8 @@ export default function CompanyManagement() {
             if (!open) setCompanyToAction(null);
           }}
           onConfirm={confirmUnsuspendCompany}
-          title="Unsuspend Company"
-          description="Are you sure you want to unsuspend"
+          title={t("companyManagement.dialogs.unsuspend.title")}
+          description={t("companyManagement.dialogs.unsuspend.description")}
           itemName={companyToAction?.name}
           isActive={false}
           isLoading={unsuspendCompanyMutation.isPending}
@@ -712,8 +714,8 @@ export default function CompanyManagement() {
             if (!open) setCompanyToAction(null);
           }}
           onConfirm={confirmActivateDeactivate}
-          title={`${companyToAction?.isActive ? 'Deactivate' : 'Activate'} Company`}
-          description="Are you sure you want to"
+          title={companyToAction?.isActive ? t("companyManagement.dialogs.deactivate.title") : t("companyManagement.dialogs.activate.title")}
+          description={t("companyManagement.dialogs.deactivate.description")}
           itemName={companyToAction?.name}
           isActive={companyToAction?.isActive ?? false}
         />
@@ -739,8 +741,8 @@ export default function CompanyManagement() {
             if (!open) setCompanyToAction(null);
           }}
           onConfirm={confirmDeleteCompany}
-          title="Delete Company"
-          description="Are you sure you want to delete"
+          title={t("companyManagement.dialogs.delete.title")}
+          description={t("companyManagement.dialogs.delete.description")}
           itemName={companyToAction?.name}
           isLoading={deleteCompanyMutation.isPending}
         />

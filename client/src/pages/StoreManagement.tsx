@@ -21,6 +21,7 @@ import { useFilters } from "@/hooks/common/useFilters";
 import { storeFormSchema, StoreFormData } from "@/lib/utils/validation";
 import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Store {
   id: number;
@@ -40,6 +41,7 @@ interface Store {
 export default function StoreManagement() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { t } = useTranslation();
 
   // Redirect store owners to their store detail page
   useEffect(() => {
@@ -290,20 +292,20 @@ export default function StoreManagement() {
                     <Store className="h-8 w-8" />
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold">Store Management</h1>
+                    <h1 className="text-3xl font-bold">{t("storeManagement.title")}</h1>
                     <p className="text-blue-100 text-lg mt-1">
-                      Manage your store locations and settings
+                      {t("storeManagement.subtitle")}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-6 mt-4">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm">System Active</span>
+                    <span className="text-sm">{t("companyDashboard.systemActive")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Store className="h-4 w-4" />
-                    <span className="text-sm">{total} Stores</span>
+                    <span className="text-sm">{t("storeManagement.headerCount", { count: total })}</span>
                   </div>
                 </div>
               </div>
@@ -326,7 +328,7 @@ export default function StoreManagement() {
                 <SearchBar
                   value={search}
                   onChange={setSearch}
-                  placeholder="Search stores by name, address, or phone..."
+                  placeholder={t("storeManagement.searchPlaceholder")}
                   className="h-12 text-lg"
                 />
               </div>
@@ -343,7 +345,7 @@ export default function StoreManagement() {
                 className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold px-6 shadow-lg hover:shadow-xl transition-all duration-200 border-0"
               >
                 <Plus className="h-5 w-5 mr-2" />
-                Create Store
+                {t("storeManagement.createButton")}
               </Button>
             </form>
           </CardContent>
@@ -358,11 +360,11 @@ export default function StoreManagement() {
                   <Store className="h-6 w-6 text-white" />
                 </div>
                 <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-bold">
-                  Stores ({total})
+                  {t("storeManagement.headerCount", { count: total })}
                 </span>
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">Items per page:</Label>
+                <Label htmlFor="limit" className="text-sm text-slate-600 dark:text-slate-300">{t("common.itemsPerPage")}</Label>
                 <Select
                   value={pageSize.toString()}
                   onValueChange={(value) => {
@@ -386,14 +388,16 @@ export default function StoreManagement() {
           <CardContent className="p-0">
             {stores.length === 0 ? (
               <EmptyState
-                title="No stores found"
-                description="Get started by creating your first store"
+                title={debouncedSearch ? t("storeManagement.empty.titleSearch") : t("storeManagement.empty.title")}
+                description={debouncedSearch ? t("storeManagement.empty.descriptionSearch") : t("storeManagement.empty.description")}
                 icon={<Store className="h-12 w-12 mx-auto text-muted-foreground" />}
                 action={
-                  <Button onClick={() => setIsCreateDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Store
-                  </Button>
+                  !debouncedSearch && (
+                    <Button onClick={() => setIsCreateDialogOpen(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      {t("storeManagement.empty.createFirst")}
+                    </Button>
+                  )
                 }
                 className="border-0"
               />
@@ -402,13 +406,13 @@ export default function StoreManagement() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 dark:from-slate-700 dark:to-slate-600 border-b-2 border-slate-300 dark:border-slate-500">
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Store Name</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Address</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Phone</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Status</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Revenue</TableHead>
-                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">Products</TableHead>
-                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">Actions</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.storeName")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.address")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.phone")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.status")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.revenue")}</TableHead>
+                      <TableHead className="font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.products")}</TableHead>
+                      <TableHead className="w-[70px] font-semibold text-slate-700 dark:text-slate-200 py-4">{t("storeManagement.table.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -433,9 +437,9 @@ export default function StoreManagement() {
                           </div>
                         </TableCell>
                         <TableCell className="py-4">
-                          <Badge variant={getStatusBadgeVariant(store.isActive)}>
-                            {getStatusText(store.isActive)}
-                          </Badge>
+                        <Badge variant={getStatusBadgeVariant(store.isActive)}>
+                          {store.isActive ? t("storeManagement.statusActive") : t("storeManagement.statusInactive")}
+                        </Badge>
                         </TableCell>
                         <TableCell className="py-4">
                           <span className="font-medium text-slate-900 dark:text-slate-100">
@@ -478,7 +482,7 @@ export default function StoreManagement() {
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Create New Store</DialogTitle>
+              <DialogTitle>{t("storeManagement.dialogs.createTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={createForm.handleSubmit(handleCreateStore)} className="space-y-4">
               <StoreForm form={createForm} mode="create" />
@@ -490,21 +494,21 @@ export default function StoreManagement() {
                   {...createForm.register("isActive")}
                   className="rounded border-gray-300"
                 />
-                <Label htmlFor="isActive">Store is active</Label>
+                <Label htmlFor="isActive">{t("storeManagement.dialogs.activeLabel")}</Label>
               </div>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={createStoreMutation.isPending}>
                   {createStoreMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Creating...
+                      {t("storeManagement.dialogs.creating")}
                     </>
                   ) : (
-                    "Create Store"
+                    t("storeManagement.dialogs.create")
                   )}
                 </Button>
               </DialogFooter>
