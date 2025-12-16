@@ -549,10 +549,25 @@ export class DatabaseStorage implements IStorage {
       .where(whereClause);
     const total = Number(totalResult.count);
     
-    // Build query with pagination
+    // Build query with pagination and join with companies to get logo
     let query = db
-      .select()
+      .select({
+        id: stores.id,
+        name: stores.name,
+        address: stores.address,
+        phone: stores.phone,
+        managerId: stores.managerId,
+        companyId: stores.companyId,
+        isActive: stores.isActive,
+        revenue: stores.revenue,
+        customerCount: stores.customerCount,
+        productCount: stores.productCount,
+        createdAt: stores.createdAt,
+        updatedAt: stores.updatedAt,
+        companyLogo: companies.companyLogo,
+      })
       .from(stores)
+      .leftJoin(companies, eq(stores.companyId, companies.id))
       .orderBy(desc(stores.createdAt));
     
     if (whereClause) {
@@ -623,10 +638,25 @@ export class DatabaseStorage implements IStorage {
       .where(and(...conditions));
     const total = Number(totalResult.count);
     
-    // Build query with pagination
+    // Build query with pagination and join with companies to get logo
     let query = db
-      .select()
+      .select({
+        id: stores.id,
+        name: stores.name,
+        address: stores.address,
+        phone: stores.phone,
+        managerId: stores.managerId,
+        companyId: stores.companyId,
+        isActive: stores.isActive,
+        revenue: stores.revenue,
+        customerCount: stores.customerCount,
+        productCount: stores.productCount,
+        createdAt: stores.createdAt,
+        updatedAt: stores.updatedAt,
+        companyLogo: companies.companyLogo,
+      })
       .from(stores)
+      .leftJoin(companies, eq(stores.companyId, companies.id))
       .where(and(...conditions))
       .orderBy(desc(stores.createdAt));
     
@@ -972,8 +1002,19 @@ export class DatabaseStorage implements IStorage {
       // 5. Delete trusted devices
       await db.delete(trustedDevices).where(eq(trustedDevices.userId, id));
 
-      // 6. Delete password reset tokens
-      await db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, id));
+      // 6. Delete password reset tokens associated with this user (by email)
+      // Note: password reset tokens are linked by email + userType, not userId
+      const userForTokens = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (userForTokens.length > 0) {
+        await db
+          .delete(passwordResetTokens)
+          .where(eq(passwordResetTokens.email, userForTokens[0].email));
+      }
 
       // 7. Delete company invitations created by this user
       await db.delete(companyInvitations).where(eq(companyInvitations.createdBy, id));

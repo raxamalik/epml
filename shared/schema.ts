@@ -50,6 +50,7 @@ export const companies = pgTable("companies", {
   phone: varchar("phone").notNull(),
   contactPerson: varchar("contact_person").notNull(),
   password: varchar("password"), // Company login password
+  companyLogo: varchar("company_logo"), // Company logo URL
   isActive: boolean("is_active").default(true),
   licenseStatus: varchar("license_status").default("active"), // active, inactive, suspended
   maxBranches: integer("max_branches").default(1),

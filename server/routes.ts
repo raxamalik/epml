@@ -6,7 +6,7 @@ import { setupAuth, isAuthenticated } from "./simpleAuth";
 import { requirePermission, requireAnyPermission, requireRole } from "./permission-middleware";
 import { PERMISSIONS } from "../shared/permissions";
 import { insertStoreSchema, insertActivitySchema, companies, insertCompanyInvitationSchema, companyInvitations, userSettings, productCategories, type ProductCategory } from "@shared/schema";
-import { sendCompanyInvitationEmail } from "./emailService";
+import { sendCompanyInvitationEmail, sendWelcomeEmail } from "./emailService";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { TwoFactorAuthService } from "./twoFactorAuth";
@@ -14,6 +14,17 @@ import path from "path";
 import cron from "node-cron";
 
 import { AuditLogger, auditMiddleware } from "./auditLogger";
+import { 
+  normalizeCompanyLogo, 
+  normalizeCompanyLogos, 
+  normalizeStoreLogos, 
+  normalizeR2Url,
+  normalizeProductImages,
+  normalizeProductImage,
+  normalizeUserProfileImage,
+  normalizeUserProfileImages,
+  normalizeAllImageUrls
+} from "./r2Utils";
 
 // Scheduled cleanup job for old audit logs based on dataRetention setting
 async function runAuditLogCleanup() {
@@ -369,7 +380,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('User profile image from settings:', settings.profileImageUrl);
       }
       
-      res.json(userWithSettings);
+      // Normalize profile image URL
+      const normalizedUser = normalizeUserProfileImage(userWithSettings);
+      res.json(normalizedUser);
     } catch (error) {
       console.error("Error fetching current user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -412,8 +425,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const totalPages = Math.ceil(adjustedTotal / limit);
       
+      // Normalize user profile image URLs
+      const normalizedUsers = normalizeUserProfileImages(filteredUsers);
+      
       res.json({
-        users: filteredUsers,
+        users: normalizedUsers,
         pagination: {
           page,
           limit,
@@ -506,8 +522,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companyAdminEmail
       };
       
+      // Normalize company logo URL
+      const normalizedResult = normalizeCompanyLogo(result);
+      
       console.log(`[GET /api/companies/:id] Returning company data with ${stores.length} stores and ${companyUsers.length} users`);
-      res.json(result);
+      res.json(normalizedResult);
     } catch (error: any) {
       console.error("[GET /api/companies/:id] Error fetching company:", error);
       res.status(500).json({ message: error.message || "Failed to fetch company" });
@@ -563,12 +582,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }));
       
-      // Recalculate total after filtering
-      const total = search || status ? companiesWithCounts.length : result.total;
+      // Normalize company logo URLs
+      const normalizedCompanies = normalizeCompanyLogos(companiesWithCounts);
       
-      console.log("Found companies:", companiesWithCounts.length, "of", total);
+      // Recalculate total after filtering
+      const total = search || status ? normalizedCompanies.length : result.total;
+      
+      console.log("Found companies:", normalizedCompanies.length, "of", total);
       res.json({
-        data: companiesWithCounts,
+        data: normalizedCompanies,
         total,
         page: Math.floor(offsetNum / limitNum) + 1,
         limit: limitNum,
@@ -701,6 +723,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         values.push(req.body.maxBranches);
       }
       
+      if (req.body.companyLogo !== undefined) {
+        fields.push(`company_logo = $${paramIndex++}`);
+        values.push(req.body.companyLogo);
+      }
+      
       // Handle password field with hashing
       if (req.body.password !== undefined && req.body.password !== '') {
         const bcrypt = await import("bcrypt");
@@ -739,6 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           email: row.email,
           phone: row.phone,
           contactPerson: row.contact_person,
+          companyLogo: row.company_logo,
           isActive: row.is_active,
           licenseStatus: row.is_active ? "active" : "inactive",
           maxBranches: row.max_branches,
@@ -748,11 +776,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userCount: 0
         };
         
+        // Normalize company logo URL
+        const normalizedCompany = normalizeCompanyLogo(updatedCompany);
+        
         // Log audit trail
         await AuditLogger.logCompanyUpdate(user, companyId, oldCompany, req.body, req);
         
-        console.log("Company updated successfully:", updatedCompany);
-        res.json(updatedCompany);
+        console.log("Company updated successfully:", normalizedCompany);
+        res.json(normalizedCompany);
       } catch (dbError) {
         console.error("Database error:", dbError);
         throw dbError;
@@ -1174,12 +1205,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { stores, total } = await storage.getStoresByCompany(companyId, limitNum, offsetNum, searchQuery, statusFilter);
       
+      // Normalize company logo URLs in stores
+      const normalizedStores = normalizeStoreLogos(stores);
+      
       // If pagination parameters are provided, return paginated response
       if (limitNum !== undefined && offsetNum !== undefined) {
         const totalPages = Math.ceil(total / limitNum);
         
         return res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page: Math.floor(offsetNum / limitNum) + 1,
           limit: limitNum,
@@ -1187,8 +1221,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // If no pagination parameters, return array directly for backward compatibility
-      res.json(stores);
+      // If no pagination parameters, return array directly for backward compatibility (normalized)
+      res.json(normalizedStores);
     } catch (error: any) {
       console.error("Error fetching company stores:", error);
       res.status(500).json({ 
@@ -1258,13 +1292,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stores = result?.stores || [];
         const total = result?.total || 0;
         
-        console.log(`Fetching stores for company ID ${user.companyId}: Found ${stores.length} stores`);
+        // Normalize company logo URLs in stores
+        const normalizedStores = normalizeStoreLogos(stores);
+        
+        console.log(`Fetching stores for company ID ${user.companyId}: Found ${normalizedStores.length} stores`);
         
         const page = Math.floor(offset / limit) + 1;
         const totalPages = Math.ceil(total / limit);
         
         res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page,
           limit,
@@ -1277,11 +1314,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const stores = result?.stores || [];
         const total = result?.total || 0;
         
+        // Normalize company logo URLs in stores
+        const normalizedStores = normalizeStoreLogos(stores);
+        
         const page = Math.floor(offset / limit) + 1;
         const totalPages = Math.ceil(total / limit);
         
         res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page,
           limit,
@@ -1480,6 +1520,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await storage.updateStore(store.id, { managerId: storeOwner.id });
             
             console.log(`Store owner created for store ${store.name} with email ${ownerEmail}`);
+
+            // Send welcome email to the new store owner (non-blocking for main flow)
+            try {
+              const fullName = `${storeOwner.firstName || ""} ${storeOwner.lastName || ""}`.trim() || storeOwner.email;
+              await sendWelcomeEmail({
+                email: storeOwner.email,
+                name: fullName,
+              });
+            } catch (emailError) {
+              console.error("Failed to send welcome email to store owner:", emailError);
+            }
             
             // Log audit trail for store owner creation
             await AuditLogger.logUserCreate(user, storeOwner, req);
@@ -1918,6 +1969,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const portalAdmin = await storage.createManager(portalAdminData);
+
+      // Send welcome email to the new portal admin (non-blocking for main flow)
+      try {
+        const fullName = `${portalAdmin.firstName || ""} ${portalAdmin.lastName || ""}`.trim() || portalAdmin.email;
+        await sendWelcomeEmail({
+          email: portalAdmin.email,
+          name: fullName,
+        });
+      } catch (emailError) {
+        console.error("Failed to send welcome email to portal admin:", emailError);
+      }
       
       // Log activity
       await storage.createActivity({
@@ -2255,13 +2317,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { products, total } = await storage.getProductsByCompany(user.companyId, limit, offset, search, categoryId);
       
+      // Normalize product image URLs
+      const normalizedProducts = normalizeProductImages(products);
+      
       // Calculate pagination metadata
       const page = limit && offset !== undefined ? Math.floor(offset / limit) + 1 : 1;
       const pageSize = limit || total;
       const totalPages = limit ? Math.ceil(total / limit) : 1;
       
       res.json({
-        data: products,
+        data: normalizedProducts,
         total,
         page,
         limit: pageSize,
@@ -2308,13 +2373,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { products, total } = await storage.getProductsByStore(storeId, limit, offset, search, categoryId);
       
+      // Normalize product image URLs
+      const normalizedProducts = normalizeProductImages(products);
+      
       // Calculate pagination metadata
       const page = limit && offset !== undefined ? Math.floor(offset / limit) + 1 : 1;
       const pageSize = limit || total;
       const totalPages = limit ? Math.ceil(total / limit) : 1;
       
       res.json({
-        data: products,
+        data: normalizedProducts,
         total,
         page,
         limit: pageSize,
@@ -2453,7 +2521,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         activeSubstances: product.activeSubstances || []
       };
       
-      res.json(productWithCategory);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(productWithCategory);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error fetching product:", error);
       res.status(500).json({ message: error.message });
@@ -2468,7 +2538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
       
-      res.status(201).json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: error.message });
@@ -2502,7 +2574,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: error.message });
@@ -3075,7 +3149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
       
-      res.status(201).json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating company product:", error);
       res.status(500).json({ message: error.message });
@@ -3109,7 +3185,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const product = await storage.createProduct(productData);
           await AuditLogger.logProductCreate(user, product, req);
-          return res.status(201).json(product);
+          // Normalize product image URL
+          const normalizedProduct = normalizeProductImage(product);
+          return res.status(201).json(normalizedProduct);
         }
         
         return res.status(400).json({ message: "Invalid Store ID" });
@@ -3148,7 +3226,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Log audit trail
           await AuditLogger.logProductCreate(user, product, req);
           
-          return res.status(201).json(product);
+          // Normalize product image URL
+          const normalizedProduct = normalizeProductImage(product);
+          return res.status(201).json(normalizedProduct);
         } else if (user.role === 'store_owner' || user.role === 'manager') {
           // Store owners and managers can only create products for their assigned store
           if (user.storeId && storeId !== user.storeId) {
@@ -3172,7 +3252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
       
-      res.status(201).json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: error.message });
@@ -3244,7 +3326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating company product:", error);
       res.status(500).json({ message: error.message });
@@ -3299,7 +3383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           const product = await storage.updateProduct(productId, updatesWithUserId);
           await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
-          return res.json(product);
+          // Normalize product image URL
+          const normalizedProduct = normalizeProductImage(product);
+          return res.json(normalizedProduct);
         }
         return res.status(400).json({ message: "Invalid Store ID" });
       }
@@ -3361,7 +3447,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: error.message });
@@ -3456,7 +3544,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: error.message });
@@ -4079,12 +4169,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           revenue: revenue,
           products: store.productCount || 0,
           customers: storeSales.length, // Each sale = 1 customer transaction
-          createdAt: store.createdAt ? new Date(store.createdAt).toISOString().split('T')[0] : ''
+          createdAt: store.createdAt ? new Date(store.createdAt).toISOString().split('T')[0] : '',
+          companyLogo: store.companyLogo ? normalizeR2Url(store.companyLogo) : null
         };
       }));
       
-      console.log(`Fetching stores for company ID ${user.companyId}: Found ${storesWithRevenue.length} stores`);
-      res.json(storesWithRevenue);
+      // Normalize company logo URLs in stores
+      const normalizedStoresWithRevenue = normalizeStoreLogos(storesWithRevenue);
+      
+      console.log(`Fetching stores for company ID ${user.companyId}: Found ${normalizedStoresWithRevenue.length} stores`);
+      res.json(normalizedStoresWithRevenue);
     } catch (error) {
       console.error("Error fetching company stores:", error);
       res.status(500).json({ message: "Failed to fetch company stores" });
@@ -4209,7 +4303,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               price: Number(product.price),
               categoryName: product.category || 'Uncategorized',
               barcode: product.barcode,
-              imageUrl: product.imageUrl,
+              imageUrl: normalizeR2Url(product.imageUrl),
               stores: [],
               totalStock: 0,
               totalSales: 0,
@@ -4232,8 +4326,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const productsArray = Array.from(productsMap.values());
-      console.log(`Products overview for company ID ${companyId}: Found ${productsArray.length} unique products across ${storeIds.length} stores`);
-      res.json(productsArray);
+      // Normalize product image URLs
+      const normalizedProductsArray = normalizeProductImages(productsArray);
+      console.log(`Products overview for company ID ${companyId}: Found ${normalizedProductsArray.length} unique products across ${storeIds.length} stores`);
+      res.json(normalizedProductsArray);
     } catch (error) {
       console.error("Error fetching company products overview:", error);
       res.status(500).json({ message: "Failed to fetch company products overview" });
@@ -4310,9 +4406,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           loginAuditTrail: true,
           dataRetention: 365,
         };
-        res.json(defaultSettings);
+        // Normalize profile image URL in default settings
+        const normalizedDefaultSettings = normalizeAllImageUrls(defaultSettings);
+        res.json(normalizedDefaultSettings);
       } else {
-        res.json(settings);
+        // Normalize profile image URL in settings
+        const normalizedSettings = normalizeAllImageUrls(settings);
+        res.json(normalizedSettings);
       }
     } catch (error: any) {
       console.error('Error fetching settings:', error);
@@ -4332,7 +4432,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       const settings = await storage.upsertUserSettings(settingsData);
-      res.json(settings);
+      // Normalize profile image URL
+      const normalizedSettings = normalizeAllImageUrls(settings);
+      res.json(normalizedSettings);
     } catch (error: any) {
       console.error('Error updating settings:', error);
       res.status(500).json({ message: error.message || "Failed to update settings" });
@@ -4533,7 +4635,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Upload image file
   app.post("/api/upload-image", isAuthenticated, (req, res, next) => {
-    upload.single('image')(req, res, (err: any) => {
+    upload.single('image')(req, res, async (err: any) => {
       if (err) {
         console.error("Multer upload error:", err);
         // Handle multer errors
@@ -4584,9 +4686,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
         }
         
-        const imageUrl = `/uploads/${req.file.filename}`;
+        // Import useR2 and uploadToR2 from fileUpload
+        const { useR2, uploadToR2 } = await import("./fileUpload");
+        
+        let imageUrl: string;
+        let filename: string;
+        
+        if (useR2) {
+          // Upload to Cloudflare R2
+          imageUrl = await uploadToR2(req.file);
+          // Extract filename from URL for compatibility
+          filename = imageUrl.split('/').pop() || req.file.originalname;
+        } else {
+          // Fallback to local storage
+          imageUrl = `/uploads/${req.file.filename}`;
+          filename = req.file.filename;
+        }
+        
         // Return both 'url' and 'imageUrl' for compatibility
-        res.json({ url: imageUrl, imageUrl: imageUrl, filename: req.file.filename });
+        res.json({ url: imageUrl, imageUrl: imageUrl, filename: filename });
       } catch (error: any) {
         console.error("Error processing uploaded image:", error);
         res.status(500).json({ 
@@ -4790,6 +4908,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded images
   app.use("/uploads", express.static("uploads"));
+
+  // Proxy endpoint for R2 images (since R2 buckets are private by default)
+  app.get("/api/r2-image/:path(*)", async (req, res) => {
+    try {
+      const { useR2 } = await import("./fileUpload");
+      
+      if (!useR2) {
+        return res.status(404).json({ error: "R2 storage not configured" });
+      }
+
+      // Extract the image path from the URL
+      // URL format: /api/r2-image/images/filename.png
+      const imagePath = req.params.path; // Everything after /api/r2-image/
+      
+      if (!imagePath) {
+        return res.status(400).json({ error: "Image path is required" });
+      }
+
+      const { r2Storage } = await import("./r2Storage");
+      
+      // Get signed URL for the image (valid for 1 hour)
+      const signedUrl = await r2Storage.getSignedUrl(imagePath, 3600);
+      
+      // Redirect to signed URL
+      res.redirect(signedUrl);
+    } catch (error: any) {
+      console.error("Error serving R2 image:", error);
+      res.status(404).json({ error: "Image not found" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

@@ -5,6 +5,7 @@ import sgMail from '@sendgrid/mail';
 import { 
   getCompanyInvitationTemplate, 
   getPasswordResetTemplate,
+  getWelcomeEmailTemplate,
   getPlainTextTemplate 
 } from './templates/emailTemplates';
 
@@ -25,6 +26,11 @@ interface SendInvitationEmailParams {
   email: string;
   companyName: string;
   invitationToken: string;
+}
+
+interface SendWelcomeEmailParams {
+  email: string;
+  name: string;
 }
 
 export async function sendCompanyInvitationEmail({ email, companyName, invitationToken }: SendInvitationEmailParams) {
@@ -109,6 +115,47 @@ export async function sendPasswordResetEmail({ email, resetToken, userType }: Se
     
     // Don't throw error to prevent breaking the flow
     return { success: false, error: "Email service unavailable" };
+  }
+}
+
+export async function sendWelcomeEmail({ email, name }: SendWelcomeEmailParams) {
+  const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+  const loginUrl = `${baseUrl}/login`;
+
+  const subject = "Welcome to EPML";
+  const htmlBody = getWelcomeEmailTemplate({
+    name,
+    email,
+    loginUrl,
+  });
+
+  const textBody = getPlainTextTemplate('welcome', {
+    name,
+    email,
+    loginUrl,
+  });
+
+  try {
+    await sgMail.send({
+      to: email,
+      from: FROM_EMAIL,
+      subject,
+      html: htmlBody,
+      text: textBody,
+    });
+    console.log(`Welcome email sent successfully to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+
+    // Fallback: Log the login link to console for development/testing
+    console.log("=== EMAIL SENDING FAILED - DEVELOPMENT FALLBACK ===");
+    console.log(`To: ${email}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Login Link: ${loginUrl}`);
+    console.log("=== Copy the login link above to manually send to the user ===");
+
+    return { success: false, error: "Email service unavailable", loginUrl };
   }
 }
 

@@ -133,6 +133,16 @@ export class AuditLogger {
     }, req);
   }
 
+  static async logUserDelete(user: any, deletedUser: any, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "user_delete",
+      entityType: "user",
+      entityId: deletedUser.id,
+      description: `User ${deletedUser.email} deleted`,
+      oldValues: { ...deletedUser, passwordHash: "[REDACTED]" },
+    }, req);
+  }
+
   static async logStoreCreate(user: any, store: any, req: Request): Promise<void> {
     await this.log(user, {
       action: "store_create",

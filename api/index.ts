@@ -41,11 +41,24 @@ import { randomUUID } from 'crypto';
 import cron from 'node-cron';
 import { generateToken, verifyToken, extractTokenFromHeader, type JWTPayload } from './jwt-utils.js';
 import { requirePermission, requireAnyPermission, requireRole, PERMISSIONS } from './permission-middleware.js';
-import { 
-  getCompanyInvitationTemplate, 
+import {
+  getCompanyInvitationTemplate,
   getPasswordResetTemplate,
-  getPlainTextTemplate 
+  getWelcomeEmailTemplate,
+  getPlainTextTemplate
 } from './templates/emailTemplates.js';
+import { r2Storage } from './r2Storage.js';
+import {
+  normalizeCompanyLogo,
+  normalizeCompanyLogos,
+  normalizeStoreLogos,
+  normalizeR2Url,
+  normalizeProductImages,
+  normalizeProductImage,
+  normalizeUserProfileImage,
+  normalizeUserProfileImages,
+  normalizeAllImageUrls
+} from './r2Utils.js';
 
 // Load environment variables
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -4401,6 +4414,11 @@ interface SendInvitationEmailParams {
   invitationToken: string;
 }
 
+interface SendWelcomeEmailParams {
+  email: string;
+  name: string;
+}
+
 async function sendCompanyInvitationEmail({ email, companyName, invitationToken }: SendInvitationEmailParams) {
   const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
   const activationUrl = `${baseUrl}/company-activation?token=${invitationToken}`;
@@ -4498,6 +4516,59 @@ async function sendPasswordResetEmail({ email, resetToken, userType }: SendReset
     
     // Don't throw error to prevent breaking the flow
     return { success: false, error: "Email service unavailable" };
+  }
+}
+
+async function sendWelcomeEmail({ email, name }: SendWelcomeEmailParams) {
+  // Get base URL from environment, with fallbacks for different deployment scenarios
+  let baseUrl = process.env.BASE_URL;
+
+  if (!baseUrl) {
+    if (process.env.VERCEL_URL) {
+      baseUrl = `https://${process.env.VERCEL_URL}`;
+    } else if (process.env.VERCEL) {
+      baseUrl = `https://${process.env.VERCEL}`;
+    } else {
+      baseUrl = 'http://localhost:5000';
+    }
+  }
+
+  const loginUrl = `${baseUrl}/login`;
+
+  const subject = "Welcome to EPML";
+  const htmlBody = getWelcomeEmailTemplate({
+    name,
+    email,
+    loginUrl,
+  });
+
+  const textBody = getPlainTextTemplate('welcome', {
+    name,
+    email,
+    loginUrl,
+  });
+
+  try {
+    await sgMail.send({
+      to: email,
+      from: FROM_EMAIL,
+      subject,
+      html: htmlBody,
+      text: textBody,
+    });
+    console.log(`Welcome email sent successfully to ${email}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+
+    // Fallback: Log the login link to console for development/testing
+    console.log("=== EMAIL SENDING FAILED - DEVELOPMENT FALLBACK ===");
+    console.log(`To: ${email}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Login Link: ${loginUrl}`);
+    console.log("=== Copy the login link above to manually send to the user ===");
+
+    return { success: false, error: "Email service unavailable", loginUrl };
   }
 }
 
@@ -4837,7 +4908,15 @@ function auditMiddleware() {
 
 
 
-// Ensure uploads directory exists
+// Check if R2 is configured
+const useR2 = !!(
+  process.env.CLOUDFLARE_ACCOUNT_ID &&
+  process.env.CLOUDFLARE_R2_ACCESS_KEY_ID &&
+  process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY &&
+  process.env.CLOUDFLARE_R2_BUCKET_NAME
+);
+
+// Ensure uploads directory exists (for local storage fallback)
 const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
 const ensureUploadsDir = async () => {
   try {
@@ -4848,16 +4927,19 @@ const ensureUploadsDir = async () => {
 };
 
 // Configure multer for file uploads
-const multerStorage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    await ensureUploadsDir();
-    cb(null, UPLOADS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${randomUUID()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
+// Use memory storage for R2, disk storage for local
+const multerStorage = useR2
+  ? multer.memoryStorage() // Store in memory to upload to R2
+  : multer.diskStorage({
+      destination: async (req, file, cb) => {
+        await ensureUploadsDir();
+        cb(null, UPLOADS_DIR);
+      },
+      filename: (req, file, cb) => {
+        const uniqueName = `${randomUUID()}${path.extname(file.originalname)}`;
+        cb(null, uniqueName);
+      }
+    });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
   // Only allow image files
@@ -4876,8 +4958,32 @@ const upload = multer({
   }
 });
 
-// Initialize uploads directory on module load
-ensureUploadsDir().catch(console.error);
+// Initialize uploads directory on module load (for local storage fallback)
+if (!useR2) {
+  ensureUploadsDir().catch(console.error);
+}
+
+// Helper function to upload to R2
+async function uploadToR2(file: Express.Multer.File): Promise<string> {
+  if (!useR2) {
+    throw new Error('R2 storage is not configured');
+  }
+  
+  const fileExtension = path.extname(file.originalname);
+  const key = `images/${randomUUID()}${fileExtension}`;
+  
+  if (!file.buffer) {
+    throw new Error('File buffer is missing. Make sure multer is using memory storage.');
+  }
+  
+  const publicUrl = await r2Storage.uploadFile(
+    file.buffer,
+    key,
+    file.mimetype
+  );
+  
+  return publicUrl;
+}
 
 
 
@@ -6271,7 +6377,9 @@ export async function registerRoutes(app: Express): Promise<void> {
         console.log('User profile image from settings:', settings.profileImageUrl);
       }
       
-      res.json(userWithSettings);
+      // Normalize profile image URL
+      const normalizedUser = normalizeUserProfileImage(userWithSettings);
+      res.json(normalizedUser);
     } catch (error) {
       console.error("Error fetching current user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -6404,12 +6512,15 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
       }
       
-      // Recalculate total after filtering
-      const total = search || status ? companies.length : result.total;
+      // Normalize company logo URLs
+      const normalizedCompanies = normalizeCompanyLogos(companies);
       
-      console.log("Found companies:", companies.length, "of", total);
+      // Recalculate total after filtering
+      const total = search || status ? normalizedCompanies.length : result.total;
+      
+      console.log("Found companies:", normalizedCompanies.length, "of", total);
       res.json({
-        data: companies,
+        data: normalizedCompanies,
         total,
         page: Math.floor(offsetNum / limitNum) + 1,
         limit: limitNum,
@@ -6453,8 +6564,11 @@ export async function registerRoutes(app: Express): Promise<void> {
         companyAdminEmail
       };
       
+      // Normalize company logo URL
+      const normalizedResult = normalizeCompanyLogo(result);
+      
       console.log(`[GET /api/companies/:id] Returning company data with ${stores.length} stores and ${companyUsers.length} users`);
-      res.json(result);
+      res.json(normalizedResult);
     } catch (error: any) {
       console.error("[GET /api/companies/:id] Error fetching company:", error);
       res.status(500).json({ message: error.message || "Failed to fetch company" });
@@ -6582,6 +6696,11 @@ export async function registerRoutes(app: Express): Promise<void> {
         values.push(req.body.maxBranches);
       }
       
+      if (req.body.companyLogo !== undefined) {
+        fields.push(`company_logo = $${paramIndex++}`);
+        values.push(req.body.companyLogo);
+      }
+      
       // Handle password field with hashing
       if (req.body.password !== undefined && req.body.password !== '') {
         const bcrypt = await import("bcrypt");
@@ -6620,6 +6739,7 @@ export async function registerRoutes(app: Express): Promise<void> {
           email: row.email,
           phone: row.phone,
           contactPerson: row.contact_person,
+          companyLogo: row.company_logo,
           isActive: row.is_active,
           licenseStatus: row.is_active ? "active" : "inactive",
           maxBranches: row.max_branches,
@@ -6629,11 +6749,14 @@ export async function registerRoutes(app: Express): Promise<void> {
           userCount: 0
         };
         
+        // Normalize company logo URL
+        const normalizedCompany = normalizeCompanyLogo(updatedCompany);
+        
         // Log audit trail
         await AuditLogger.logCompanyUpdate(user, companyId, oldCompany, req.body, req);
         
-        console.log("Company updated successfully:", updatedCompany);
-        res.json(updatedCompany);
+        console.log("Company updated successfully:", normalizedCompany);
+        res.json(normalizedCompany);
       } catch (dbError) {
         console.error("Database error:", dbError);
         throw dbError;
@@ -7324,6 +7447,17 @@ export async function registerRoutes(app: Express): Promise<void> {
             await storage.updateStore(store.id, { managerId: storeOwner.id });
             
             console.log(`Store owner created for store ${store.name} with email ${ownerEmail}`);
+
+            // Send welcome email to the new store owner (non-blocking for main flow)
+            try {
+              const fullName = `${storeOwner.firstName || ""} ${storeOwner.lastName || ""}`.trim() || storeOwner.email;
+              await sendWelcomeEmail({
+                email: storeOwner.email,
+                name: fullName,
+              });
+            } catch (emailError) {
+              console.error("Failed to send welcome email to store owner:", emailError);
+            }
             
             // Log audit trail for store owner creation
             await AuditLogger.logUserCreate(user, storeOwner, req);
@@ -7907,6 +8041,17 @@ export async function registerRoutes(app: Express): Promise<void> {
       portalAdminData.storeId = null;
       
       const portalAdmin = await storage.createManager(portalAdminData);
+
+      // Send welcome email to the new portal admin (non-blocking for main flow)
+      try {
+        const fullName = `${portalAdmin.firstName || ""} ${portalAdmin.lastName || ""}`.trim() || portalAdmin.email;
+        await sendWelcomeEmail({
+          email: portalAdmin.email,
+          name: fullName,
+        });
+      } catch (emailError) {
+        console.error("Failed to send welcome email to portal admin:", emailError);
+      }
       
       // Log activity
       await storage.createActivity({
@@ -10381,7 +10526,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   // File Upload Routes for Product Images
   // Upload image file
   app.post("/api/upload-image", isAuthenticated, (req, res, next) => {
-    upload.single('image')(req, res, (err: any) => {
+    upload.single('image')(req, res, async (err: any) => {
       if (err) {
         console.error("Multer upload error:", err);
         // Handle multer errors
@@ -10432,8 +10577,20 @@ export async function registerRoutes(app: Express): Promise<void> {
           });
         }
         
-        const imageUrl = `/uploads/${req.file.filename}`;
-        res.json({ imageUrl, filename: req.file.filename });
+        let imageUrl: string;
+        let filename: string;
+        
+        if (useR2) {
+          // Upload to R2
+          imageUrl = await uploadToR2(req.file);
+          filename = imageUrl.split('/').pop() || req.file.originalname;
+        } else {
+          // Use local storage
+          imageUrl = `/uploads/${req.file.filename}`;
+          filename = req.file.filename;
+        }
+        
+        res.json({ url: imageUrl, imageUrl: imageUrl, filename: filename });
       } catch (error: any) {
         console.error("Error processing uploaded image:", error);
         res.status(500).json({ 
@@ -10456,7 +10613,34 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // Serve uploaded images
+  // Serve uploaded images (for local storage fallback)
   app.use("/uploads", express.static("uploads"));
+
+  // Proxy endpoint for R2 images (since R2 buckets are private by default)
+  app.get("/api/r2-image/:path(*)", async (req, res) => {
+    try {
+      if (!useR2) {
+        return res.status(404).json({ error: "R2 storage not configured" });
+      }
+
+      // Extract the image path from the URL
+      // URL format: /api/r2-image/images/filename.png
+      const imagePath = req.params.path; // Everything after /api/r2-image/
+      
+      if (!imagePath) {
+        return res.status(400).json({ error: "Image path is required" });
+      }
+
+      // Get signed URL for the image (valid for 1 hour)
+      const signedUrl = await r2Storage.getSignedUrl(imagePath, 3600);
+      
+      // Redirect to signed URL
+      res.redirect(signedUrl);
+    } catch (error: any) {
+      console.error("Error serving R2 image:", error);
+      res.status(404).json({ error: "Image not found" });
+    }
+  });
 
   
   return;

@@ -110,12 +110,12 @@ export function Sidebar() {
           
           {/* Navigation Menu */}
           <nav className="mt-8 flex-1 px-4 space-y-1">
-            {filteredNavigation.map((item) => {
+            {filteredNavigation.map((item, index) => {
               // Exact match for active state to prevent multiple active items
               const isActive = location === item.href;
               return (
                 <Link
-                  key={item.name}
+                  key={index}
                   href={item.href}
                   className={cn(
                     "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",

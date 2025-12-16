@@ -28,6 +28,7 @@ interface Company {
   email: string;
   phone: string;
   contactPerson: string;
+  companyLogo?: string | null;
   isActive: boolean;
   licenseStatus: string;
   maxBranches: number;
@@ -46,6 +47,33 @@ interface StoreBranch {
 }
 
 import { formatDate } from "@/lib/utils/date";
+
+// Helper function to convert R2 direct URLs to proxy URLs
+const normalizeR2Url = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  
+  // If it's already a proxy URL, return as is
+  if (url.startsWith('/api/r2-image/')) {
+    return url;
+  }
+  
+  // If it's a direct R2 URL, convert to proxy URL
+  // Format: https://{account-id}.r2.cloudflarestorage.com/{bucket}/{key}
+  const r2UrlPattern = /https:\/\/[\w-]+\.r2\.cloudflarestorage\.com\/[^\/]+\/(.+)/;
+  const match = url.match(r2UrlPattern);
+  
+  if (match) {
+    return `/api/r2-image/${match[1]}`;
+  }
+  
+  // If it's a local upload URL, return as is
+  if (url.startsWith('/uploads/')) {
+    return url;
+  }
+  
+  // Return as is if we can't determine the format
+  return url;
+};
 
 export default function CompanyDetails() {
   const [, params] = useRoute("/companies/:id");
@@ -242,14 +270,30 @@ export default function CompanyDetails() {
                 >
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
-                <div>
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
-                    <Building2 className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
-                    {company.name}
-                    </h1>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    Company Details
-                    </p>
+                <div className="flex items-center gap-4">
+                    {company.companyLogo ? (
+                      <img 
+                        src={company.companyLogo} 
+                        alt={`${company.name} logo`}
+                        className="w-16 h-16 object-cover rounded-lg border-2 border-slate-200 dark:border-slate-700 shadow-md"
+                        onError={(e) => {
+                          // Hide image on error and show fallback
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-lg flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-md">
+                        <Building2 className="h-8 w-8 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                    )}
+                    <div>
+                        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-3">
+                        {company.name}
+                        </h1>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        Company Details
+                        </p>
+                    </div>
                 </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -301,6 +345,39 @@ export default function CompanyDetails() {
                 </CardHeader>
                 <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Company Logo */}
+                    <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                        Company Logo
+                    </Label>
+                    <div className="flex items-center gap-4">
+                      {company.companyLogo ? (
+                        <img 
+                          src={company.companyLogo} 
+                          alt={`${company.name} logo`}
+                          className="w-32 h-32 object-cover rounded-lg border-2 border-slate-200 dark:border-slate-700 shadow-md"
+                          onError={(e) => {
+                            // Hide image on error
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-32 h-32 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900 dark:to-purple-900 rounded-lg flex items-center justify-center border-2 border-slate-200 dark:border-slate-700 shadow-md">
+                          <Building2 className="h-12 w-12 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                      )}
+                      <div className="text-sm text-slate-500 dark:text-slate-400">
+                        {company.companyLogo ? (
+                          <p>Company logo is displayed</p>
+                        ) : (
+                          <p>No logo uploaded. Edit company to add a logo.</p>
+                        )}
+                      </div>
+                    </div>
+                    </div>
+
+                    <Separator className="md:col-span-2" />
+
                     {/* Company Name */}
                     <div className="space-y-2">
                     <Label className="text-sm font-medium text-slate-600 dark:text-slate-400">
@@ -536,6 +613,7 @@ export default function CompanyDetails() {
                 phone: company.phone,
                 contactPerson: company.contactPerson,
                 maxBranches: company.maxBranches,
+                companyLogo: company.companyLogo,
               } : null}
               onUpdated={() => refetch()}
             />

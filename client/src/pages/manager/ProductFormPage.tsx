@@ -17,6 +17,7 @@ import {
 import { Plus, Edit, Palette, ImageIcon, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Product {
   id: number;
@@ -66,6 +67,7 @@ export default function ProductFormPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
   // Get product ID from URL if editing
   const match = location.match(/\/edit\/(\d+)$/);
@@ -316,11 +318,11 @@ export default function ProductFormPage() {
                 <Plus className="h-5 w-5 text-white" />
               )}
             </div>
-            {isEditMode ? "Edit Product" : "Create New Product"}
+            {isEditMode ? t("products.dialogs.editProduct") : t("products.dialogs.createNewProduct")}
           </CardTitle>
           {isCompanyAdmin && !isEditMode && (
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-              This product will be available across all stores in your company.
+              {t("products.dialogs.companyWideProductNote")}
             </p>
           )}
         </CardHeader>

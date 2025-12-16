@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ActiveSubstance {
   id: number;
@@ -47,6 +48,7 @@ export function AddActiveSubstanceDialog({
   onAdd,
   existingSubstanceIds = [],
 }: AddActiveSubstanceDialogProps) {
+  const { t } = useTranslation();
   const [selectedSubstanceId, setSelectedSubstanceId] = useState<string>("");
   const [contentAmount, setContentAmount] = useState("");
   const [contentUnit, setContentUnit] = useState("");
@@ -84,19 +86,19 @@ export function AddActiveSubstanceDialog({
     const newErrors: Record<string, string> = {};
 
     if (!selectedSubstanceId) {
-      newErrors.substanceId = "Please select a substance";
+      newErrors.substanceId = t("products.dialogs.addActiveSubstance.errors.selectSubstance");
     }
 
     if (contentAmount && isNaN(parseFloat(contentAmount))) {
-      newErrors.contentAmount = "Content amount must be a valid number";
+      newErrors.contentAmount = t("products.dialogs.addActiveSubstance.errors.invalidContentAmount");
     }
 
     if (contentAmount && parseFloat(contentAmount) < 0) {
-      newErrors.contentAmount = "Content amount must be positive";
+      newErrors.contentAmount = t("products.dialogs.addActiveSubstance.errors.negativeContentAmount");
     }
 
     if (concentration && (isNaN(parseFloat(concentration)) || parseFloat(concentration) < 0 || parseFloat(concentration) > 100)) {
-      newErrors.concentration = "Concentration must be between 0 and 100";
+      newErrors.concentration = t("products.dialogs.addActiveSubstance.errors.invalidConcentration");
     }
 
     setErrors(newErrors);
@@ -133,12 +135,12 @@ export function AddActiveSubstanceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Add Active Substance</DialogTitle>
+          <DialogTitle>{t("products.dialogs.addActiveSubstance.title")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="substance">Substance *</Label>
+            <Label htmlFor="substance">{t("products.dialogs.addActiveSubstance.substance")} *</Label>
             {isLoading ? (
               <div className="flex items-center justify-center py-4">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -154,12 +156,12 @@ export function AddActiveSubstanceDialog({
                 }}
               >
                 <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
-                  <SelectValue placeholder="Select a substance" />
+                  <SelectValue placeholder={t("products.dialogs.addActiveSubstance.selectSubstance")} />
                 </SelectTrigger>
                 <SelectContent>
                   {availableSubstances.length === 0 ? (
                     <SelectItem value="none" disabled>
-                      No substances available
+                      {t("products.dialogs.addActiveSubstance.noSubstancesAvailable")}
                     </SelectItem>
                   ) : (
                     availableSubstances.map((substance) => (
@@ -178,13 +180,13 @@ export function AddActiveSubstanceDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="contentAmount">Content Amount</Label>
+              <Label htmlFor="contentAmount">{t("products.dialogs.addActiveSubstance.contentAmount")}</Label>
               <Input
                 id="contentAmount"
                 type="number"
                 step="0.001"
                 min="0"
-                placeholder="e.g. 100"
+                placeholder={t("products.dialogs.addActiveSubstance.contentAmountPlaceholder")}
                 value={contentAmount}
                 onChange={(e) => {
                   setContentAmount(e.target.value);
@@ -200,13 +202,13 @@ export function AddActiveSubstanceDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="contentUnit">Unit</Label>
+              <Label htmlFor="contentUnit">{t("products.dialogs.addActiveSubstance.unit")}</Label>
               <Select
                 value={contentUnit}
                 onValueChange={setContentUnit}
               >
                 <SelectTrigger className="bg-slate-50 dark:bg-slate-800">
-                  <SelectValue placeholder="Select unit" />
+                  <SelectValue placeholder={t("products.dialogs.addActiveSubstance.selectUnit")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="mg">mg</SelectItem>
@@ -221,14 +223,14 @@ export function AddActiveSubstanceDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="concentration">Concentration (%)</Label>
+            <Label htmlFor="concentration">{t("products.dialogs.addActiveSubstance.concentration")}</Label>
             <Input
               id="concentration"
               type="number"
               step="0.01"
               min="0"
               max="100"
-              placeholder="e.g. 0.3"
+              placeholder={t("products.dialogs.addActiveSubstance.concentrationPlaceholder")}
               value={concentration}
               onChange={(e) => {
                 setConcentration(e.target.value);
@@ -242,17 +244,17 @@ export function AddActiveSubstanceDialog({
               <p className="text-sm text-red-500">{errors.concentration}</p>
             )}
             <p className="text-xs text-muted-foreground">
-              Percentage by weight (0-100%)
+              {t("products.dialogs.addActiveSubstance.concentrationHint")}
             </p>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("products.dialogs.cancel")}
           </Button>
           <Button onClick={handleAdd} disabled={!selectedSubstanceId}>
-            Add Substance
+            {t("products.dialogs.addActiveSubstance.addSubstance")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -55,6 +55,7 @@ interface Store {
   products: number;
   customers: number;
   createdAt: string;
+  companyLogo?: string | null;
 }
 
 const storeFormSchema = z.object({
@@ -614,9 +615,22 @@ export default function CompanyDashboard() {
                 {filteredStores.map((store) => (
                   <div key={store.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <div className="bg-primary/10 p-2 rounded-lg">
-                        <Store className="h-6 w-6 text-primary" />
-                      </div>
+                      {store.companyLogo ? (
+                        <img 
+                          src={store.companyLogo} 
+                          alt={`${store.name} company logo`}
+                          className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                          onError={(e) => {
+                            // Hide image on error and show fallback
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      {!store.companyLogo && (
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <Store className="h-6 w-6 text-primary" />
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-semibold">{store.name}</h3>
                         <p className="text-sm text-slate-600 flex items-center gap-1">

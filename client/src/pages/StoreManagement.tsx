@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Store, MapPin, Phone, Loader2 } from "lucide-react";
+import { Plus, Store, MapPin, Phone, Loader2, Building2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +30,7 @@ interface Store {
   phone?: string;
   managerId?: string;
   companyId: number;
+  companyLogo?: string | null;
   isActive: boolean;
   revenue: number;
   customerCount: number;
@@ -422,7 +423,24 @@ export default function StoreManagement() {
                         className={`border-b border-slate-200 dark:border-slate-600 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-slate-700 dark:hover:to-slate-600 transition-all duration-200 ${index % 2 === 0 ? 'bg-slate-50/50 dark:bg-slate-800/50' : 'bg-white dark:bg-slate-800'}`}
                       >
                         <TableCell className="py-4">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100">{store.name}</div>
+                          <div className="flex items-center gap-3">
+                            {store.companyLogo ? (
+                              <img 
+                                src={store.companyLogo} 
+                                alt={`${store.name} company logo`}
+                                className="w-10 h-10 object-cover rounded-lg border border-slate-200 dark:border-slate-600"
+                                onError={(e) => {
+                                  // Hide image on error
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-lg flex items-center justify-center">
+                                <Building2 className="h-5 w-5 text-slate-400" />
+                              </div>
+                            )}
+                            <div className="font-semibold text-slate-900 dark:text-slate-100">{store.name}</div>
+                          </div>
                         </TableCell>
                         <TableCell className="py-4">
                           <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
