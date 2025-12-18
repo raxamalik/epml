@@ -23,7 +23,7 @@ import { getStatusBadgeVariant, getStatusText } from "@/lib/utils/status";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface Manager {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   email: string;
@@ -177,7 +177,7 @@ export default function ManagerManagement() {
 
   // Update manager mutation
   const updateManagerMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<ManagerFormData> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ManagerFormData> }) => {
       const response = await apiRequest("PUT", `/api/managers/${id}`, data);
       return response.json();
     },
@@ -202,7 +202,7 @@ export default function ManagerManagement() {
 
   // Delete manager mutation
   const deleteManagerMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/managers/${id}`);
       return response.json();
     },
@@ -226,7 +226,7 @@ export default function ManagerManagement() {
 
   // Toggle active status mutation
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const response = await apiRequest("PUT", `/api/managers/${id}`, { isActive });
       return response.json();
     },
@@ -504,7 +504,7 @@ export default function ManagerManagement() {
                         </TableCell>
                         <TableCell className="py-4">
                           <Badge variant={getStatusBadgeVariant(manager.isActive)}>
-                            {getStatusText(manager.isActive)}
+                            {manager.isActive ? t("common.active") : t("common.inactive")}
                           </Badge>
                         </TableCell>
                         <TableCell className="py-4">

@@ -3,13 +3,13 @@ import { useAuth } from "@/hooks/useAuth";
 import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { Logo } from "@/components/ui/Logo";
 import { 
   Home, 
   Store, 
   Users, 
   BarChart3, 
   Settings,
-  Building,
   Building2,
   ShoppingCart,
   Package,
@@ -101,10 +101,7 @@ export function Sidebar() {
           {/* Logo Section */}
           <div className="flex items-center flex-shrink-0 px-6">
             <div className="flex items-center">
-              <div className="bg-primary rounded-lg p-2">
-                <Building className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="ml-3 text-xl font-bold text-slate-900">{t("sidebar.appName")}</h1>
+              <Logo className="h-8" width={100} height={58} />
             </div>
           </div>
           

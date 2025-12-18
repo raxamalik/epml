@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Trash2, Shield, ShieldOff, Eye } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Action {
   label: string;
@@ -34,6 +35,7 @@ export function TableActions({
   customActions,
   showToggleActive = true,
 }: TableActionsProps) {
+  const { t } = useTranslation();
   const isActive = typeof item.isActive === "boolean" ? item.isActive : item.isActive === "active";
 
   return (
@@ -50,13 +52,13 @@ export function TableActions({
         {onView && (
           <DropdownMenuItem onClick={() => onView(item)}>
             <Eye className="h-4 w-4 mr-2" />
-            View Details
+            {t("common.viewDetails")}
           </DropdownMenuItem>
         )}
         {onEdit && (
           <DropdownMenuItem onClick={() => onEdit(item)}>
             <Edit className="h-4 w-4 mr-2" />
-            Edit
+            {t("common.edit")}
           </DropdownMenuItem>
         )}
         {showToggleActive && onToggleActive && (
@@ -66,12 +68,12 @@ export function TableActions({
               {isActive ? (
                 <>
                   <ShieldOff className="h-4 w-4 mr-2" />
-                  Deactivate
+                  {t("common.deactivate")}
                 </>
               ) : (
                 <>
                   <Shield className="h-4 w-4 mr-2" />
-                  Activate
+                  {t("common.activate")}
                 </>
               )}
             </DropdownMenuItem>
@@ -85,7 +87,7 @@ export function TableActions({
               className="text-red-600 focus:text-red-600"
             >
               <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              {t("common.delete")}
             </DropdownMenuItem>
           </>
         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { startOfDay, endOfDay, subDays, subWeeks, subMonths, subYears, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 import { 
   Store, 
   Users, 
@@ -37,7 +41,8 @@ import {
   Shield,
   AlertTriangle,
   Download,
-  Trash2
+  Trash2,
+  RotateCcw
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
@@ -115,9 +120,182 @@ export default function CompanyDashboard() {
   // Company limits
   const [companyData, setCompanyData] = useState<any>(null);
   const [maxBranches, setMaxBranches] = useState(5);
+  
+  // Time period state
+  const [timePeriod, setTimePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'annually'>('monthly');
+  const { user } = useAuth();
 
   // Chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+  
+  // Fetch all sales for the company
+  const { data: allSales = [] } = useQuery({
+    queryKey: ['/api/company/sales', user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return [];
+      // We'll need to fetch sales from each store or create a company-wide endpoint
+      // For now, let's fetch from all stores
+      const storesRes = await apiRequest('GET', '/api/company/stores');
+      const storesData = await storesRes.json();
+      const stores = Array.isArray(storesData) ? storesData : (storesData.data || []);
+      
+      // Fetch sales from all stores
+      const salesPromises = stores.map(async (store: any) => {
+        try {
+          const salesRes = await apiRequest('GET', `/api/stores/${store.id}/sales?limit=10000`);
+          const salesData = await salesRes.json();
+          const storeSales = Array.isArray(salesData) ? salesData : (salesData.data || []);
+          return storeSales.map((sale: any) => ({ ...sale, storeId: store.id, storeName: store.name }));
+        } catch (error) {
+          console.error(`Error fetching sales for store ${store.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allSalesArrays = await Promise.all(salesPromises);
+      return allSalesArrays.flat();
+    },
+    enabled: !!user?.companyId,
+    refetchInterval: 60000, // Refetch every minute
+  });
+  
+  // Fetch returns/refunds for the company
+  const { data: allReturns = [] } = useQuery({
+    queryKey: ['/api/company/returns', user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return [];
+      const storesRes = await apiRequest('GET', '/api/company/stores');
+      const storesData = await storesRes.json();
+      const stores = Array.isArray(storesData) ? storesData : (storesData.data || []);
+      
+      const returnsPromises = stores.map(async (store: any) => {
+        try {
+          const returnsRes = await apiRequest('GET', `/api/returns?storeId=${store.id}&limit=10000`);
+          const returnsData = await returnsRes.json();
+          const storeReturns = Array.isArray(returnsData) ? returnsData : (returnsData.data || []);
+          return storeReturns.map((returnRecord: any) => ({ ...returnRecord, storeId: store.id, storeName: store.name }));
+        } catch (error) {
+          console.error(`Error fetching returns for store ${store.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allReturnsArrays = await Promise.all(returnsPromises);
+      return allReturnsArrays.flat();
+    },
+    enabled: !!user?.companyId,
+    refetchInterval: 60000,
+  });
+  
+  // Calculate date range based on time period
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timePeriod) {
+      case 'daily':
+        startDate = startOfDay(now);
+        break;
+      case 'weekly':
+        startDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+        break;
+      case 'monthly':
+        startDate = startOfMonth(now);
+        break;
+      case 'annually':
+        startDate = startOfYear(now);
+        break;
+      default:
+        startDate = startOfMonth(now);
+    }
+    
+    return { startDate, endDate: endOfDay(now) };
+  };
+  
+  // Filter sales by time period
+  const filteredSales = useMemo(() => {
+    const { startDate, endDate } = getDateRange();
+    return allSales.filter((sale: any) => {
+      const saleDate = new Date(sale.createdAt);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
+  }, [allSales, timePeriod]);
+  
+  // Filter returns by time period
+  const filteredReturns = useMemo(() => {
+    const { startDate, endDate } = getDateRange();
+    return allReturns.filter((returnRecord: any) => {
+      const returnDate = new Date(returnRecord.returnDate || returnRecord.createdAt);
+      return returnDate >= startDate && returnDate <= endDate;
+    });
+  }, [allReturns, timePeriod]);
+  
+  // Calculate metrics based on filtered sales
+  const calculatedMetrics = useMemo(() => {
+    const totalRevenue = filteredSales.reduce((sum: number, sale: any) => 
+      sum + (parseFloat(sale.total) || 0), 0
+    );
+    
+    // Count unique customers
+    const uniqueCustomers = new Set<string>();
+    filteredSales.forEach((sale: any) => {
+      if (sale.items && typeof sale.items === 'object' && sale.items.customerInfo) {
+        const customerInfo = sale.items.customerInfo;
+        if (customerInfo.email) {
+          uniqueCustomers.add(customerInfo.email);
+        } else if (customerInfo.phone) {
+          uniqueCustomers.add(customerInfo.phone);
+        } else if (customerInfo.name) {
+          uniqueCustomers.add(customerInfo.name);
+        }
+      }
+    });
+    
+    // Count unique products
+    const uniqueProducts = new Set<number>();
+    filteredSales.forEach((sale: any) => {
+      if (sale.items && typeof sale.items === 'object' && sale.items.items) {
+        sale.items.items.forEach((item: any) => {
+          if (item.productId) {
+            uniqueProducts.add(item.productId);
+          } else if (item.product?.id) {
+            uniqueProducts.add(item.product.id);
+          }
+        });
+      }
+    });
+    
+    const salesCount = filteredSales.length;
+    const averageTicket = salesCount > 0 ? totalRevenue / salesCount : 0;
+    
+    // Calculate revenue by store
+    const revenueByStore: Record<number, { revenue: number; name: string }> = {};
+    filteredSales.forEach((sale: any) => {
+      const storeId = sale.storeId;
+      if (!revenueByStore[storeId]) {
+        revenueByStore[storeId] = { revenue: 0, name: sale.storeName || `Store ${storeId}` };
+      }
+      revenueByStore[storeId].revenue += parseFloat(sale.total) || 0;
+    });
+    
+    // Calculate refunds
+    const totalRefunds = filteredReturns.reduce((sum: number, returnRecord: any) => 
+      sum + (parseFloat(returnRecord.totalRefund) || 0), 0
+    );
+    
+    return {
+      totalRevenue,
+      customers: uniqueCustomers.size,
+      products: uniqueProducts.size,
+      salesCount,
+      averageTicket,
+      revenueByStore,
+      refunds: {
+        count: filteredReturns.length,
+        total: totalRefunds
+      }
+    };
+  }, [filteredSales, filteredReturns]);
 
   // Prepare chart data
   const revenueChartData = filteredStores.map(store => ({
@@ -440,8 +618,143 @@ export default function CompanyDashboard() {
         </div>
       </div>
 
+      {/* Time Period Selector */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold">{t("companyDashboard.analytics.title")}</h2>
+        </div>
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+          <Button
+            variant={timePeriod === 'daily' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('daily')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.daily")}
+          </Button>
+          <Button
+            variant={timePeriod === 'weekly' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('weekly')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.weekly")}
+          </Button>
+          <Button
+            variant={timePeriod === 'monthly' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('monthly')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.monthly")}
+          </Button>
+          <Button
+            variant={timePeriod === 'annually' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('annually')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.annually")}
+          </Button>
+        </div>
+      </div>
+
       {/* Modern Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.totalRevenue")}</CardTitle>
+            <div className="p-2 bg-green-500 rounded-lg">
+              <DollarSign className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">€{calculatedMetrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.revenuePeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-orange-50 to-red-100 dark:from-orange-900 dark:to-red-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.customers")}</CardTitle>
+            <div className="p-2 bg-orange-500 rounded-lg">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">{calculatedMetrics.customers}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.customersPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-900 dark:to-pink-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.products")}</CardTitle>
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{calculatedMetrics.products}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.productsPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.salesCount")}</CardTitle>
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{calculatedMetrics.salesCount}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.salesPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Additional Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-cyan-50 to-teal-100 dark:from-cyan-900 dark:to-teal-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.averageTicket")}</CardTitle>
+            <div className="p-2 bg-cyan-500 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">€{calculatedMetrics.averageTicket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.averageTicketPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-red-50 to-rose-100 dark:from-red-900 dark:to-rose-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.refunds")}</CardTitle>
+            <div className="p-2 bg-red-500 rounded-lg">
+              <RotateCcw className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">€{calculatedMetrics.refunds.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {calculatedMetrics.refunds.count} {t("companyDashboard.cards.refundsCount")} ({t(`companyDashboard.timePeriod.${timePeriod}`)})
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
             <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.totalStores")}</CardTitle>
@@ -456,73 +769,29 @@ export default function CompanyDashboard() {
             </p>
           </CardContent>
         </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.totalRevenue")}</CardTitle>
-            <div className="p-2 bg-green-500 rounded-lg">
-              <DollarSign className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">€{analytics.totalRevenue.toLocaleString()}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {t("companyDashboard.cards.monthlyGrowth", { percent: analytics.monthlyGrowth })}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-900 dark:to-pink-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.products")}</CardTitle>
-            <div className="p-2 bg-purple-500 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{analytics.totalProducts}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {t("companyDashboard.cards.productsDesc")}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-orange-50 to-red-100 dark:from-orange-900 dark:to-red-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.customers")}</CardTitle>
-            <div className="p-2 bg-orange-500 rounded-lg">
-              <Users className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">{analytics.totalCustomers}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {t("companyDashboard.cards.customersDesc")}
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Analytics Charts Section */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">{t("companyDashboard.analytics.title")}</h2>
-        </div>
-        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Bar Chart */}
+          {/* Revenue Comparison by Store */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                {t("companyDashboard.analytics.revenueComparison")}
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  {t("companyDashboard.analytics.revenueComparison")}
+                </div>
+                <Badge variant="outline">{t(`companyDashboard.timePeriod.${timePeriod}`)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChartData}>
+                  <BarChart data={Object.entries(calculatedMetrics.revenueByStore).map(([storeId, data]: [string, any]) => ({
+                    name: data.name.length > 15 ? data.name.substring(0, 15) + '...' : data.name,
+                    revenue: data.revenue
+                  }))}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
@@ -536,10 +805,7 @@ export default function CompanyDashboard() {
                       tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
                     />
                     <Tooltip 
-                      formatter={(value, name) => [
-                        `€${Number(value).toLocaleString()}`, 
-                        name === 'revenue' ? 'Revenue' : name
-                      ]}
+                      formatter={(value) => [`€${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
                     />
                     <Bar dataKey="revenue" fill="#0088FE" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -551,15 +817,43 @@ export default function CompanyDashboard() {
           {/* Customer vs Products Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                {t("companyDashboard.analytics.customersProducts")}
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  {t("companyDashboard.analytics.customersProducts")}
+                </div>
+                <Badge variant="outline">{t(`companyDashboard.timePeriod.${timePeriod}`)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChartData}>
+                  <BarChart data={Object.entries(calculatedMetrics.revenueByStore).map(([storeId, data]: [string, any]) => {
+                    const storeSales = filteredSales.filter((s: any) => s.storeId === parseInt(storeId));
+                    const uniqueCustomers = new Set<string>();
+                    const uniqueProducts = new Set<number>();
+                    
+                    storeSales.forEach((sale: any) => {
+                      if (sale.items && typeof sale.items === 'object' && sale.items.customerInfo) {
+                        const customerInfo = sale.items.customerInfo;
+                        if (customerInfo.email) uniqueCustomers.add(customerInfo.email);
+                        else if (customerInfo.phone) uniqueCustomers.add(customerInfo.phone);
+                        else if (customerInfo.name) uniqueCustomers.add(customerInfo.name);
+                      }
+                      if (sale.items && typeof sale.items === 'object' && sale.items.items) {
+                        sale.items.items.forEach((item: any) => {
+                          if (item.productId) uniqueProducts.add(item.productId);
+                          else if (item.product?.id) uniqueProducts.add(item.product.id);
+                        });
+                      }
+                    });
+                    
+                    return {
+                      name: data.name.length > 15 ? data.name.substring(0, 15) + '...' : data.name,
+                      customers: uniqueCustomers.size,
+                      products: uniqueProducts.size
+                    };
+                  })}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 

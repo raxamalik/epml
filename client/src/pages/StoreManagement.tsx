@@ -538,7 +538,7 @@ export default function StoreManagement() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Edit Store</DialogTitle>
+              <DialogTitle>{t("storeManagement.dialogs.editTitle")}</DialogTitle>
             </DialogHeader>
             <form onSubmit={editForm.handleSubmit(handleUpdateStore)} className="space-y-4">
               <StoreForm form={editForm} mode="edit" />
@@ -550,21 +550,21 @@ export default function StoreManagement() {
                   {...editForm.register("isActive")}
                   className="rounded border-gray-300"
                 />
-                <Label htmlFor="edit-isActive">Store is active</Label>
+                <Label htmlFor="edit-isActive">{t("storeManagement.dialogs.activeLabel")}</Label>
               </div>
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={updateStoreMutation.isPending}>
                   {updateStoreMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {t("storeManagement.dialogs.updating")}
                     </>
                   ) : (
-                    "Update Store"
+                    t("storeManagement.dialogs.update")
                   )}
                 </Button>
               </DialogFooter>
@@ -580,8 +580,8 @@ export default function StoreManagement() {
             if (!open) setStoreToDelete(null);
           }}
           onConfirm={confirmDeleteStore}
-          title="Delete Store"
-          description="Are you sure you want to delete"
+          title={t("storeManagement.dialogs.deleteTitle")}
+          description={t("storeManagement.dialogs.deleteDesc")}
           itemName={storeToDelete?.name}
           isLoading={deleteStoreMutation.isPending}
         />

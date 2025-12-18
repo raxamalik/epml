@@ -17,7 +17,17 @@
     "yes": "Yes",
     "no": "No",
     "itemsPerPage": "Items per page",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "active": "Active",
+    "inactive": "Inactive",
+    "viewDetails": "View Details",
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "allStatus": "All Status",
+    "allStores": "All Stores",
+    "unassigned": "Unassigned",
+    "filterByStatus": "Filter by status",
+    "filterByStore": "Filter by store"
   },
   "auth": {
     "login": "Login",
@@ -69,6 +79,8 @@
     "title": "Dashboard",
     "overview": "Overview",
     "recentActivity": "Recent Activity",
+    "recentActivityEmpty": "No recent super admin activities",
+    "recentActivityCompany": "Company",
     "quickActions": "Quick Actions",
     "super": {
       "title": "Super Admin Dashboard",
@@ -84,7 +96,11 @@
       "monthlyRevenue": "Monthly Revenue",
       "systemUptime": "System Uptime",
       "fromLastMonth": "from last month",
-      "allSystemsOperational": "All systems operational"
+      "allSystemsOperational": "All systems operational",
+      "totalCompanies": "Total Companies",
+      "totalCompaniesDesc": "Registered companies",
+      "totalBranches": "Total Branches",
+      "totalBranchesDesc": "All store locations"
     },
     "userRoles": {
       "title": "User Roles",
@@ -584,15 +600,30 @@
     "systemActive": "System Active",
     "activeStores": "{{count}} Active Stores",
     "managersCount": "{{count}} Managers",
+    "timePeriod": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "annually": "Annually"
+    },
     "cards": {
       "totalStores": "Total Stores",
       "activeStores": "{{count}} active stores",
       "totalRevenue": "Total Revenue",
       "monthlyGrowth": "+{{percent}}% from last month",
+      "revenuePeriod": "{{period}} revenue",
       "products": "Products",
       "productsDesc": "Across all stores",
+      "productsPeriod": "{{period}} products",
       "customers": "Customers",
-      "customersDesc": "Total customer base"
+      "customersDesc": "Total customer base",
+      "customersPeriod": "{{period}} customers",
+      "salesCount": "Number of Sales",
+      "salesPeriod": "{{period}} sales",
+      "averageTicket": "Average Ticket",
+      "averageTicketPeriod": "{{period}} average",
+      "refunds": "Cancelled Orders / Refunds",
+      "refundsCount": "returns"
     },
     "analytics": {
       "title": "Analytics Overview",
@@ -639,6 +670,9 @@
     "settings": {
       "title": "Company Profile",
       "description": "Update your company information and contact details",
+      "companyProfile": {
+        "companyName": "Company Name"
+      },
       "companyName": "Company Name",
       "registrationNumber": "Registration Number (IČO)",
       "vatNumber": "VAT Number (DIČ)",
@@ -1168,6 +1202,9 @@
       "status": "Status",
       "joined": "Joined",
       "viewAllCount": "View all {{count}} managers"
+    },
+    "infoCard": {
+      "totalSales": "Total Sales"
     }
   },
   "managerManagement": {
@@ -1175,6 +1212,7 @@
     "subtitle": "Manage your team members and store managers",
     "searchPlaceholder": "Search managers by name, email, phone, or store...",
     "createButton": "Create Manager",
+    "updateButton": "Update Manager",
     "headerCount": "Managers ({{count}})",
     "table": {
       "name": "Name",
@@ -1202,7 +1240,8 @@
       "statusActive": "Active",
       "statusInactive": "Inactive",
       "creating": "Creating...",
-      "updating": "Updating..."
+      "updating": "Updating...",
+      "updateButton": "Update Manager"
     },
     "toasts": {
       "created": "Manager Created",
@@ -1727,6 +1766,7 @@
       "monthlyGrowth": "+{{value}}% from last month",
       "activeStores": "Active Stores",
       "totalStores": "of {{count}} total stores",
+      "storeName": "Store",
       "totalProducts": "Total Products",
       "acrossStores": "Across all stores",
       "totalCustomers": "Total Customers",
@@ -1742,12 +1782,19 @@
       "mar": "Mar",
       "apr": "Apr",
       "may": "May",
-      "jun": "Jun"
+      "jun": "Jun",
+      "jul": "Jul",
+      "aug": "Aug",
+      "sep": "Sep",
+      "oct": "Oct",
+      "nov": "Nov",
+      "dec": "Dec"
     },
     "charts": {
       "revenueComparison": "Store Revenue Comparison",
       "statusDistribution": "Store Status Distribution",
       "monthlyPerformance": "Monthly Performance Trend",
+      "storeRevenue": "Store Revenue Overview",
       "customersVsProducts": "Customers vs Products by Store"
     },
     "topStores": {
@@ -1811,6 +1858,42 @@
   "notFound": {
     "title": "404 Page Not Found",
     "description": "Did you forget to add the page to the router?"
+  },
+  "receipt": {
+    "taxReceiptTitle": "Tax receipt",
+    "companyId": "Company ID",
+    "vatId": "VAT ID",
+    "branch": "Branch",
+    "address": "Address",
+    "register": "Register",
+    "cashier": "Cashier",
+    "dateTime": "Date/time",
+    "receiptNo": "Receipt No.",
+    "mode": "Mode",
+    "itemsTitle": "ITEMS",
+    "batch": "Batch",
+    "quantity": "Quantity",
+    "unitPrice": "Unit price",
+    "vat": "VAT",
+    "subtotal": "SUBTOTAL",
+    "discount": "Discount",
+    "vatBase": "VAT BASE",
+    "totalVat": "VAT",
+    "totalDue": "TOTAL DUE",
+    "paymentTitle": "PAYMENT",
+    "paymentType": "Payment type",
+    "terminal": "Terminal",
+    "authorization": "Authorization",
+    "paid": "Paid",
+    "change": "Change",
+    "footerLine1": "Thank you and have a nice day.",
+    "printReceipt": "Print Receipt",
+    "selectReceiptType": "Select Receipt Type",
+    "descriptionReceipt": "Description",
+    "englishReceipt": "English Receipt",
+    "czechReceipt": "Czech Receipt",
+    "print": "Print",
+    "close": "Close"
   }
 }
 

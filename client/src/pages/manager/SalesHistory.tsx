@@ -113,6 +113,8 @@ function SalesHistory() {
   const [refundMethod, setRefundMethod] = useState<'cash' | 'card'>('cash');
   const [dateFilter, setDateFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'card'>('all');
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [selectedSaleForReceipt, setSelectedSaleForReceipt] = useState<Sale | null>(null);
 
   const storeId = user?.storeId;
   // Note: Backend handles the 14-day restriction for managers automatically
@@ -196,10 +198,96 @@ function SalesHistory() {
   const totalSales = salesResponse?.total || 0;
   const totalPages = salesResponse?.totalPages || 0;
 
+  // Function to print receipt
+  const printReceipt = async (sale: Sale, language: 'en' | 'cz' = 'en', mode: 'live' | 'description' = 'live') => {
+    try {
+      const paymentMethod = sale.paymentMethod === 'cash' ? 'cash' : 'card';
+      const response = await apiRequest(
+        'GET',
+        `/api/sales/${sale.id}/receipt?language=${language}&mode=${mode}&paymentMethod=${paymentMethod}&format=json`
+      );
+      const data = await response.json();
+      const receiptText = data.receipt;
+      const companyLogo = data.companyLogo;
+      
+      // Replace [LOGO] placeholder with actual image if logo exists
+      let receiptHtml = receiptText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (companyLogo && receiptText.includes('[LOGO]')) {
+        const logoHtml = `<div style="text-align: center; margin: 10px 0;"><img src="${companyLogo}" alt="Company Logo" style="max-width: 200px; max-height: 80px; object-fit: contain;" /></div>`;
+        receiptHtml = receiptHtml.replace(/\[LOGO\]/g, logoHtml);
+      } else if (receiptText.includes('[LOGO]')) {
+        // Remove [LOGO] placeholder if no logo
+        receiptHtml = receiptHtml.replace(/\[LOGO\]/g, '');
+      }
+      
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast({
+          title: "Print blocked",
+          description: "Please allow pop-ups to print receipts",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Write the receipt content with proper formatting
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Receipt</title>
+            <style>
+              @media print {
+                @page {
+                  margin: 0;
+                  size: 80mm auto;
+                }
+                body {
+                  margin: 0;
+                  padding: 10mm;
+                }
+              }
+              body {
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                line-height: 1.4;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                max-width: 80mm;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              img {
+                display: block;
+                margin: 0 auto;
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${receiptHtml}</pre>
+            <script>
+              window.onload = function() {
+                window.print();
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } catch (error: any) {
+      toast({
+        title: "Error loading receipt",
+        description: error.message || "Failed to load receipt",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleViewDetails = async (sale: Sale) => {
     setSelectedSale(sale);
     setIsDetailsDialogOpen(true);
-    
+
     // Fetch sale details with salesItems
     try {
       const res = await apiRequest('GET', `/api/sales/${sale.id}`);
@@ -734,15 +822,28 @@ function SalesHistory() {
                             </p>
                           </div>
 
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleViewDetails(sale)}
-                            className="ml-4"
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            {t("salesHistory.list.detailsButton")}
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewDetails(sale)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              {t("salesHistory.list.detailsButton")}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedSaleForReceipt(sale);
+                                setShowReceiptDialog(true);
+                              }}
+                              title={t("receipt.printReceipt")}
+                            >
+                              <Receipt className="h-4 w-4 mr-1" />
+                              {t("receipt.printReceipt")}
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1014,8 +1115,21 @@ function SalesHistory() {
                 </p>
               </div>
 
-              {/* Return Button */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              {/* Action Buttons */}
+              <div className="flex justify-between gap-2 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    if (selectedSale) {
+                      setSelectedSaleForReceipt(selectedSale);
+                      setShowReceiptDialog(true);
+                    }
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <Receipt className="h-4 w-4" />
+                  {t("receipt.printReceipt")}
+                </Button>
                 <Button
                   variant="outline"
                   onClick={handleOpenReturn}
@@ -1231,6 +1345,60 @@ function SalesHistory() {
               {createReturnMutation.isPending
                 ? t("salesHistory.return.processing")
                 : t("salesHistory.return.processButton")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Type Selection Dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Receipt className="h-5 w-5 mr-2" />
+              {t("receipt.printReceipt")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("receipt.selectReceiptType")}
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  if (selectedSaleForReceipt) {
+                    await printReceipt(selectedSaleForReceipt, 'en', 'live');
+                  }
+                  setShowReceiptDialog(false);
+                }}
+              >
+                <span className="font-semibold">{t("receipt.englishReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  English receipt with real data
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  if (selectedSaleForReceipt) {
+                    await printReceipt(selectedSaleForReceipt, 'cz', 'live');
+                  }
+                  setShowReceiptDialog(false);
+                }}
+              >
+                <span className="font-semibold">{t("receipt.czechReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Český doklad s reálnými údaji
+                </span>
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReceiptDialog(false)}>
+              {t("receipt.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

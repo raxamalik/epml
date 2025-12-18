@@ -17,7 +17,17 @@
     "yes": "Ano",
     "no": "Ne",
     "itemsPerPage": "Položek na stránku",
-    "notAvailable": "N/A"
+    "notAvailable": "N/A",
+    "active": "Aktivní",
+    "inactive": "Neaktivní",
+    "viewDetails": "Zobrazit detaily",
+    "activate": "Aktivovat",
+    "deactivate": "Deaktivovat",
+    "allStatus": "Všechny stavy",
+    "allStores": "Všechny prodejny",
+    "unassigned": "Nepřiřazeno",
+    "filterByStatus": "Filtrovat podle stavu",
+    "filterByStore": "Filtrovat podle prodejny"
   },
   "auth": {
     "login": "Přihlásit se",
@@ -27,9 +37,9 @@
     "password": "Heslo",
     "forgotPassword": "Zapomenuté heslo",
     "resetPassword": "Obnovit heslo",
-    "welcomeBack": "Vítejte zpět!",
+    "welcomeBack": "Vítejte!",
     "loginSuccessful": "Úspěšně jste se přihlásili ke svému účtu",
-    "profileCompletionRequired": "Vyžadováno dokončení profilu",
+    "profileCompletionRequired": "Je nutné dokončit profil",
     "completeProfileMessage": "Prosím dokončete profil vaší společnosti pro pokračování",
     "twoFactorRequired": "Vyžadováno 2FA",
     "enter2FACode": "Prosím zadejte kód z Google Authenticator"
@@ -69,6 +79,8 @@
     "title": "Nástěnka",
     "overview": "Přehled",
     "recentActivity": "Nedávná aktivita",
+    "recentActivityEmpty": "Žádné nedávné aktivity super administrátora",
+    "recentActivityCompany": "Společnost",
     "quickActions": "Rychlé akce",
     "super": {
       "title": "Nástěnka super administrátora",
@@ -84,7 +96,11 @@
       "monthlyRevenue": "Měsíční tržby",
       "systemUptime": "Dostupnost systému",
       "fromLastMonth": "oproti minulému měsíci",
-      "allSystemsOperational": "Všechny systémy fungují"
+      "allSystemsOperational": "Všechny systémy fungují",
+      "totalCompanies": "Celkem společností",
+      "totalCompaniesDesc": "Registrované společnosti",
+      "totalBranches": "Celkem poboček",
+      "totalBranchesDesc": "Všechny prodejní místa"
     },
     "userRoles": {
       "title": "Uživatelské role",
@@ -498,8 +514,8 @@
     "emailNotificationsDesc": "Dostávejte e-mailová upozornění pro důležité události a aktualizace",
     "smsAlerts": "SMS upozornění",
     "smsAlertsDesc": "Dostávejte SMS oznámení pro kritické problémy",
-    "weeklyReports": "Týdenní zprávy",
-    "weeklyReportsDesc": "Automaticky generovat a odesílat týdenní analytické zprávy",
+    "weeklyReports": "Týdenní reporty",
+    "weeklyReportsDesc": "Automaticky generovat a odesílat týdenní analytické reporty",
     "storeAlerts": "Upozornění prodejny",
     "storeAlertsDesc": "Oznámení, když se prodejny odpojí nebo mají problémy",
     "passwordAuthentication": "Heslo a ověřování",
@@ -544,7 +560,7 @@
     "verifyEnable": "Ověřit a povolit",
     "verifying": "Ověřování...",
     "twoFactorSuccessTitle": "2FA úspěšně povoleno!",
-    "twoFactorSuccessDesc": "Dvoufaktorové ověřování nyní chrání váš účet",
+    "twoFactorSuccessDesc": "Váš účet je nyní chráněn dvoufaktorovým ověřováním",
     "saveBackupCodes": "Důležité: Uložte si záložní kódy",
     "saveBackupCodesDesc": "Uložte tyto kódy na bezpečné místo. Použijte je pro přístup k účtu, pokud ztratíte telefon.",
     "copyAllBackupCodes": "Kopírovat všechny záložní kódy",
@@ -584,15 +600,30 @@
     "systemActive": "Systém aktivní",
     "activeStores": "{{count}} aktivních prodejen",
     "managersCount": "{{count}} manažerů",
+    "timePeriod": {
+      "daily": "Denně",
+      "weekly": "Týdně",
+      "monthly": "Měsíčně",
+      "annually": "Ročně"
+    },
     "cards": {
       "totalStores": "Celkem prodejen",
       "activeStores": "{{count}} aktivních prodejen",
       "totalRevenue": "Celkové tržby",
       "monthlyGrowth": "+{{percent}}% oproti minulému měsíci",
+      "revenuePeriod": "{{period}} tržby",
       "products": "Produkty",
       "productsDesc": "Napříč všemi prodejnami",
+      "productsPeriod": "{{period}} produkty",
       "customers": "Zákazníci",
-      "customersDesc": "Celková zákaznická základna"
+      "customersDesc": "Celková zákaznická základna",
+      "customersPeriod": "{{period}} zákazníci",
+      "salesCount": "Počet prodejů",
+      "salesPeriod": "{{period}} prodeje",
+      "averageTicket": "Průměrný nákup",
+      "averageTicketPeriod": "{{period}} průměr",
+      "refunds": "Zrušené objednávky / Vrácení",
+      "refundsCount": "vrácení"
     },
     "analytics": {
       "title": "Přehled analytik",
@@ -639,6 +670,9 @@
     "settings": {
       "title": "Profil společnosti",
       "description": "Aktualizujte informace o společnosti a kontaktní údaje",
+      "companyProfile": {
+        "companyName": "Název společnosti"
+      },
       "companyName": "Název společnosti",
       "registrationNumber": "IČO",
       "vatNumber": "DIČ",
@@ -850,7 +884,7 @@
       "category": "Kategorie",
       "allCategories": "Všechny kategorie",
       "stock": "Sklad",
-      "allStock": "Všechny zásoby",
+      "allStock": "Vše skladem",
       "lowStock": "Nízký stav",
       "outOfStock": "Nedostupné",
       "viewGrid": "Mřížka",
@@ -858,7 +892,7 @@
     },
     "cards": {
       "totalProducts": "Celkem produktů",
-      "itemsInCatalog": "Položek v katalogu",
+      "itemsInCatalog": "Položky v katalogu",
       "lowStockItems": "Položky s nízkým stavem",
       "needRestocking": "Potřebují doplnit",
       "outOfStock": "Nedostupné",
@@ -1168,6 +1202,9 @@
       "status": "Stav",
       "joined": "Přidán",
       "viewAllCount": "Zobrazit všech {{count}} manažerů"
+    },
+    "infoCard": {
+      "totalSales": "Celkem prodejů"
     }
   },
   "managerManagement": {
@@ -1175,6 +1212,7 @@
     "subtitle": "Spravujte členy týmu a manažery prodejen",
     "searchPlaceholder": "Hledejte manažery podle jména, e-mailu, telefonu nebo prodejny...",
     "createButton": "Vytvořit manažera",
+    "updateButton": "Aktualizovat manažera",
     "headerCount": "Manažeři ({{count}})",
     "table": {
       "name": "Jméno",
@@ -1200,7 +1238,10 @@
       "activeDesc": "Povolit nebo zakázat tento účet manažera",
       "storeLabel": "Prodejna",
       "statusActive": "Aktivní",
-      "statusInactive": "Neaktivní"
+      "statusInactive": "Neaktivní",
+      "creating": "Vytváření...",
+      "updating": "Aktualizace...",
+      "updateButton": "Aktualizovat manažera"
     },
     "toasts": {
       "created": "Manažer vytvořen",
@@ -1256,7 +1297,7 @@
       "recentBadge": "Nedávné",
       "customerFallback": "Zákazník",
       "noContactInfo": "Bez kontaktních údajů",
-      "walkInCustomer": "Náhodný zákazník",
+      "walkInCustomer": "Neregistrovaný zákazník",
       "itemsCount": "{{count}} položka{{count, plural, one {} other {y}}}",
       "detailsButton": "Detaily"
     },
@@ -1269,7 +1310,7 @@
       "customerName": "Jméno",
       "customerPhone": "Telefon",
       "customerEmail": "E‑mail",
-      "walkInCustomerFull": "Náhodný zákazník (nejsou uvedeny kontaktní údaje)",
+      "walkInCustomerFull": "Neregistrovaný zákazník (nejsou uvedeny kontaktní údaje)",
       "itemsTitle": "Zakoupené položky",
       "itemsHeader": {
         "item": "Položka",
@@ -1283,7 +1324,7 @@
       "vat": {
         "breakdownTitle": "Rozpis DPH",
         "netAmount": "Základ daně:",
-        "rateLine": "DPH {{rate}} % (základ: ${{net}}):",
+        "rateLine": "DPH {{rate}} % (základ: {{net}} Kč):",
         "totalVat": "Celkem DPH:"
       },
       "totalAmount": "Celková částka:",
@@ -1302,9 +1343,9 @@
       "selectItemsLabel": "Vyberte položky k vrácení",
       "noItemsReturnTitle": "Tento prodej nemá záznamy o položkách pro zpracování vrácení.",
       "noItemsReturnDesc": "Vrácení je dostupné pouze pro prodeje s úplným sledováním položek.",
-      "itemLine": "Původní množství: {{quantity}} | Dostupné: {{availableQty}} | Cena: ${{price}} | DPH: {{vatRate}} %",
+      "itemLine": "Původní množství: {{quantity}} | Dostupné: {{availableQty}} | Cena: {{price}} Kč | DPH: {{vatRate}} %",
       "alreadyReturned": "Již vráceno: {{count}}",
-      "returningLine": "Vrací se: {{quantity}} (Vráceno: ${{refund}})",
+      "returningLine": "Vrací se: {{quantity}} (Vráceno: {{refund}} Kč)",
       "qtyPlaceholder": "Množství",
       "summaryTitle": "Souhrn vrácení",
       "summaryItem": "Položka {{index}}",
@@ -1498,10 +1539,10 @@
       "emptyTitle": "Váš košík je prázdný",
       "emptyDescription": "Přidejte produkty pro zahájení prodeje",
       "each": "za kus",
-      "checkoutButton": "Pokladna"
+      "checkoutButton": "Dokončit nákup"
     },
     "summary": {
-      "netAmount": "Čistá částka:",
+      "netAmount": "Základ daně:",
       "vatRateLabel": "DPH {{rate}} %:",
       "totalVat": "Celková DPH:",
       "total": "Celkem:"
@@ -1600,7 +1641,7 @@
         "empty": "Košík je prázdný",
         "each": "za kus",
         "priceBreakdown": "Rozpis ceny",
-        "netAmount": "Čistá částka:",
+        "netAmount": "Základ daně:",
         "vatRate": "DPH ({{rate}} %):",
         "totalVat": "Celková DPH:",
         "total": "Celkem:",
@@ -1725,6 +1766,7 @@
       "monthlyGrowth": "+{{value}} % oproti minulému měsíci",
       "activeStores": "Aktivní prodejny",
       "totalStores": "z {{count}} celkových prodejen",
+      "storeName": "Prodejna",
       "totalProducts": "Celkem produktů",
       "acrossStores": "Napříč všemi prodejnami",
       "totalCustomers": "Celkem zákazníků",
@@ -1740,12 +1782,19 @@
       "mar": "Bře",
       "apr": "Dub",
       "may": "Kvě",
-      "jun": "Čvn"
+      "jun": "Čvn",
+      "jul": "Čvc",
+      "aug": "Srp",
+      "sep": "Zář",
+      "oct": "Říj",
+      "nov": "Lis",
+      "dec": "Pro"
     },
     "charts": {
       "revenueComparison": "Srovnání tržeb prodejen",
       "statusDistribution": "Rozložení stavu prodejen",
       "monthlyPerformance": "Měsíční vývoj výkonu",
+      "storeRevenue": "Přehled tržeb prodejny",
       "customersVsProducts": "Zákazníci vs. produkty podle prodejny"
     },
     "topStores": {
@@ -1809,5 +1858,41 @@
   "notFound": {
     "title": "404 Stránka nenalezena",
     "description": "Nezapomněli jste stránku přidat do routeru?"
+  },
+  "receipt": {
+    "taxReceiptTitle": "Daňový doklad",
+    "companyId": "IČO",
+    "vatId": "DIČ",
+    "branch": "Pobočka",
+    "address": "Adresa",
+    "register": "Pokladna",
+    "cashier": "Pokladní",
+    "dateTime": "Datum/čas",
+    "receiptNo": "Číslo dokladu",
+    "mode": "Typ",
+    "itemsTitle": "POLOŽKY",
+    "batch": "Šarže",
+    "quantity": "Množství",
+    "unitPrice": "Jednotková cena",
+    "vat": "DPH",
+    "subtotal": "MEZISOUČET",
+    "discount": "Sleva",
+    "vatBase": "Základ DPH",
+    "totalVat": "DPH",
+    "totalDue": "CELKEM K ÚHRADĚ",
+    "paymentTitle": "PLATBA",
+    "paymentType": "Způsob platby",
+    "terminal": "Terminál",
+    "authorization": "Autorizace",
+    "paid": "Zaplaceno",
+    "change": "Vráceno",
+    "footerLine1": "Děkujeme a přejeme hezký den.",
+    "printReceipt": "Tisknout doklad",
+    "selectReceiptType": "Vyberte typ dokladu",
+    "descriptionReceipt": "Popis",
+    "englishReceipt": "Anglický doklad",
+    "czechReceipt": "Český doklad",
+    "print": "Tisknout",
+    "close": "Zavřít"
   }
 }

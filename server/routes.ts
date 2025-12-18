@@ -7,7 +7,7 @@ import { requirePermission, requireAnyPermission, requireRole } from "./permissi
 import { PERMISSIONS } from "../shared/permissions";
 import { insertStoreSchema, insertActivitySchema, companies, insertCompanyInvitationSchema, companyInvitations, userSettings, productCategories, type ProductCategory } from "@shared/schema";
 import { sendCompanyInvitationEmail, sendWelcomeEmail } from "./emailService";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { TwoFactorAuthService } from "./twoFactorAuth";
 import path from "path";
@@ -25,6 +25,7 @@ import {
   normalizeUserProfileImages,
   normalizeAllImageUrls
 } from "./r2Utils";
+import { renderCashCardTaxReceipt, type ReceiptLanguage, type ReceiptMode, type PaymentMethod } from "./receiptRenderer";
 
 // Scheduled cleanup job for old audit logs based on dataRetention setting
 async function runAuditLogCleanup() {
@@ -113,6 +114,55 @@ async function scheduleAuditLogCleanup() {
 // Initialize the scheduled cleanup
 if (typeof cron !== 'undefined') {
   scheduleAuditLogCleanup();
+}
+
+/**
+ * Calculate monthly performance data from sales
+ * Returns data for the last 6 months
+ */
+function calculateMonthlyPerformance(sales: any[]): any[] {
+  // Get current date and calculate last 6 months
+  const now = new Date();
+  const months: Record<string, any> = {};
+  
+  // Initialize last 6 months with zero values
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = monthNames[date.getMonth()];
+    months[monthKey] = {
+      month: monthName,
+      monthNumber: date.getMonth() + 1,
+      year: date.getFullYear(),
+      revenue: 0,
+      customers: 0,
+      orders: 0
+    } as any;
+  }
+  
+  // Process sales and group by month
+  sales.forEach((sale: any) => {
+    if (!sale.createdAt || sale.isCancelled) return;
+    
+    const saleDate = new Date(sale.createdAt);
+    const monthKey = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (months[monthKey]) {
+      const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
+      months[monthKey].revenue += saleTotal || 0;
+      months[monthKey].customers += 1; // Each sale = 1 customer transaction
+      months[monthKey].orders += 1;
+    }
+  });
+  
+  // Convert to array and format
+  return Object.values(months).map((month: any) => ({
+    month: month.month,
+    revenue: Math.round(month.revenue * 100) / 100, // Round to 2 decimal places
+    customers: month.customers,
+    orders: month.orders
+  }));
 }
 
 /**
@@ -402,8 +452,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (page < 1) {
         return res.status(400).json({ message: "Page must be greater than 0" });
       }
-      if (limit < 1 || limit > 100) {
-        return res.status(400).json({ message: "Limit must be between 1 and 100" });
+      // Allow higher limits for exports (up to 10000)
+      if (limit < 1 || limit > 10000) {
+        return res.status(400).json({ message: "Limit must be between 1 and 10000" });
       }
       
       const result = await storage.getAllUsers(limit, offset);
@@ -940,8 +991,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Company not found" });
       }
 
-      // Check if company is already activated (has a password)
-      if (company.password) {
+      // Check if company is already active - only check isActive status
+      if (company.isActive === true) {
         return res.status(400).json({ 
           message: "Company is already activated. An invitation cannot be sent to an activated company account." 
         });
@@ -1111,8 +1162,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Company not found" });
       }
 
-      // Check if company is already activated
-      if (company.password) {
+      // Check if company is already active - only check isActive status
+      if (company.isActive === true) {
         return res.status(400).json({ 
           message: "Company is already activated." 
         });
@@ -1901,6 +1952,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return res.status(403).json({ message: "Cannot assign manager to store not owned by your company" });
           }
         }
+      }
+      
+      // If storeId is provided but companyId is not set, derive companyId from store
+      if (managerData.storeId && !managerData.companyId) {
+        const store = await storage.getStore(parseInt(managerData.storeId));
+        if (!store) {
+          return res.status(404).json({ message: "Store not found" });
+        }
+        managerData.companyId = store.companyId;
       }
       
       console.log("Creating manager with data:", managerData);
@@ -2725,6 +2785,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(sale);
     } catch (error: any) {
       console.error("Error creating sale:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Receipt endpoint - MUST come before /api/sales/:saleId to avoid route conflicts
+  app.get("/api/sales/:saleId/receipt", isAuthenticated, async (req, res) => {
+    try {
+      const { saleId } = req.params;
+      const language = (req.query.language as ReceiptLanguage) || 'en';
+      const mode = (req.query.mode as ReceiptMode) || 'live';
+      const paymentMethod = (req.query.paymentMethod as PaymentMethod) || (req.query.paymentMethod as string)?.toLowerCase() === 'cash' ? 'cash' : 'card';
+
+      // Get sale
+      const sale = await storage.getSaleById(saleId);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
+      }
+
+      // Get sales items
+      const salesItems = await storage.getSalesItemsBySaleId(saleId);
+
+      // Get product and batch info for each item
+      const itemsWithDetails = await Promise.all(
+        salesItems.map(async (item) => {
+          const product = await storage.getProduct(item.productId);
+          let batch = null;
+          if (item.batchId) {
+            batch = await storage.getProductBatch(item.batchId);
+          }
+          return {
+            ...item,
+            product: product ? {
+              name: product.name,
+              pack: (product as any).packageSize || undefined,
+            } : undefined,
+            batch: batch ? {
+              batchNumber: batch.batchNumber,
+            } : undefined,
+          };
+        })
+      );
+
+      // Get store
+      const store = await storage.getStore(sale.storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Get company
+      const company = await storage.getCompany(store.companyId);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      // Normalize company logo URL
+      const normalizedCompany = normalizeCompanyLogo(company);
+      // Get cashier (user who made the sale)
+      let cashier = null;
+      if (sale.userId) {
+        cashier = await storage.getUserById(sale.userId);
+      }
+
+      // Calculate totals
+      let subtotal = 0;
+      let totalVat = 0;
+      const vatBreakdown: Record<string, { base: number; vat: number }> = {};
+
+      itemsWithDetails.forEach((item) => {
+        const qty = parseFloat(item.quantity.toString());
+        const unitPrice = parseFloat(item.unitPrice.toString());
+        const vatRate = parseFloat(item.vatRate.toString());
+        const lineTotal = qty * unitPrice;
+        const lineVat = (lineTotal * vatRate) / (100 + vatRate);
+        const lineBase = lineTotal - lineVat;
+
+        subtotal += lineTotal;
+        totalVat += lineVat;
+
+        const vatKey = vatRate.toString();
+        if (!vatBreakdown[vatKey]) {
+          vatBreakdown[vatKey] = { base: 0, vat: 0 };
+        }
+        vatBreakdown[vatKey].base += lineBase;
+        vatBreakdown[vatKey].vat += lineVat;
+      });
+
+      // Get discount if any (from sale.vatBreakdown or calculate from sale.total vs subtotal)
+      const discount = subtotal - parseFloat(sale.total.toString());
+      const discountName = (sale as any).discountName || "";
+
+      // Use the first VAT rate for display (or calculate weighted average)
+      const primaryVatRate = itemsWithDetails.length > 0 ? itemsWithDetails[0].vatRate : "21";
+      const primaryVatBase = vatBreakdown[primaryVatRate.toString()]?.base || (subtotal - totalVat);
+      const primaryVatAmount = vatBreakdown[primaryVatRate.toString()]?.vat || totalVat;
+
+      // Prepare receipt data
+      const receiptData = {
+        sale,
+        items: itemsWithDetails,
+        company: {
+          name: normalizedCompany.name,
+          address: normalizedCompany.address,
+          registrationNumber: normalizedCompany.registrationNumber,
+          vatNumber: normalizedCompany.vatNumber,
+          companyLogo: normalizedCompany.companyLogo || null,
+        },
+        store: {
+          id: store.id,
+          name: store.name,
+          address: store.address,
+        },
+        cashier: cashier ? {
+          firstName: cashier.firstName,
+          lastName: cashier.lastName,
+        } : null,
+        totals: {
+          subtotal,
+          discount: discount > 0 ? discount : 0,
+          discountName,
+          vatBase: primaryVatBase,
+          vatAmount: primaryVatAmount,
+          total: parseFloat(sale.total.toString()),
+        },
+        payment: {
+          terminalId: (sale as any).terminalId || "",
+          authCode: (sale as any).authCode || "",
+          paid: parseFloat(sale.total.toString()),
+          change: 0,
+        },
+        currency: "CZK",
+        receiptNumber: sale.id,
+        registerId: (sale as any).registerId || "POS-01",
+      };
+
+      // Render receipt
+      const receiptText = renderCashCardTaxReceipt(receiptData, {
+        language,
+        mode,
+        paymentMethod,
+      });
+
+      // Check if client wants JSON format (for logo support)
+      const format = req.query.format as string;
+      if (format === 'json') {
+        return res.json({
+          receipt: receiptText,
+          companyLogo: normalizedCompany.companyLogo || null,
+        });
+      }
+
+      // Return as plain text
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.send(receiptText);
+    } catch (error: any) {
+      console.error("Error generating receipt:", error);
       res.status(500).json({ message: error.message });
     }
   });
@@ -4143,9 +4358,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = (req as any).user;
       
-      // Only allow company admins to access their company's stores
-      if (user.type !== 'company') {
+      // Allow company admins and store owners to access their company's stores
+      if (user.type !== 'company' && user.role !== 'store_owner' && user.role !== 'company_admin') {
         return res.status(403).json({ message: "Access denied. Company access required." });
+      }
+      
+      // Store owners and company admins need a companyId
+      if (!user.companyId) {
+        return res.status(403).json({ message: "Access denied. Company ID required." });
       }
       
       // Get stores specific to the logged-in company
@@ -4153,8 +4373,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Calculate revenue from actual sales for each store
       const storesWithRevenue = await Promise.all(storesData.map(async (store: any) => {
-        const storeSales = await storage.getSalesByStore(store.id);
-        const revenue = storeSales.reduce((sum, sale) => {
+        const salesResult = await storage.getSalesByStore(store.id);
+        const storeSales = salesResult.sales || [];
+        const revenue = storeSales.reduce((sum: number, sale: any) => {
           const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
           return sum + (saleTotal || 0);
         }, 0);
@@ -4189,9 +4410,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = (req as any).user;
       
-      // Only allow company admins to access their company's analytics
-      if (user.type !== 'company') {
+      // Allow company admins and store owners to access their company's analytics
+      if (user.type !== 'company' && user.role !== 'store_owner' && user.role !== 'company_admin') {
         return res.status(403).json({ message: "Access denied. Company access required." });
+      }
+      
+      // Store owners and company admins need a companyId
+      if (!user.companyId) {
+        return res.status(403).json({ message: "Access denied. Company ID required." });
       }
       
       // Get analytics specific to the logged-in company
@@ -4213,13 +4439,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate total customers from unique sales (each sale = 1 customer transaction)
       const totalCustomers = allSales.length;
       
+      // Calculate monthly performance data (last 6 months)
+      const monthlyData = calculateMonthlyPerformance(allSales);
+      
       const analytics = {
         totalStores,
         activeStores,
         totalRevenue,
         totalProducts,
         totalCustomers,
-        monthlyGrowth: 12.5 // This would need historical data to calculate properly
+        monthlyGrowth: 12.5, // This would need historical data to calculate properly
+        monthlyData
       };
       
       console.log(`Analytics for company ID ${user.companyId} (${user.companyName}):`, analytics);
@@ -4227,6 +4457,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching company analytics:", error);
       res.status(500).json({ message: "Failed to fetch company analytics" });
+    }
+  });
+
+  // Store-specific analytics endpoint for managers and store owners
+  app.get('/api/stores/:storeId/analytics', isAuthenticated, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const storeId = parseInt(req.params.storeId);
+      
+      if (isNaN(storeId)) {
+        return res.status(400).json({ message: "Invalid store ID" });
+      }
+
+      // Get the store to verify access
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Authorization: Managers and store owners can only access their assigned store
+      if ((user.role === 'manager' || user.role === 'store_owner') && user.storeId !== storeId) {
+        return res.status(403).json({ message: "Access denied. You can only access your assigned store." });
+      }
+
+      // Company admins can access any store in their company
+      if ((user.type === 'company' || user.role === 'company_admin') && user.companyId !== store.companyId) {
+        return res.status(403).json({ message: "Access denied. Store does not belong to your company." });
+      }
+
+      // Get store sales
+      const salesResult = await storage.getSalesByStore(storeId);
+      const storeSales = salesResult.sales || [];
+      
+      // Calculate revenue from sales
+      const totalRevenue = storeSales.reduce((sum: number, sale: any) => {
+        const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
+        return sum + (saleTotal || 0);
+      }, 0);
+
+      // Get products count for this store
+      const productsResult = await storage.getProductsByStore(storeId);
+      const totalProducts = productsResult.total || 0;
+
+      // Total customers = number of sales (each sale = 1 customer transaction)
+      const totalCustomers = storeSales.length;
+
+      // Calculate monthly performance data (last 6 months)
+      const monthlyData = calculateMonthlyPerformance(storeSales);
+      
+      const analytics = {
+        storeId: store.id,
+        storeName: store.name,
+        totalStores: 1,
+        activeStores: store.isActive ? 1 : 0,
+        totalRevenue,
+        totalProducts,
+        totalCustomers,
+        monthlyGrowth: 12.5, // This would need historical data to calculate properly
+        monthlyData
+      };
+      
+      console.log(`Analytics for store ID ${storeId} (${store.name}):`, analytics);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching store analytics:", error);
+      res.status(500).json({ message: "Failed to fetch store analytics" });
     }
   });
 
@@ -4728,7 +5024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Active Substances Management Routes (Super Admin only)
   // GET /api/active-substances - Get all active substances with pagination and search
-  app.get("/api/active-substances", isAuthenticated, requireRole('super_admin', 'portal_admin'), async (req, res) => {
+  app.get("/api/active-substances", isAuthenticated, requireRole('super_admin', 'portal_admin', 'store_owner', 'company_admin'), async (req, res) => {
     try {
       // Get pagination and search parameters
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;

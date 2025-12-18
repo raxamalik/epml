@@ -379,7 +379,7 @@ export function getWelcomeEmailTemplate(data: {
       </div>
       
       <p class="text-center">
-        <a href="{{loginUrl}}" class="button">Go to Dashboard</a>
+        <a href="{{loginUrl}}" class="button">Login to your account</a>
       </p>
       
       <div class="highlight">

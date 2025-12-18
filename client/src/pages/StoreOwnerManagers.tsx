@@ -147,7 +147,7 @@ export default function StoreOwnerManagers() {
 
   // Update manager mutation
   const updateManagerMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: Partial<ManagerFormData> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ManagerFormData> }) => {
       const updateData = {
         ...data,
         storeId: user?.storeId, // Force to store owner's store
@@ -176,7 +176,7 @@ export default function StoreOwnerManagers() {
 
   // Delete manager mutation
   const deleteManagerMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: string) => {
       const response = await apiRequest("DELETE", `/api/managers/${id}`);
       return response.json();
     },
@@ -200,7 +200,7 @@ export default function StoreOwnerManagers() {
 
   // Toggle active status mutation
   const toggleActiveMutation = useMutation({
-    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const response = await apiRequest("PUT", `/api/managers/${id}`, { isActive });
       return response.json();
     },
@@ -247,7 +247,7 @@ export default function StoreOwnerManagers() {
         ...data,
         role: "manager" as const,
       };
-      updateManagerMutation.mutate({ id: parseInt(selectedManager.id), data: updateData });
+      updateManagerMutation.mutate({ id: selectedManager.id, data: updateData });
     }
   };
 
@@ -257,7 +257,7 @@ export default function StoreOwnerManagers() {
   };
 
   const handleToggleActive = (manager: Manager) => {
-    toggleActiveMutation.mutate({ id: parseInt(manager.id), isActive: !manager.isActive });
+    toggleActiveMutation.mutate({ id: manager.id, isActive: !manager.isActive });
   };
 
   if (isLoading) {
@@ -524,7 +524,7 @@ export default function StoreOwnerManagers() {
           }}
           onConfirm={() => {
             if (managerToDelete) {
-              deleteManagerMutation.mutate(parseInt(managerToDelete.id));
+              deleteManagerMutation.mutate(managerToDelete.id);
             }
           }}
           title={t("managerManagement.dialogs.deleteTitle")}

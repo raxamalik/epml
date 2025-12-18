@@ -986,23 +986,26 @@ export class DatabaseStorage implements IStorage {
 
   async deleteManager(id: string): Promise<void> {
     try {
-      // Delete in order of dependencies (most dependent first)
-      // 1. Delete sales (via userId)
-      await db.delete(sales).where(eq(sales.userId, id));
+      // Sales and returns belong to the store, not the manager
+      // Just set userId to null in sales (returns.userId will be set to null automatically via onDelete: "set null")
+      await db.update(sales).set({ userId: null }).where(eq(sales.userId, id));
 
-      // 2. Delete audit logs (via userId)
+      // Stock transactions also belong to the store - set userId to null
+      await db.update(stockTransactions).set({ userId: null }).where(eq(stockTransactions.userId, id));
+
+      // Delete audit logs (via userId)
       await db.delete(auditLogs).where(eq(auditLogs.userId, id));
 
-      // 3. Delete activities (via userId)
+      // Delete activities (via userId)
       await db.delete(activities).where(eq(activities.userId, id));
 
-      // 4. Delete user settings
+      // Delete user settings
       await db.delete(userSettings).where(eq(userSettings.userId, id));
 
-      // 5. Delete trusted devices
+      // Delete trusted devices
       await db.delete(trustedDevices).where(eq(trustedDevices.userId, id));
 
-      // 6. Delete password reset tokens associated with this user (by email)
+      // Delete password reset tokens associated with this user (by email)
       // Note: password reset tokens are linked by email + userType, not userId
       const userForTokens = await db
         .select({ email: users.email })
@@ -1016,13 +1019,13 @@ export class DatabaseStorage implements IStorage {
           .where(eq(passwordResetTokens.email, userForTokens[0].email));
       }
 
-      // 7. Delete company invitations created by this user
+      // Delete company invitations created by this user
       await db.delete(companyInvitations).where(eq(companyInvitations.createdBy, id));
 
-      // 8. Unlink stores from this manager (set managerId to null)
+      // Unlink stores from this manager (set managerId to null)
       await db.update(stores).set({ managerId: null }).where(eq(stores.managerId, id));
 
-      // 9. Finally, delete the user/manager
+      // Finally, delete the user/manager
       await db.delete(users).where(eq(users.id, id));
     } catch (error: any) {
       console.error("Database error in deleteManager:", error);
@@ -1133,6 +1136,7 @@ export class DatabaseStorage implements IStorage {
       const totalUsersResult = await db.select({ count: count() }).from(users);
       const activeStoresResult = await db.select({ count: count() }).from(stores).where(eq(stores.isActive, true));
       const totalStoresResult = await db.select({ count: count() }).from(stores);
+      const totalCompaniesResult = await db.select({ count: count() }).from(companies);
       
       const superAdminsResult = await db.select({ count: count() }).from(users).where(eq(users.role, "super_admin"));
       const portalAdminsResult = await db.select({ count: count() }).from(users).where(eq(users.role, "portal_admin"));
@@ -1144,6 +1148,7 @@ export class DatabaseStorage implements IStorage {
         totalUsers: totalUsersResult[0]?.count || 0,
         activeStores: activeStoresResult[0]?.count || 0,
         totalStores: totalStoresResult[0]?.count || 0,
+        totalCompanies: totalCompaniesResult[0]?.count || 0,
         superAdmins: superAdminsResult[0]?.count || 0,
         portalAdmins: portalAdminsResult[0]?.count || 0,
         companyAdmins: companyAdminsResult[0]?.count || 0,
@@ -1156,6 +1161,7 @@ export class DatabaseStorage implements IStorage {
         totalUsers: 0,
         activeStores: 0,
         totalStores: 0,
+        totalCompanies: 0,
         superAdmins: 0,
         portalAdmins: 0,
         companyAdmins: 0,

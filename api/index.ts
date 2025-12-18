@@ -59,6 +59,7 @@ import {
   normalizeUserProfileImages,
   normalizeAllImageUrls
 } from './r2Utils.js';
+import { renderCashCardTaxReceipt, type ReceiptLanguage, type ReceiptMode, type PaymentMethod } from './receiptRenderer.js';
 
 // Load environment variables
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -1589,10 +1590,55 @@ class DatabaseStorage implements IStorage {
   }
 
   async deleteManager(id: string): Promise<void> {
-    // First delete any activities related to this manager
-    await db.delete(activities).where(eq(activities.userId, id));
-    // Then delete the manager
-    await db.delete(users).where(eq(users.id, id));
+    try {
+      // Sales and returns belong to the store, not the manager
+      // Just set userId to null in sales (returns.userId will be set to null automatically via onDelete: "set null")
+      await db.update(sales).set({ userId: null }).where(eq(sales.userId, id));
+
+      // Stock transactions also belong to the store - set userId to null
+      await db.update(stockTransactions).set({ userId: null }).where(eq(stockTransactions.userId, id));
+
+      // Delete audit logs (via userId)
+      await db.delete(auditLogs).where(eq(auditLogs.userId, id));
+
+      // Delete activities (via userId)
+      await db.delete(activities).where(eq(activities.userId, id));
+
+      // Delete user settings
+      await db.delete(userSettings).where(eq(userSettings.userId, id));
+
+      // Delete trusted devices
+      await db.delete(trustedDevices).where(eq(trustedDevices.userId, id));
+
+      // Delete password reset tokens associated with this user (by email)
+      // Note: password reset tokens are linked by email + userType, not userId
+      const userForTokens = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (userForTokens.length > 0) {
+        await db
+          .delete(passwordResetTokens)
+          .where(eq(passwordResetTokens.email, userForTokens[0].email));
+      }
+
+      // Delete company invitations created by this user
+      await db.delete(companyInvitations).where(eq(companyInvitations.createdBy, id));
+
+      // Unlink stores from this manager (set managerId to null)
+      await db.update(stores).set({ managerId: null }).where(eq(stores.managerId, id));
+
+      // Finally, delete the user/manager
+      await db.delete(users).where(eq(users.id, id));
+    } catch (error: any) {
+      console.error("Database error in deleteManager:", error);
+      if (error.code === '23503') { // Foreign key constraint violation
+        throw new Error(`Cannot delete manager: It has related records that must be deleted first. ${error.message}`);
+      }
+      throw new Error(`Failed to delete manager: ${error.message || 'Unknown error'}`);
+    }
   }
 
   // Activity operations
@@ -1695,8 +1741,11 @@ class DatabaseStorage implements IStorage {
       const totalUsersResult = await db.select({ count: count() }).from(users);
       const activeStoresResult = await db.select({ count: count() }).from(stores).where(eq(stores.isActive, true));
       const totalStoresResult = await db.select({ count: count() }).from(stores);
+      const totalCompaniesResult = await db.select({ count: count() }).from(companies);
       
       const superAdminsResult = await db.select({ count: count() }).from(users).where(eq(users.role, "super_admin"));
+      const portalAdminsResult = await db.select({ count: count() }).from(users).where(eq(users.role, "portal_admin"));
+      const companyAdminsResult = await db.select({ count: count() }).from(users).where(eq(users.role, "company_admin"));
       const storeOwnersResult = await db.select({ count: count() }).from(users).where(eq(users.role, "store_owner"));
       const managersResult = await db.select({ count: count() }).from(users).where(eq(users.role, "manager"));
 
@@ -1704,7 +1753,10 @@ class DatabaseStorage implements IStorage {
         totalUsers: totalUsersResult[0]?.count || 0,
         activeStores: activeStoresResult[0]?.count || 0,
         totalStores: totalStoresResult[0]?.count || 0,
+        totalCompanies: totalCompaniesResult[0]?.count || 0,
         superAdmins: superAdminsResult[0]?.count || 0,
+        portalAdmins: portalAdminsResult[0]?.count || 0,
+        companyAdmins: companyAdminsResult[0]?.count || 0,
         storeOwners: storeOwnersResult[0]?.count || 0,
         managers: managersResult[0]?.count || 0,
       };
@@ -1714,7 +1766,10 @@ class DatabaseStorage implements IStorage {
         totalUsers: 0,
         activeStores: 0,
         totalStores: 0,
+        totalCompanies: 0,
         superAdmins: 0,
+        portalAdmins: 0,
+        companyAdmins: 0,
         storeOwners: 0,
         managers: 0,
       };
@@ -1839,22 +1894,28 @@ class DatabaseStorage implements IStorage {
       // Prepare update data
       const updateData: any = { ...updates };
       
-      // Hash password if provided and not already hashed
-      if (updates.password) {
-        // Check if password is already a bcrypt hash (starts with $2a$, $2b$, or $2y$)
-        const isAlreadyHashed = typeof updates.password === 'string' && 
-          (updates.password.startsWith('$2a$') || 
-           updates.password.startsWith('$2b$') || 
-           updates.password.startsWith('$2y$'));
-        
-        if (!isAlreadyHashed) {
-        const bcrypt = await import("bcrypt");
-        updateData.password = await bcrypt.hash(updates.password, 10);
-        console.log("Password hashed successfully for company:", id);
-        } else {
-          // Password is already hashed, use it as-is
-          updateData.password = updates.password;
-          console.log("Password already hashed, using as-is for company:", id);
+      // Handle password updates: can be set, cleared (null), or unchanged
+      if ('password' in updates) {
+        if (updates.password === null || updates.password === undefined) {
+          // Explicitly clear password
+          updateData.password = null;
+          console.log("Password cleared for company:", id);
+        } else if (updates.password) {
+          // Check if password is already a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+          const isAlreadyHashed = typeof updates.password === 'string' && 
+            (updates.password.startsWith('$2a$') || 
+             updates.password.startsWith('$2b$') || 
+             updates.password.startsWith('$2y$'));
+          
+          if (!isAlreadyHashed) {
+            const bcrypt = await import("bcrypt");
+            updateData.password = await bcrypt.hash(updates.password, 10);
+            console.log("Password hashed successfully for company:", id);
+          } else {
+            // Password is already hashed, use it as-is
+            updateData.password = updates.password;
+            console.log("Password already hashed, using as-is for company:", id);
+          }
         }
       }
       
@@ -6100,6 +6161,55 @@ if (typeof cron !== 'undefined') {
  * Extract meaningful error message from various error types
  * Handles database errors, validation errors, and generic errors
  */
+/**
+ * Calculate monthly performance data from sales
+ * Returns data for the last 6 months
+ */
+function calculateMonthlyPerformance(sales: any[]): any[] {
+  // Get current date and calculate last 6 months
+  const now = new Date();
+  const months: Record<string, any> = {};
+  
+  // Initialize last 6 months with zero values
+  const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = monthNames[date.getMonth()];
+    months[monthKey] = {
+      month: monthName,
+      monthNumber: date.getMonth() + 1,
+      year: date.getFullYear(),
+      revenue: 0,
+      customers: 0,
+      orders: 0
+    } as any;
+  }
+  
+  // Process sales and group by month
+  sales.forEach((sale: any) => {
+    if (!sale.createdAt || sale.isCancelled) return;
+    
+    const saleDate = new Date(sale.createdAt);
+    const monthKey = `${saleDate.getFullYear()}-${String(saleDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    if (months[monthKey]) {
+      const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
+      months[monthKey].revenue += saleTotal || 0;
+      months[monthKey].customers += 1; // Each sale = 1 customer transaction
+      months[monthKey].orders += 1;
+    }
+  });
+  
+  // Convert to array and format
+  return Object.values(months).map((month: any) => ({
+    month: month.month,
+    revenue: Math.round(month.revenue * 100) / 100, // Round to 2 decimal places
+    customers: month.customers,
+    orders: month.orders
+  }));
+}
+
 function getErrorMessage(error: any, defaultMessage: string): string {
   // If error already has a meaningful message, use it
   if (error?.message && error.message !== defaultMessage) {
@@ -6399,8 +6509,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (page < 1) {
         return res.status(400).json({ message: "Page must be greater than 0" });
       }
-      if (limit < 1 || limit > 100) {
-        return res.status(400).json({ message: "Limit must be between 1 and 100" });
+      // Allow higher limits for exports (up to 10000)
+      if (limit < 1 || limit > 10000) {
+        return res.status(400).json({ message: "Limit must be between 1 and 10000" });
       }
       
       const result = await storage.getAllUsers(limit, offset);
@@ -6422,8 +6533,11 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       const totalPages = Math.ceil(adjustedTotal / limit);
       
+      // Normalize user profile image URLs
+      const normalizedUsers = normalizeUserProfileImages(filteredUsers);
+      
       res.json({
-        users: filteredUsers,
+        users: normalizedUsers,
         pagination: {
           page,
           limit,
@@ -6701,13 +6815,21 @@ export async function registerRoutes(app: Express): Promise<void> {
         values.push(req.body.companyLogo);
       }
       
-      // Handle password field with hashing
-      if (req.body.password !== undefined && req.body.password !== '') {
-        const bcrypt = await import("bcrypt");
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
-        fields.push(`password = $${paramIndex++}`);
-        values.push(hashedPassword);
-        console.log("Password field added to update with hashed value");
+      // Handle password field with hashing or clearing
+      if (req.body.password !== undefined) {
+        if (req.body.password === null || req.body.password === '') {
+          // Clear password
+          fields.push(`password = $${paramIndex++}`);
+          values.push(null);
+          console.log("Password field cleared (set to null)");
+        } else {
+          // Hash and set password
+          const bcrypt = await import("bcrypt");
+          const hashedPassword = await bcrypt.hash(req.body.password, 10);
+          fields.push(`password = $${paramIndex++}`);
+          values.push(hashedPassword);
+          console.log("Password field added to update with hashed value");
+        }
       }
       
       // Always update the timestamp
@@ -6903,8 +7025,19 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.status(404).json({ message: "Company not found" });
       }
 
-      // Check if company is already activated (has a password)
-      if (company.password) {
+      // Debug: Log company status
+      console.log("[INVITE] Company status:", {
+        id: company.id,
+        name: company.name,
+        isActive: company.isActive,
+        isActiveType: typeof company.isActive,
+        isActiveStrictTrue: company.isActive === true,
+        isActiveStrictFalse: company.isActive === false
+      });
+
+      // Check if company is already active - only check isActive status
+      // Handle both boolean true and string "true" cases
+      if (company.isActive === true || company.isActive === "true" || company.isActive === 1) {
         return res.status(400).json({ 
           message: "Company is already activated. An invitation cannot be sent to an activated company account." 
         });
@@ -7073,8 +7206,8 @@ export async function registerRoutes(app: Express): Promise<void> {
         return res.status(404).json({ message: "Company not found" });
       }
 
-      // Check if company is already activated
-      if (company.password) {
+      // Check if company is already active - only check isActive status
+      if (company.isActive === true) {
         return res.status(400).json({ 
           message: "Company is already activated." 
         });
@@ -7167,12 +7300,15 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       const { stores, total } = await storage.getStoresByCompany(companyId, limitNum, offsetNum, searchQuery, statusFilter);
       
+      // Normalize company logo URLs in stores
+      const normalizedStores = normalizeStoreLogos(stores);
+      
       // If pagination parameters are provided, return paginated response
       if (limitNum !== undefined && offsetNum !== undefined) {
         const totalPages = Math.ceil(total / limitNum);
         
         return res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page: Math.floor(offsetNum / limitNum) + 1,
           limit: limitNum,
@@ -7220,11 +7356,14 @@ export async function registerRoutes(app: Express): Promise<void> {
         
         console.log(`Fetching stores for company ID ${user.companyId}: Found ${stores.length} stores`);
         
+        // Normalize company logo URLs in stores
+        const normalizedStores = normalizeStoreLogos(stores);
+        
         const page = Math.floor(offset / limit) + 1;
         const totalPages = Math.ceil(total / limit);
         
         res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page,
           limit,
@@ -7237,11 +7376,14 @@ export async function registerRoutes(app: Express): Promise<void> {
         const stores = result?.stores || [];
         const total = result?.total || 0;
         
+        // Normalize company logo URLs in stores
+        const normalizedStores = normalizeStoreLogos(stores);
+        
         const page = Math.floor(offset / limit) + 1;
         const totalPages = Math.ceil(total / limit);
         
         res.json({
-          data: stores,
+          data: normalizedStores,
           total,
           page,
           limit,
@@ -7816,6 +7958,15 @@ export async function registerRoutes(app: Express): Promise<void> {
         }
       }
       
+      // If storeId is provided but companyId is not set, derive companyId from store
+      if (managerData.storeId && !managerData.companyId) {
+        const store = await storage.getStore(parseInt(managerData.storeId));
+        if (!store) {
+          return res.status(404).json({ message: "Store not found" });
+        }
+        managerData.companyId = store.companyId;
+      }
+      
       console.log("Creating manager with data:", managerData);
       
       const manager = await storage.createManager(managerData);
@@ -8200,13 +8351,16 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       const { products, total } = await storage.getProductsByStore(storeId, limit, offset, search, categoryId);
       
+      // Normalize product image URLs
+      const normalizedProducts = normalizeProductImages(products);
+      
       // Calculate pagination metadata
       const page = limit && offset !== undefined ? Math.floor(offset / limit) + 1 : 1;
       const pageSize = limit || total;
       const totalPages = limit ? Math.ceil(total / limit) : 1;
       
       res.json({
-        data: products,
+        data: normalizedProducts,
         total,
         page,
         limit: pageSize,
@@ -8227,7 +8381,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
       
-      res.status(201).json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: error.message });
@@ -8256,7 +8412,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: error.message });
@@ -8397,7 +8555,163 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
-  // Get sale by ID with items
+  // Receipt endpoint - MUST come before /api/sales/:saleId to avoid route conflicts
+  app.get("/api/sales/:saleId/receipt", isAuthenticated, async (req, res) => {
+    try {
+      const { saleId } = req.params;
+      const language = (req.query.language as ReceiptLanguage) || 'en';
+      const mode = (req.query.mode as ReceiptMode) || 'live';
+      const paymentMethod = (req.query.paymentMethod as PaymentMethod) || (req.query.paymentMethod as string)?.toLowerCase() === 'cash' ? 'cash' : 'card';
+
+      // Get sale
+      const sale = await storage.getSaleById(saleId);
+      if (!sale) {
+        return res.status(404).json({ message: "Sale not found" });
+      }
+
+      // Get sales items
+      const salesItems = await storage.getSalesItemsBySaleId(saleId);
+
+      // Get product and batch info for each item
+      const itemsWithDetails = await Promise.all(
+        salesItems.map(async (item) => {
+          const product = await storage.getProduct(item.productId);
+          let batch = null;
+          if (item.batchId) {
+            batch = await storage.getProductBatch(item.batchId);
+          }
+          return {
+            ...item,
+            product: product ? {
+              name: product.name,
+              pack: (product as any).packageSize || undefined,
+            } : undefined,
+            batch: batch ? {
+              batchNumber: batch.batchNumber,
+            } : undefined,
+          };
+        })
+      );
+
+      // Get store
+      const store = await storage.getStore(sale.storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Get company
+      const company = await storage.getCompany(store.companyId);
+      if (!company) {
+        return res.status(404).json({ message: "Company not found" });
+      }
+
+      // Normalize company logo URL
+      const normalizedCompany = normalizeCompanyLogo(company);
+
+      // Get cashier (user who made the sale)
+      let cashier = null;
+      if (sale.userId) {
+        cashier = await storage.getUserById(sale.userId);
+      }
+
+      // Calculate totals
+      let subtotal = 0;
+      let totalVat = 0;
+      const vatBreakdown: Record<string, { base: number; vat: number }> = {};
+
+      itemsWithDetails.forEach((item) => {
+        const qty = parseFloat(item.quantity.toString());
+        const unitPrice = parseFloat(item.unitPrice.toString());
+        const vatRate = parseFloat(item.vatRate.toString());
+        const lineTotal = qty * unitPrice;
+        const lineVat = (lineTotal * vatRate) / (100 + vatRate);
+        const lineBase = lineTotal - lineVat;
+
+        subtotal += lineTotal;
+        totalVat += lineVat;
+
+        const vatKey = vatRate.toString();
+        if (!vatBreakdown[vatKey]) {
+          vatBreakdown[vatKey] = { base: 0, vat: 0 };
+        }
+        vatBreakdown[vatKey].base += lineBase;
+        vatBreakdown[vatKey].vat += lineVat;
+      });
+
+      // Get discount if any (from sale.vatBreakdown or calculate from sale.total vs subtotal)
+      const discount = subtotal - parseFloat(sale.total.toString());
+      const discountName = (sale as any).discountName || "";
+
+      // Use the first VAT rate for display (or calculate weighted average)
+      const primaryVatRate = itemsWithDetails.length > 0 ? itemsWithDetails[0].vatRate : "21";
+      const primaryVatBase = vatBreakdown[primaryVatRate.toString()]?.base || (subtotal - totalVat);
+      const primaryVatAmount = vatBreakdown[primaryVatRate.toString()]?.vat || totalVat;
+
+      // Prepare receipt data
+      const receiptData = {
+        sale,
+        items: itemsWithDetails,
+        company: {
+          name: normalizedCompany.name,
+          address: normalizedCompany.address,
+          registrationNumber: normalizedCompany.registrationNumber,
+          vatNumber: normalizedCompany.vatNumber,
+          companyLogo: normalizedCompany.companyLogo || null,
+        },
+        store: {
+          id: store.id,
+          name: store.name,
+          address: store.address,
+        },
+        cashier: cashier ? {
+          firstName: cashier.firstName,
+          lastName: cashier.lastName,
+        } : null,
+        totals: {
+          subtotal,
+          discount: discount > 0 ? discount : 0,
+          discountName,
+          vatBase: primaryVatBase,
+          vatAmount: primaryVatAmount,
+          total: parseFloat(sale.total.toString()),
+        },
+        payment: {
+          terminalId: (sale as any).terminalId || "",
+          authCode: (sale as any).authCode || "",
+          paid: parseFloat(sale.total.toString()),
+          change: 0,
+        },
+        currency: "CZK",
+        receiptNumber: sale.id,
+        registerId: (sale as any).registerId || "POS-01",
+      };
+
+      // Render receipt
+      const receiptText = renderCashCardTaxReceipt(receiptData, {
+        language,
+        mode,
+        paymentMethod,
+      });
+
+      // Check if client wants JSON format (for logo support)
+      const format = req.query.format as string;
+      if (format === 'json') {
+        return res.json({
+          receipt: receiptText,
+          companyLogo: normalizedCompany.companyLogo || null,
+        });
+      }
+
+      // Return as plain text
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      res.send(receiptText);
+    } catch (error: any) {
+      console.error("Error generating receipt:", error);
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Get sale by ID with items and return information
   app.get("/api/sales/:saleId", isAuthenticated, async (req, res) => {
     try {
       const { saleId } = req.params;
@@ -8808,13 +9122,16 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       const { products, total } = await storage.getProductsByCompany(user.companyId, limit, offset, search, categoryId);
       
+      // Normalize product image URLs
+      const normalizedProducts = normalizeProductImages(products);
+      
       // Calculate pagination metadata
       const page = limit && offset !== undefined ? Math.floor(offset / limit) + 1 : 1;
       const pageSize = limit || total;
       const totalPages = limit ? Math.ceil(total / limit) : 1;
       
       res.json({
-        data: products,
+        data: normalizedProducts,
         total,
         page,
         limit: pageSize,
@@ -8880,8 +9197,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (!product.activeSubstances) {
         product.activeSubstances = [];
       }
-      
-      res.json(product);
+
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error fetching company product:", error);
       res.status(500).json({ message: error.message });
@@ -8945,8 +9264,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       if (!product.activeSubstances) {
         product.activeSubstances = [];
       }
-      
-      res.json(product);
+
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error fetching product:", error);
       res.status(500).json({ message: error.message });
@@ -8987,8 +9308,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
-      
-      res.status(201).json(product);
+
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating company product:", error);
       res.status(500).json({ message: error.message });
@@ -9022,7 +9345,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           
           const product = await storage.createProduct(productData);
           await AuditLogger.logProductCreate(user, product, req);
-          return res.status(201).json(product);
+          // Normalize product image URL
+          const normalizedProduct = normalizeProductImage(product);
+          return res.status(201).json(normalizedProduct);
         }
         
         return res.status(400).json({ message: "Invalid Store ID" });
@@ -9085,7 +9410,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Log audit trail
       await AuditLogger.logProductCreate(user, product, req);
       
-      res.status(201).json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.status(201).json(normalizedProduct);
     } catch (error: any) {
       console.error("Error creating product:", error);
       res.status(500).json({ message: error.message });
@@ -9157,7 +9484,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating company product:", error);
       res.status(500).json({ message: error.message });
@@ -9211,7 +9540,9 @@ export async function registerRoutes(app: Express): Promise<void> {
           
           const product = await storage.updateProduct(productId, updatesWithUserId);
           await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
-          return res.json(product);
+          // Normalize product image URL
+          const normalizedProduct = normalizeProductImage(product);
+          return res.json(normalizedProduct);
         }
         return res.status(400).json({ message: "Invalid Store ID" });
       }
@@ -9307,7 +9638,7 @@ export async function registerRoutes(app: Express): Promise<void> {
   });
 
   // Active Substances API endpoints (Super Admin only)
-  app.get("/api/active-substances", isAuthenticated, requireRole('super_admin', 'portal_admin'), async (req, res) => {
+  app.get("/api/active-substances", isAuthenticated, requireRole('super_admin', 'portal_admin', 'store_owner', 'company_admin'), async (req, res) => {
     try {
       // Get pagination and search parameters
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
@@ -9502,7 +9833,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Log audit trail
       await AuditLogger.logProductUpdate(user, productId, oldProduct, product, req);
       
-      res.json(product);
+      // Normalize product image URL
+      const normalizedProduct = normalizeProductImage(product);
+      res.json(normalizedProduct);
     } catch (error: any) {
       console.error("Error updating product:", error);
       res.status(500).json({ message: error.message });
@@ -10051,9 +10384,14 @@ export async function registerRoutes(app: Express): Promise<void> {
     try {
       const user = (req as any).user;
       
-      // Only allow company admins to access their company's stores
-      if (user.type !== 'company') {
+      // Allow company admins and store owners to access their company's stores
+      if (user.type !== 'company' && user.role !== 'store_owner' && user.role !== 'company_admin') {
         return res.status(403).json({ message: "Access denied. Company access required." });
+      }
+      
+      // Store owners and company admins need a companyId
+      if (!user.companyId) {
+        return res.status(403).json({ message: "Access denied. Company ID required." });
       }
       
       // Get stores specific to the logged-in company
@@ -10061,9 +10399,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       const storesData = storesDataResult?.stores || [];
       
       // Calculate revenue from actual sales for each store
-      const storesWithRevenue = await Promise.all(storesData.map(async (store) => {
-        const storeSales = await storage.getSalesByStore(store.id);
-        const revenue = storeSales.reduce((sum, sale) => {
+      const storesWithRevenue = await Promise.all(storesData.map(async (store: any) => {
+        const salesResult = await storage.getSalesByStore(store.id);
+        const storeSales = salesResult.sales || [];
+        const revenue = storeSales.reduce((sum: number, sale: any) => {
           const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
           return sum + (saleTotal || 0);
         }, 0);
@@ -10078,12 +10417,16 @@ export async function registerRoutes(app: Express): Promise<void> {
           revenue: revenue,
           products: store.productCount || 0,
           customers: storeSales.length, // Each sale = 1 customer transaction
-          createdAt: store.createdAt ? new Date(store.createdAt).toISOString().split('T')[0] : ''
+          createdAt: store.createdAt ? new Date(store.createdAt).toISOString().split('T')[0] : '',
+          companyLogo: store.companyLogo ? normalizeR2Url(store.companyLogo) : null
         };
       }));
       
-      console.log(`Fetching stores for company ID ${user.companyId}: Found ${storesWithRevenue.length} stores`);
-      res.json(storesWithRevenue);
+      // Normalize company logo URLs in stores
+      const normalizedStoresWithRevenue = normalizeStoreLogos(storesWithRevenue);
+      
+      console.log(`Fetching stores for company ID ${user.companyId}: Found ${normalizedStoresWithRevenue.length} stores`);
+      res.json(normalizedStoresWithRevenue);
     } catch (error) {
       console.error("Error fetching company stores:", error);
       res.status(500).json({ message: "Failed to fetch company stores" });
@@ -10094,9 +10437,14 @@ export async function registerRoutes(app: Express): Promise<void> {
     try {
       const user = (req as any).user;
       
-      // Only allow company admins to access their company's analytics
-      if (user.type !== 'company') {
+      // Allow company admins and store owners to access their company's analytics
+      if (user.type !== 'company' && user.role !== 'store_owner' && user.role !== 'company_admin') {
         return res.status(403).json({ message: "Access denied. Company access required." });
+      }
+      
+      // Store owners and company admins need a companyId
+      if (!user.companyId) {
+        return res.status(403).json({ message: "Access denied. Company ID required." });
       }
       
       // Get analytics specific to the logged-in company
@@ -10119,13 +10467,17 @@ export async function registerRoutes(app: Express): Promise<void> {
       // Calculate total customers from unique sales (each sale = 1 customer transaction)
       const totalCustomers = allSales.length;
       
+      // Calculate monthly performance data (last 6 months)
+      const monthlyData = calculateMonthlyPerformance(allSales);
+      
       const analytics = {
         totalStores,
         activeStores,
         totalRevenue,
         totalProducts,
         totalCustomers,
-        monthlyGrowth: 12.5 // This would need historical data to calculate properly
+        monthlyGrowth: 12.5, // This would need historical data to calculate properly
+        monthlyData
       };
       
       console.log(`Analytics for company ID ${user.companyId} (${user.companyName}):`, analytics);
@@ -10133,6 +10485,72 @@ export async function registerRoutes(app: Express): Promise<void> {
     } catch (error) {
       console.error("Error fetching company analytics:", error);
       res.status(500).json({ message: "Failed to fetch company analytics" });
+    }
+  });
+
+  // Store-specific analytics endpoint for managers and store owners
+  app.get('/api/stores/:storeId/analytics', isAuthenticated, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const storeId = parseInt(req.params.storeId);
+      
+      if (isNaN(storeId)) {
+        return res.status(400).json({ message: "Invalid store ID" });
+      }
+
+      // Get the store to verify access
+      const store = await storage.getStore(storeId);
+      if (!store) {
+        return res.status(404).json({ message: "Store not found" });
+      }
+
+      // Authorization: Managers and store owners can only access their assigned store
+      if ((user.role === 'manager' || user.role === 'store_owner') && user.storeId !== storeId) {
+        return res.status(403).json({ message: "Access denied. You can only access your assigned store." });
+      }
+
+      // Company admins can access any store in their company
+      if ((user.type === 'company' || user.role === 'company_admin') && user.companyId !== store.companyId) {
+        return res.status(403).json({ message: "Access denied. Store does not belong to your company." });
+      }
+
+      // Get store sales
+      const salesResult = await storage.getSalesByStore(storeId);
+      const storeSales = salesResult.sales || [];
+      
+      // Calculate revenue from sales
+      const totalRevenue = storeSales.reduce((sum: number, sale: any) => {
+        const saleTotal = typeof sale.total === 'string' ? parseFloat(sale.total) : sale.total;
+        return sum + (saleTotal || 0);
+      }, 0);
+
+      // Get products count for this store
+      const productsResult = await storage.getProductsByStore(storeId);
+      const totalProducts = productsResult.total || 0;
+
+      // Total customers = number of sales (each sale = 1 customer transaction)
+      const totalCustomers = storeSales.length;
+
+      // Calculate monthly performance data (last 6 months)
+      const monthlyData = calculateMonthlyPerformance(storeSales);
+      
+      const analytics = {
+        storeId: store.id,
+        storeName: store.name,
+        totalStores: 1,
+        activeStores: store.isActive ? 1 : 0,
+        totalRevenue,
+        totalProducts,
+        totalCustomers,
+        monthlyGrowth: 12.5, // This would need historical data to calculate properly
+        monthlyData
+      };
+      
+      console.log(`Analytics for store ID ${storeId} (${store.name}):`, analytics);
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching store analytics:", error);
+      res.status(500).json({ message: "Failed to fetch store analytics" });
     }
   });
 
@@ -10204,7 +10622,7 @@ export async function registerRoutes(app: Express): Promise<void> {
               price: Number(product.price),
               categoryName: product.category || 'Uncategorized',
               barcode: product.barcode,
-              imageUrl: product.imageUrl,
+              imageUrl: normalizeR2Url(product.imageUrl),
               stores: [],
               totalStock: 0,
               totalSales: 0,
@@ -10227,8 +10645,10 @@ export async function registerRoutes(app: Express): Promise<void> {
       }
       
       const productsArray = Array.from(productsMap.values());
-      console.log(`Products overview for company ID ${companyId}: Found ${productsArray.length} unique products across ${storeIds.length} stores`);
-      res.json(productsArray);
+      // Normalize product image URLs
+      const normalizedProductsArray = normalizeProductImages(productsArray);
+      console.log(`Products overview for company ID ${companyId}: Found ${normalizedProductsArray.length} unique products across ${storeIds.length} stores`);
+      res.json(normalizedProductsArray);
     } catch (error) {
       console.error("Error fetching company products overview:", error);
       res.status(500).json({ message: "Failed to fetch company products overview" });
@@ -10327,7 +10747,9 @@ export async function registerRoutes(app: Express): Promise<void> {
       };
 
       const settings = await storage.upsertUserSettings(settingsData);
-      res.json(settings);
+      // Normalize profile image URL
+      const normalizedSettings = normalizeAllImageUrls(settings);
+      res.json(normalizedSettings);
     } catch (error: any) {
       console.error('Error updating settings:', error);
       res.status(500).json({ message: error.message || "Failed to update settings" });

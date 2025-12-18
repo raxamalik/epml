@@ -84,6 +84,8 @@ export default function POS() {
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
   const [quantityInputs, setQuantityInputs] = useState<{ [productId: number]: string }>({});
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [lastSaleId, setLastSaleId] = useState<string | null>(null);
 
   // Determine the storeId to use
   // For managers: use their assigned storeId
@@ -256,7 +258,7 @@ export default function POS() {
       const response = await apiRequest('POST', `/api/stores/${storeId}/sales`, saleData);
       return response.json();
     },
-    onSuccess: async () => {
+    onSuccess: async (sale) => {
       // Clear cart from backend after successful sale
       if (storeId) {
         try {
@@ -273,6 +275,12 @@ export default function POS() {
       setCustomerInfo({ name: "", phone: "", email: "" });
       setShowCustomerInfo(false);
       toast({ title: t("pos.toasts.saleSuccess") });
+      
+      // Store sale ID and show receipt dialog
+      if (sale && sale.id) {
+        setLastSaleId(sale.id);
+        setShowReceiptDialog(true);
+      }
       
       // Invalidate all related queries to update dashboard in real-time
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
@@ -475,7 +483,7 @@ export default function POS() {
     }
 
     const total = getTotalAmount();
-    
+
     if (paymentMethod === 'cash') {
       const received = parseFloat(cashReceived) || 0;
       if (received < total) {
@@ -486,7 +494,7 @@ export default function POS() {
 
     const hasCustomerInfo = customerInfo.name || customerInfo.phone || customerInfo.email;
     const vatBreakdown = getVATBreakdown();
-    
+
     const saleData = {
       items: cart.map(item => ({
         productId: item.product.id,
@@ -505,6 +513,77 @@ export default function POS() {
     };
 
     processSaleMutation.mutate(saleData);
+  };
+
+  // Function to print receipt
+  const printReceipt = (receiptText: string, companyLogo?: string | null) => {
+    // Replace [LOGO] placeholder with actual image if logo exists
+    let receiptHtml = receiptText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (companyLogo && receiptText.includes('[LOGO]')) {
+      const logoHtml = `<div style="text-align: center; margin: 10px 0;"><img src="${companyLogo}" alt="Company Logo" style="max-width: 200px; max-height: 80px; object-fit: contain;" /></div>`;
+      receiptHtml = receiptHtml.replace(/\[LOGO\]/g, logoHtml);
+    } else if (receiptText.includes('[LOGO]')) {
+      // Remove [LOGO] placeholder if no logo
+      receiptHtml = receiptHtml.replace(/\[LOGO\]/g, '');
+    }
+    
+    // Create a new window for printing
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast({
+        title: "Print blocked",
+        description: "Please allow pop-ups to print receipts",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Write the receipt content with proper formatting
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @media print {
+              @page {
+                margin: 0;
+                size: 80mm auto;
+              }
+              body {
+                margin: 0;
+                padding: 10mm;
+              }
+            }
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              line-height: 1.4;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              max-width: 80mm;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            img {
+              display: block;
+              margin: 0 auto;
+            }
+          </style>
+        </head>
+        <body>
+          <pre>${receiptHtml}</pre>
+          <script>
+            window.onload = function() {
+              window.print();
+              // Close window after printing (optional)
+              // window.onafterprint = function() { window.close(); };
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   };
 
   // Filter products based on search and category
@@ -1013,7 +1092,7 @@ export default function POS() {
 
       {/* Checkout Dialog */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Receipt className="h-5 w-5 mr-2" />
@@ -1175,6 +1254,86 @@ export default function POS() {
                   Complete Sale
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Printing Dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Receipt className="h-5 w-5 mr-2" />
+              {t("receipt.printReceipt")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("receipt.selectReceiptType")}
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  if (lastSaleId) {
+                    try {
+                      const response = await apiRequest(
+                        'GET',
+                        `/api/sales/${lastSaleId}/receipt?language=en&mode=live&paymentMethod=${paymentMethod}&format=json`
+                      );
+                      const data = await response.json();
+                      printReceipt(data.receipt, data.companyLogo);
+                    } catch (error: any) {
+                      toast({
+                        title: "Error loading receipt",
+                        description: error.message || "Failed to load receipt",
+                        variant: "destructive"
+                      });
+                    }
+                  }
+                  setShowReceiptDialog(false);
+                }}
+              >
+                <span className="font-semibold">{t("receipt.englishReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  English receipt with real data
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  if (lastSaleId) {
+                    try {
+                      const response = await apiRequest(
+                        'GET',
+                        `/api/sales/${lastSaleId}/receipt?language=cz&mode=live&paymentMethod=${paymentMethod}&format=json`
+                      );
+                      const data = await response.json();
+                      printReceipt(data.receipt, data.companyLogo);
+                    } catch (error: any) {
+                      toast({
+                        title: "Error loading receipt",
+                        description: error.message || "Failed to load receipt",
+                        variant: "destructive"
+                      });
+                    }
+                  }
+                  setShowReceiptDialog(false);
+                }}
+              >
+                <span className="font-semibold">{t("receipt.czechReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Český doklad s reálnými údaji
+                </span>
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReceiptDialog(false)}>
+              {t("receipt.close")}
             </Button>
           </DialogFooter>
         </DialogContent>
