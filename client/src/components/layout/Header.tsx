@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Search, Bell, Menu } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +19,7 @@ interface HeaderProps {
 
 export function Header({ onMobileMenuToggle }: HeaderProps) {
   const { user, logoutMutation } = useAuth();
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState("");
 
   const handleLogout = () => {
@@ -48,7 +51,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
             </div>
             <Input
               className="pl-10 border-slate-200 focus:ring-primary focus:border-primary"
-              placeholder="Search users, stores, analytics..."
+              placeholder={t("header.searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -57,6 +60,9 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
         
         {/* Header Actions */}
         <div className="ml-4 flex items-center space-x-4">
+          {/* Language Switcher */}
+          <LanguageSwitcher />
+          
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative p-2">
             <Bell className="h-5 w-5 text-slate-400" />
@@ -82,7 +88,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout}>
-                Sign out
+                {t("auth.signOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

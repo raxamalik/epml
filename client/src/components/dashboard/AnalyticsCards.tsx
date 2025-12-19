@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, Store, DollarSign, Activity } from "lucide-react";
+import { Building2, Store, Activity, CheckCircle2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function AnalyticsCards() {
+  const { t } = useTranslation();
   const { data: analytics, isLoading } = useQuery({
     queryKey: ["/api/analytics"],
   });
@@ -11,7 +13,7 @@ export function AnalyticsCards() {
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        {[1, 2, 3, 4].map((i) => (
+        {[1, 2, 3].map((i) => (
           <Card key={i} className="border-slate-200">
             <CardContent className="p-6">
               <Skeleton className="h-20 w-full" />
@@ -24,42 +26,25 @@ export function AnalyticsCards() {
 
   const cards = [
     {
-      title: "Total Users",
-      value: analytics?.totalUsers || 0,
-      icon: Users,
+      title: t("dashboard.analytics.totalCompanies"),
+      value: analytics?.totalCompanies || 0,
+      icon: Building2,
       bgColor: "bg-blue-50",
       iconColor: "text-primary",
-      change: "+12.5%",
+      change: t("dashboard.analytics.totalCompaniesDesc"),
     },
     {
-      title: "Active Stores",
-      value: analytics?.activeStores || 0,
+      title: t("dashboard.analytics.totalBranches"),
+      value: analytics?.totalStores || 0,
       icon: Store,
       bgColor: "bg-emerald-50",
       iconColor: "text-accent",
-      change: "+8.2%",
-    },
-    {
-      title: "Monthly Revenue",
-      value: "$84,532",
-      icon: DollarSign,
-      bgColor: "bg-amber-50",
-      iconColor: "text-amber-500",
-      change: "+15.3%",
-    },
-    {
-      title: "System Uptime",
-      value: "99.98%",
-      icon: Activity,
-      bgColor: "bg-green-50",
-      iconColor: "text-green-500",
-      change: "All systems operational",
-      isUptime: true,
-    },
+      change: t("dashboard.analytics.totalBranchesDesc"),
+    }
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-8">
       {cards.map((card, index) => {
         const gradients = [
           "bg-gradient-to-br from-blue-500 to-blue-600",
@@ -80,7 +65,7 @@ export function AnalyticsCards() {
                       {card.change}
                     </span>
                     {!card.isUptime && (
-                      <span className="text-slate-500 ml-2">from last month</span>
+                      <span className="text-slate-500 ml-2">{t("dashboard.analytics.fromLastMonth")}</span>
                     )}
                   </div>
                 </div>

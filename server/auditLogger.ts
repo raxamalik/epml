@@ -133,6 +133,16 @@ export class AuditLogger {
     }, req);
   }
 
+  static async logUserDelete(user: any, deletedUser: any, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "user_delete",
+      entityType: "user",
+      entityId: deletedUser.id,
+      description: `User ${deletedUser.email} deleted`,
+      oldValues: { ...deletedUser, passwordHash: "[REDACTED]" },
+    }, req);
+  }
+
   static async logStoreCreate(user: any, store: any, req: Request): Promise<void> {
     await this.log(user, {
       action: "store_create",
@@ -173,6 +183,32 @@ export class AuditLogger {
       description: `Company "${oldCompany.name}" updated`,
       oldValues: { ...oldCompany, password: "[REDACTED]" },
       newValues: { ...updates, password: updates.password ? "[REDACTED]" : undefined },
+    }, req);
+  }
+
+  static async logCompanySuspension(user: any, companyId: number, company: any, suspendedStores: number, suspendedUsers: number, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "company_suspend",
+      entityType: "company",
+      entityId: companyId.toString(),
+      description: `Company "${company.name}" suspended. Cascaded to ${suspendedStores} stores and ${suspendedUsers} users`,
+      oldValues: { ...company, password: "[REDACTED]" },
+      newValues: { isActive: false, licenseStatus: "suspended" },
+      metadata: { suspendedStores, suspendedUsers },
+      severity: "warning",
+    }, req);
+  }
+
+  static async logCompanyUnsuspension(user: any, companyId: number, company: any, reactivatedStores: number, reactivatedUsers: number, req: Request): Promise<void> {
+    await this.log(user, {
+      action: "company_unsuspend",
+      entityType: "company",
+      entityId: companyId.toString(),
+      description: `Company "${company.name}" unsuspended. Cascaded to ${reactivatedStores} stores and ${reactivatedUsers} users`,
+      oldValues: { ...company, password: "[REDACTED]" },
+      newValues: { isActive: true, licenseStatus: "active" },
+      metadata: { reactivatedStores, reactivatedUsers },
+      severity: "info",
     }, req);
   }
 

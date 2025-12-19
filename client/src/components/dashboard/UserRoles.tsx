@@ -1,9 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export function UserRoles() {
-  const { data: analytics, isLoading } = useQuery({
+  const { t } = useTranslation();
+  const { data: analytics, isLoading } = useQuery<{
+    superAdmins?: number;
+    portalAdmins?: number;
+    companyAdmins?: number;
+    storeOwners?: number;
+    managers?: number;
+    totalUsers?: number;
+    activeStores?: number;
+    totalStores?: number;
+  }>({
     queryKey: ["/api/analytics"],
   });
 
@@ -11,11 +22,11 @@ export function UserRoles() {
     return (
       <Card className="border-slate-200">
         <CardHeader>
-          <CardTitle>User Roles</CardTitle>
+          <CardTitle>{t("dashboard.userRoles.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {[1, 2, 3, 4].map((i) => (
+            {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-6 w-full" />
             ))}
           </div>
@@ -26,35 +37,41 @@ export function UserRoles() {
 
   const roles = [
     {
-      name: "Super Admins",
+      name: t("dashboard.userRoles.superAdmin"),
       count: analytics?.superAdmins || 0,
       gradient: "bg-gradient-to-r from-purple-500 to-indigo-600",
       bgGradient: "bg-gradient-to-r from-purple-50 to-indigo-50",
     },
     {
-      name: "Store Owners",
+      name: t("dashboard.userRoles.portalAdmin"),
+      count: analytics?.portalAdmins || 0,
+      gradient: "bg-gradient-to-r from-violet-500 to-purple-600",
+      bgGradient: "bg-gradient-to-r from-violet-50 to-purple-50",
+    },
+    {
+      name: t("dashboard.userRoles.companyAdmin"),
+      count: analytics?.companyAdmins || 0,
+      gradient: "bg-gradient-to-r from-emerald-500 to-teal-600",
+      bgGradient: "bg-gradient-to-r from-emerald-50 to-teal-50",
+    },
+    {
+      name: t("dashboard.userRoles.storeOwner"),
       count: analytics?.storeOwners || 0,
       gradient: "bg-gradient-to-r from-blue-500 to-cyan-600",
       bgGradient: "bg-gradient-to-r from-blue-50 to-cyan-50",
     },
     {
-      name: "Managers",
+      name: t("dashboard.userRoles.manager"),
       count: analytics?.managers || 0,
       gradient: "bg-gradient-to-r from-amber-500 to-orange-600",
       bgGradient: "bg-gradient-to-r from-amber-50 to-orange-50",
-    },
-    {
-      name: "Regular Users",
-      count: (analytics?.totalUsers || 0) - (analytics?.superAdmins || 0) - (analytics?.storeOwners || 0) - (analytics?.managers || 0),
-      gradient: "bg-gradient-to-r from-slate-500 to-gray-600",
-      bgGradient: "bg-gradient-to-r from-slate-50 to-gray-50",
     },
   ];
 
   return (
     <Card className="border-0 bg-white/60 backdrop-blur-sm shadow-lg">
       <CardHeader className="pb-4">
-        <CardTitle className="text-slate-800 font-semibold">User Roles</CardTitle>
+        <CardTitle className="text-slate-800 font-semibold">{t("dashboard.userRoles.title")}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">

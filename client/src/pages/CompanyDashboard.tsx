@@ -1,10 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +16,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
+import { startOfDay, endOfDay, subDays, subWeeks, subMonths, subYears, startOfWeek, startOfMonth, startOfYear } from "date-fns";
 import { 
   Store, 
   Users, 
@@ -35,10 +41,13 @@ import {
   Shield,
   AlertTriangle,
   Download,
-  Trash2
+  Trash2,
+  RotateCcw
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Pie, Cell } from 'recharts';
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Store {
   id: number;
@@ -51,6 +60,7 @@ interface Store {
   products: number;
   customers: number;
   createdAt: string;
+  companyLogo?: string | null;
 }
 
 const storeFormSchema = z.object({
@@ -61,7 +71,7 @@ const storeFormSchema = z.object({
   revenue: z.number().min(0, "Revenue must be non-negative"),
   customerCount: z.number().min(0, "Customer count must be non-negative"),
   productCount: z.number().min(0, "Product count must be non-negative"),
-  isActive: z.boolean()
+  isActive: z.boolean(),
 });
 
 const managerFormSchema = z.object({
@@ -79,13 +89,14 @@ type StoreFormData = z.infer<typeof storeFormSchema>;
 type ManagerFormData = z.infer<typeof managerFormSchema>;
 
 export default function CompanyDashboard() {
+  const [, setLocation] = useLocation();
+  const { t } = useTranslation();
   const [stores, setStores] = useState<Store[]>([]);
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isStoreDialogOpen, setIsStoreDialogOpen] = useState(false);
   const [analytics, setAnalytics] = useState({
     totalStores: 0,
     activeStores: 0,
@@ -95,6 +106,7 @@ export default function CompanyDashboard() {
     monthlyGrowth: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('stores');
   
   // Manager Management State
   const [managers, setManagers] = useState<any[]>([]);
@@ -102,13 +114,188 @@ export default function CompanyDashboard() {
   const [isManagerDialogOpen, setIsManagerDialogOpen] = useState(false);
   const [isManagerEditMode, setIsManagerEditMode] = useState(false);
   const [managerSearchTerm, setManagerSearchTerm] = useState("");
+  const [isDeleteManagerDialogOpen, setIsDeleteManagerDialogOpen] = useState(false);
+  const [managerToDelete, setManagerToDelete] = useState<any | null>(null);
   
   // Company limits
   const [companyData, setCompanyData] = useState<any>(null);
   const [maxBranches, setMaxBranches] = useState(5);
+  
+  // Time period state
+  const [timePeriod, setTimePeriod] = useState<'daily' | 'weekly' | 'monthly' | 'annually'>('monthly');
+  const { user } = useAuth();
 
   // Chart colors
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D'];
+  
+  // Fetch all sales for the company
+  const { data: allSales = [] } = useQuery({
+    queryKey: ['/api/company/sales', user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return [];
+      // We'll need to fetch sales from each store or create a company-wide endpoint
+      // For now, let's fetch from all stores
+      const storesRes = await apiRequest('GET', '/api/company/stores');
+      const storesData = await storesRes.json();
+      const stores = Array.isArray(storesData) ? storesData : (storesData.data || []);
+      
+      // Fetch sales from all stores
+      const salesPromises = stores.map(async (store: any) => {
+        try {
+          const salesRes = await apiRequest('GET', `/api/stores/${store.id}/sales?limit=10000`);
+          const salesData = await salesRes.json();
+          const storeSales = Array.isArray(salesData) ? salesData : (salesData.data || []);
+          return storeSales.map((sale: any) => ({ ...sale, storeId: store.id, storeName: store.name }));
+        } catch (error) {
+          console.error(`Error fetching sales for store ${store.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allSalesArrays = await Promise.all(salesPromises);
+      return allSalesArrays.flat();
+    },
+    enabled: !!user?.companyId,
+    refetchInterval: 60000, // Refetch every minute
+  });
+  
+  // Fetch returns/refunds for the company
+  const { data: allReturns = [] } = useQuery({
+    queryKey: ['/api/company/returns', user?.companyId],
+    queryFn: async () => {
+      if (!user?.companyId) return [];
+      const storesRes = await apiRequest('GET', '/api/company/stores');
+      const storesData = await storesRes.json();
+      const stores = Array.isArray(storesData) ? storesData : (storesData.data || []);
+      
+      const returnsPromises = stores.map(async (store: any) => {
+        try {
+          const returnsRes = await apiRequest('GET', `/api/returns?storeId=${store.id}&limit=10000`);
+          const returnsData = await returnsRes.json();
+          const storeReturns = Array.isArray(returnsData) ? returnsData : (returnsData.data || []);
+          return storeReturns.map((returnRecord: any) => ({ ...returnRecord, storeId: store.id, storeName: store.name }));
+        } catch (error) {
+          console.error(`Error fetching returns for store ${store.id}:`, error);
+          return [];
+        }
+      });
+      
+      const allReturnsArrays = await Promise.all(returnsPromises);
+      return allReturnsArrays.flat();
+    },
+    enabled: !!user?.companyId,
+    refetchInterval: 60000,
+  });
+  
+  // Calculate date range based on time period
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date;
+    
+    switch (timePeriod) {
+      case 'daily':
+        startDate = startOfDay(now);
+        break;
+      case 'weekly':
+        startDate = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+        break;
+      case 'monthly':
+        startDate = startOfMonth(now);
+        break;
+      case 'annually':
+        startDate = startOfYear(now);
+        break;
+      default:
+        startDate = startOfMonth(now);
+    }
+    
+    return { startDate, endDate: endOfDay(now) };
+  };
+  
+  // Filter sales by time period
+  const filteredSales = useMemo(() => {
+    const { startDate, endDate } = getDateRange();
+    return allSales.filter((sale: any) => {
+      const saleDate = new Date(sale.createdAt);
+      return saleDate >= startDate && saleDate <= endDate;
+    });
+  }, [allSales, timePeriod]);
+  
+  // Filter returns by time period
+  const filteredReturns = useMemo(() => {
+    const { startDate, endDate } = getDateRange();
+    return allReturns.filter((returnRecord: any) => {
+      const returnDate = new Date(returnRecord.returnDate || returnRecord.createdAt);
+      return returnDate >= startDate && returnDate <= endDate;
+    });
+  }, [allReturns, timePeriod]);
+  
+  // Calculate metrics based on filtered sales
+  const calculatedMetrics = useMemo(() => {
+    const totalRevenue = filteredSales.reduce((sum: number, sale: any) => 
+      sum + (parseFloat(sale.total) || 0), 0
+    );
+    
+    // Count unique customers
+    const uniqueCustomers = new Set<string>();
+    filteredSales.forEach((sale: any) => {
+      if (sale.items && typeof sale.items === 'object' && sale.items.customerInfo) {
+        const customerInfo = sale.items.customerInfo;
+        if (customerInfo.email) {
+          uniqueCustomers.add(customerInfo.email);
+        } else if (customerInfo.phone) {
+          uniqueCustomers.add(customerInfo.phone);
+        } else if (customerInfo.name) {
+          uniqueCustomers.add(customerInfo.name);
+        }
+      }
+    });
+    
+    // Count unique products
+    const uniqueProducts = new Set<number>();
+    filteredSales.forEach((sale: any) => {
+      if (sale.items && typeof sale.items === 'object' && sale.items.items) {
+        sale.items.items.forEach((item: any) => {
+          if (item.productId) {
+            uniqueProducts.add(item.productId);
+          } else if (item.product?.id) {
+            uniqueProducts.add(item.product.id);
+          }
+        });
+      }
+    });
+    
+    const salesCount = filteredSales.length;
+    const averageTicket = salesCount > 0 ? totalRevenue / salesCount : 0;
+    
+    // Calculate revenue by store
+    const revenueByStore: Record<number, { revenue: number; name: string }> = {};
+    filteredSales.forEach((sale: any) => {
+      const storeId = sale.storeId;
+      if (!revenueByStore[storeId]) {
+        revenueByStore[storeId] = { revenue: 0, name: sale.storeName || `Store ${storeId}` };
+      }
+      revenueByStore[storeId].revenue += parseFloat(sale.total) || 0;
+    });
+    
+    // Calculate refunds
+    const totalRefunds = filteredReturns.reduce((sum: number, returnRecord: any) => 
+      sum + (parseFloat(returnRecord.totalRefund) || 0), 0
+    );
+    
+    return {
+      totalRevenue,
+      customers: uniqueCustomers.size,
+      products: uniqueProducts.size,
+      salesCount,
+      averageTicket,
+      revenueByStore,
+      refunds: {
+        count: filteredReturns.length,
+        total: totalRefunds
+      }
+    };
+  }, [filteredSales, filteredReturns]);
 
   // Prepare chart data
   const revenueChartData = filteredStores.map(store => ({
@@ -133,7 +320,7 @@ export default function CompanyDashboard() {
       revenue: 0,
       customerCount: 0,
       productCount: 0,
-      isActive: true
+      isActive: true,
     }
   });
 
@@ -171,29 +358,29 @@ export default function CompanyDashboard() {
 
   const fetchCompanyData = async () => {
     try {
-      // Fetch stores data
-      const storesResponse = await fetch('/api/company/stores');
+      // Fetch all stores
+      const storesResponse = await fetchWithAuth('/api/company/stores');
       if (storesResponse.ok) {
         const storesData = await storesResponse.json();
         setStores(storesData);
       }
 
       // Fetch analytics data
-      const analyticsResponse = await fetch('/api/company/analytics');
+      const analyticsResponse = await fetchWithAuth('/api/company/analytics');
       if (analyticsResponse.ok) {
         const analyticsData = await analyticsResponse.json();
         setAnalytics(analyticsData);
       }
 
       // Fetch managers data
-      const managersResponse = await fetch('/api/managers');
+      const managersResponse = await fetchWithAuth('/api/managers');
       if (managersResponse.ok) {
         const managersData = await managersResponse.json();
-        setManagers(managersData);
+        setManagers(managersData?.managers);
       }
 
       // Fetch company data to get max branches limit
-      const companyResponse = await fetch('/api/company/profile');
+      const companyResponse = await fetchWithAuth('/api/company/profile');
       if (companyResponse.ok) {
         const companyData = await companyResponse.json();
         setCompanyData(companyData);
@@ -206,56 +393,6 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleCreateStore = async (data: StoreFormData) => {
-    if (stores.length >= maxBranches) {
-      toast({
-        title: "Limit Reached",
-        description: `You have reached the maximum number of stores (${maxBranches}) allowed for your plan.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/stores', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          ...data,
-          isActive: true,
-          revenue: 0,
-          customerCount: 0,
-          productCount: 0
-        }),
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Success",
-          description: "Store created successfully",
-        });
-        setIsStoreDialogOpen(false);
-        form.reset();
-        // Refresh the data to show the new store
-        fetchCompanyData();
-      } else {
-        // Parse the error response to get the actual error message
-        const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to create store';
-        throw new Error(errorMessage);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create store",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleViewStore = (store: Store) => {
     setSelectedStore(store);
@@ -280,13 +417,8 @@ export default function CompanyDashboard() {
     if (!selectedStore) return;
 
     try {
-      const response = await fetch(`/api/stores/${selectedStore.id}`, {
+      const response = await fetchWithAuth(`/api/stores/${selectedStore.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
         body: JSON.stringify({
           ...data,
           customerCount: data.customerCount,
@@ -303,13 +435,13 @@ export default function CompanyDashboard() {
         fetchCompanyData(); // Refresh the data
       } else {
         const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to update store';
+        const errorMessage = errorData.message || errorData.error || 'An error occurred';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update store",
+        description: error.message || 'An error occurred',
         variant: "destructive",
       });
     }
@@ -318,13 +450,8 @@ export default function CompanyDashboard() {
   // Manager Handler Functions
   const handleCreateManager = async (data: ManagerFormData) => {
     try {
-      const response = await fetch('/api/managers', {
+      const response = await fetchWithAuth('/api/managers', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${document.cookie.split('sessionId=')[1]?.split(';')[0] || ''}`,
-        },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
 
@@ -339,13 +466,13 @@ export default function CompanyDashboard() {
         fetchCompanyData();
       } else {
         const errorData = await response.json();
-        const errorMessage = errorData.message || 'Failed to create manager';
+        const errorMessage = errorData.message || errorData.error || 'An error occurred';
         throw new Error(errorMessage);
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to create manager",
+        description: error.message || 'An error occurred',
         variant: "destructive",
       });
     }
@@ -355,11 +482,8 @@ export default function CompanyDashboard() {
     if (!selectedManager) return;
 
     try {
-      const response = await fetch(`/api/managers/${selectedManager.id}`, {
+      const response = await fetchWithAuth(`/api/managers/${selectedManager.id}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
       });
 
@@ -384,22 +508,27 @@ export default function CompanyDashboard() {
     }
   };
 
-  const handleDeleteManager = async (manager: any) => {
-    if (!confirm(`Are you sure you want to delete ${manager.firstName} ${manager.lastName}?`)) {
-      return;
-    }
+  const handleDeleteManager = (manager: any) => {
+    setManagerToDelete(manager);
+    setIsDeleteManagerDialogOpen(true);
+  };
+
+  const confirmDeleteManager = async () => {
+    if (!managerToDelete) return;
 
     try {
-      const response = await fetch(`/api/managers/${manager.id}`, {
+      const response = await fetchWithAuth(`/api/managers/${managerToDelete.id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
-        setManagers(managers.filter(m => m.id !== manager.id));
+        setManagers(managers.filter(m => m.id !== managerToDelete.id));
         toast({
           title: "Success",
           description: "Manager deleted successfully",
         });
+        setIsDeleteManagerDialogOpen(false);
+        setManagerToDelete(null);
       }
     } catch (error) {
       toast({
@@ -433,24 +562,24 @@ export default function CompanyDashboard() {
                   <Building2 className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold">Company Dashboard</h1>
+                  <h1 className="text-2xl font-bold">{t("companyDashboard.title")}</h1>
                   <p className="text-blue-100 text-sm">
-                    Manage stores and view analytics
+                    {t("companyDashboard.subtitle")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm">System Active</span>
+                  <span className="text-sm">{t("companyDashboard.systemActive")}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Store className="h-4 w-4" />
-                  <span className="text-sm">{stores.length} Active Stores</span>
+                  <span className="text-sm">{t("companyDashboard.activeStores", { count: stores.length })}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Users className="h-4 w-4" />
-                  <span className="text-sm">{managers.length} Managers</span>
+                  <span className="text-sm">{t("companyDashboard.managersCount", { count: managers.length })}</span>
                 </div>
               </div>
             </div>
@@ -467,17 +596,20 @@ export default function CompanyDashboard() {
               {/* Action Button */}
               {stores.length < maxBranches ? (
                 <Button 
-                  onClick={() => setIsStoreDialogOpen(true)} 
+                  onClick={() => {
+                    setActiveTab('stores');
+                    setLocation('/stores');
+                  }} 
                   className="bg-white/20 hover:bg-white/30 text-white font-semibold px-4 py-2 rounded-lg backdrop-blur-sm border border-white/30 transition-all duration-200 hover:scale-105"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Store ({stores.length}/{maxBranches})
+                  {t("companyDashboard.stores.addStore", { used: stores.length, limit: maxBranches })}
                 </Button>
               ) : (
                 <div className="text-right">
                   <Button disabled className="bg-white/10 cursor-not-allowed text-white/60 px-4 py-2 rounded-lg backdrop-blur-sm">
                     <AlertTriangle className="h-4 w-4 mr-2" />
-                    Limit Reached ({stores.length}/{maxBranches})
+                    {t("companyDashboard.stores.limitReached", { used: stores.length, limit: maxBranches })}
                   </Button>
                 </div>
               )}
@@ -486,11 +618,146 @@ export default function CompanyDashboard() {
         </div>
       </div>
 
+      {/* Time Period Selector */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-primary" />
+          <h2 className="text-xl font-bold">{t("companyDashboard.analytics.title")}</h2>
+        </div>
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-1 border border-slate-200 dark:border-slate-700">
+          <Button
+            variant={timePeriod === 'daily' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('daily')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.daily")}
+          </Button>
+          <Button
+            variant={timePeriod === 'weekly' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('weekly')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.weekly")}
+          </Button>
+          <Button
+            variant={timePeriod === 'monthly' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('monthly')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.monthly")}
+          </Button>
+          <Button
+            variant={timePeriod === 'annually' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setTimePeriod('annually')}
+            className="h-8 px-3 text-xs"
+          >
+            {t("companyDashboard.timePeriod.annually")}
+          </Button>
+        </div>
+      </div>
+
       {/* Modern Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Total Stores</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.totalRevenue")}</CardTitle>
+            <div className="p-2 bg-green-500 rounded-lg">
+              <DollarSign className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{calculatedMetrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.revenuePeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-orange-50 to-red-100 dark:from-orange-900 dark:to-red-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.customers")}</CardTitle>
+            <div className="p-2 bg-orange-500 rounded-lg">
+              <Users className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">{calculatedMetrics.customers}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.customersPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-900 dark:to-pink-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.products")}</CardTitle>
+            <div className="p-2 bg-purple-500 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{calculatedMetrics.products}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.productsPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.salesCount")}</CardTitle>
+            <div className="p-2 bg-blue-500 rounded-lg">
+              <ShoppingCart className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">{calculatedMetrics.salesCount}</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.salesPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Additional Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-cyan-50 to-teal-100 dark:from-cyan-900 dark:to-teal-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.averageTicket")}</CardTitle>
+            <div className="p-2 bg-cyan-500 rounded-lg">
+              <TrendingUp className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">{calculatedMetrics.averageTicket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {t("companyDashboard.cards.averageTicketPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-red-50 to-rose-100 dark:from-red-900 dark:to-rose-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.refunds")}</CardTitle>
+            <div className="p-2 bg-red-500 rounded-lg">
+              <RotateCcw className="h-4 w-4 text-white" />
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">{calculatedMetrics.refunds.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {calculatedMetrics.refunds.count} {t("companyDashboard.cards.refundsCount")} ({t(`companyDashboard.timePeriod.${timePeriod}`)})
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800">
+            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t("companyDashboard.cards.totalStores")}</CardTitle>
             <div className="p-2 bg-blue-500 rounded-lg">
               <Store className="h-4 w-4 text-white" />
             </div>
@@ -498,52 +765,7 @@ export default function CompanyDashboard() {
           <CardContent className="pt-4">
             <div className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">{analytics.totalStores}</div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              {analytics.activeStores} active stores
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Total Revenue</CardTitle>
-            <div className="p-2 bg-green-500 rounded-lg">
-              <DollarSign className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">€{analytics.totalRevenue.toLocaleString()}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              +{analytics.monthlyGrowth}% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-900 dark:to-pink-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Products</CardTitle>
-            <div className="p-2 bg-purple-500 rounded-lg">
-              <ShoppingCart className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{analytics.totalProducts}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Across all stores
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-lg bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm overflow-hidden hover:shadow-xl transition-all duration-200 hover:scale-105">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 bg-gradient-to-r from-orange-50 to-red-100 dark:from-orange-900 dark:to-red-800">
-            <CardTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Customers</CardTitle>
-            <div className="p-2 bg-orange-500 rounded-lg">
-              <Users className="h-4 w-4 text-white" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">{analytics.totalCustomers}</div>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Total customer base
+              {t("companyDashboard.cards.activeStores", { count: analytics.activeStores })}
             </p>
           </CardContent>
         </Card>
@@ -551,24 +773,25 @@ export default function CompanyDashboard() {
 
       {/* Analytics Charts Section */}
       <div className="space-y-6">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart3 className="h-6 w-6 text-primary" />
-          <h2 className="text-2xl font-bold">Analytics Overview</h2>
-        </div>
-        
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Revenue Bar Chart */}
+          {/* Revenue Comparison by Store */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                Store Revenue Comparison
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  {t("companyDashboard.analytics.revenueComparison")}
+                </div>
+                <Badge variant="outline">{t(`companyDashboard.timePeriod.${timePeriod}`)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChartData}>
+                  <BarChart data={Object.entries(calculatedMetrics.revenueByStore).map(([storeId, data]: [string, any]) => ({
+                    name: data.name.length > 15 ? data.name.substring(0, 15) + '...' : data.name,
+                    revenue: data.revenue
+                  }))}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
@@ -579,13 +802,10 @@ export default function CompanyDashboard() {
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k Kč`}
                     />
                     <Tooltip 
-                      formatter={(value, name) => [
-                        `€${Number(value).toLocaleString()}`, 
-                        name === 'revenue' ? 'Revenue' : name
-                      ]}
+                      formatter={(value) => [`${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`, 'Revenue']}
                     />
                     <Bar dataKey="revenue" fill="#0088FE" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -597,15 +817,43 @@ export default function CompanyDashboard() {
           {/* Customer vs Products Chart */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Customers & Products by Store
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  {t("companyDashboard.analytics.customersProducts")}
+                </div>
+                <Badge variant="outline">{t(`companyDashboard.timePeriod.${timePeriod}`)}</Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="h-80">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={revenueChartData}>
+                  <BarChart data={Object.entries(calculatedMetrics.revenueByStore).map(([storeId, data]: [string, any]) => {
+                    const storeSales = filteredSales.filter((s: any) => s.storeId === parseInt(storeId));
+                    const uniqueCustomers = new Set<string>();
+                    const uniqueProducts = new Set<number>();
+                    
+                    storeSales.forEach((sale: any) => {
+                      if (sale.items && typeof sale.items === 'object' && sale.items.customerInfo) {
+                        const customerInfo = sale.items.customerInfo;
+                        if (customerInfo.email) uniqueCustomers.add(customerInfo.email);
+                        else if (customerInfo.phone) uniqueCustomers.add(customerInfo.phone);
+                        else if (customerInfo.name) uniqueCustomers.add(customerInfo.name);
+                      }
+                      if (sale.items && typeof sale.items === 'object' && sale.items.items) {
+                        sale.items.items.forEach((item: any) => {
+                          if (item.productId) uniqueProducts.add(item.productId);
+                          else if (item.product?.id) uniqueProducts.add(item.product.id);
+                        });
+                      }
+                    });
+                    
+                    return {
+                      name: data.name.length > 15 ? data.name.substring(0, 15) + '...' : data.name,
+                      customers: uniqueCustomers.size,
+                      products: uniqueProducts.size
+                    };
+                  })}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                       dataKey="name" 
@@ -627,20 +875,20 @@ export default function CompanyDashboard() {
       </div>
 
       {/* Main Content Tabs */}
-      <Tabs defaultValue="stores" className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="stores">My Stores</TabsTrigger>
-          <TabsTrigger value="managers">Managers</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
+          <TabsTrigger value="stores">{t("companyDashboard.tabs.stores")}</TabsTrigger>
+          <TabsTrigger value="managers">{t("companyDashboard.tabs.managers")}</TabsTrigger>
+          <TabsTrigger value="settings">{t("companyDashboard.tabs.settings")}</TabsTrigger>
         </TabsList>
 
         {/* Stores Tab */}
         <TabsContent value="stores" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2">
                 <Store className="h-5 w-5" />
-                Store Locations
+                {t("companyDashboard.stores.title")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -649,7 +897,7 @@ export default function CompanyDashboard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search stores by name, address, or manager..."
+                    placeholder={t("companyDashboard.stores.searchPlaceholder")}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -661,9 +909,22 @@ export default function CompanyDashboard() {
                 {filteredStores.map((store) => (
                   <div key={store.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-4">
-                      <div className="bg-primary/10 p-2 rounded-lg">
-                        <Store className="h-6 w-6 text-primary" />
-                      </div>
+                      {store.companyLogo ? (
+                        <img 
+                          src={store.companyLogo} 
+                          alt={`${store.name} company logo`}
+                          className="w-12 h-12 object-cover rounded-lg border border-slate-200"
+                          onError={(e) => {
+                            // Hide image on error and show fallback
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : null}
+                      {!store.companyLogo && (
+                        <div className="bg-primary/10 p-2 rounded-lg">
+                          <Store className="h-6 w-6 text-primary" />
+                        </div>
+                      )}
                       <div>
                         <h3 className="font-semibold">{store.name}</h3>
                         <p className="text-sm text-slate-600 flex items-center gap-1">
@@ -672,13 +933,13 @@ export default function CompanyDashboard() {
                         </p>
                         <p className="text-sm text-slate-600 flex items-center gap-1">
                           <UserCheck className="h-3 w-3" />
-                          Manager: {store.manager}
+                          {t("companyDashboard.stores.managerLabel")}: {store.manager}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="font-semibold">€{store.revenue.toLocaleString()}</p>
+                        <p className="font-semibold">{store.revenue.toLocaleString()} Kč</p>
                         <p className="text-xs text-slate-600">{store.products} products</p>
                       </div>
                       <Badge variant={store.status === 'active' ? 'default' : 'secondary'}>
@@ -707,7 +968,7 @@ export default function CompanyDashboard() {
               <div className="flex justify-between items-center">
                 <CardTitle className="flex items-center gap-2">
                   <Users className="h-5 w-5" />
-                  Manager Management
+                  {t("companyDashboard.managers.title")}
                 </CardTitle>
                 <Button onClick={() => {
                   setSelectedManager(null);
@@ -716,7 +977,7 @@ export default function CompanyDashboard() {
                   managerForm.reset();
                 }} className="bg-primary hover:bg-blue-700">
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Manager
+                  {t("companyDashboard.managers.addManager")}
                 </Button>
               </div>
             </CardHeader>
@@ -726,7 +987,7 @@ export default function CompanyDashboard() {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search managers by name, email, or role..."
+                    placeholder={t("companyDashboard.managers.searchPlaceholder")}
                     value={managerSearchTerm}
                     onChange={(e) => setManagerSearchTerm(e.target.value)}
                     className="pl-10"
@@ -759,7 +1020,7 @@ export default function CompanyDashboard() {
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
                         <Badge variant={manager.isActive ? 'default' : 'secondary'}>
-                          {manager.isActive ? 'Active' : 'Inactive'}
+                          {manager.isActive ? t("companyDashboard.managers.active") : t("companyDashboard.managers.inactive")}
                         </Badge>
                       </div>
                       <div className="flex space-x-2">
@@ -791,7 +1052,7 @@ export default function CompanyDashboard() {
                 {managers.length === 0 && (
                   <div className="text-center py-8 text-slate-600">
                     <Users className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                    <p>No managers found. Add your first manager to get started.</p>
+                    <p>{t("companyDashboard.managers.noManagers")}</p>
                   </div>
                 )}
               </div>
@@ -809,42 +1070,42 @@ export default function CompanyDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Building className="h-5 w-5" />
-                  Company Profile
+                  {t("companyDashboard.settings.title")}
                 </CardTitle>
                 <CardDescription>
-                  Update your company information and contact details
+                  {t("companyDashboard.settings.description")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="company-name">Company Name</Label>
+                  <Label htmlFor="company-name">{t("companyDashboard.settings.companyName")}</Label>
                   <Input id="company-name" defaultValue="Tech Solutions Ltd." />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="reg-number">Registration Number (IČO)</Label>
+                  <Label htmlFor="reg-number">{t("companyDashboard.settings.registrationNumber")}</Label>
                     <Input id="reg-number" defaultValue="12345678" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="vat-number">VAT Number (DIČ)</Label>
+                  <Label htmlFor="vat-number">{t("companyDashboard.settings.vatNumber")}</Label>
                     <Input id="vat-number" defaultValue="CZ12345678" />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company-email">Company Email</Label>
+                  <Label htmlFor="company-email">{t("companyDashboard.settings.email")}</Label>
                   <Input id="company-email" type="email" defaultValue="info@techsolutions.cz" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company-phone">Phone Number</Label>
+                  <Label htmlFor="company-phone">{t("companyDashboard.settings.phone")}</Label>
                   <Input id="company-phone" defaultValue="+420 123 456 789" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company-address">Business Address</Label>
+                  <Label htmlFor="company-address">{t("companyDashboard.settings.address")}</Label>
                   <Textarea id="company-address" defaultValue="Wenceslas Square 1, 110 00 Prague 1, Czech Republic" />
                 </div>
                 <Button className="w-full">
                   <Save className="h-4 w-4 mr-2" />
-                  Save Profile Changes
+                  {t("companyDashboard.settings.saveProfile")}
                 </Button>
               </CardContent>
             </Card>
@@ -854,18 +1115,18 @@ export default function CompanyDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5" />
-                  System Preferences
+                  {t("companyDashboard.settings.systemPreferences")}
                 </CardTitle>
                 <CardDescription>
-                  Configure system settings and notifications
+                  {t("companyDashboard.settings.systemPreferencesDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Email Notifications</Label>
+                    <Label>{t("companyDashboard.settings.emailNotifications")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Receive email alerts for important events
+                      {t("companyDashboard.settings.emailNotificationsDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -873,9 +1134,9 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>SMS Alerts</Label>
+                    <Label>{t("companyDashboard.settings.smsAlerts")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Get SMS notifications for critical issues
+                      {t("companyDashboard.settings.smsAlertsDesc")}
                     </p>
                   </div>
                   <Switch />
@@ -883,19 +1144,19 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Weekly Reports</Label>
+                    <Label>{t("companyDashboard.settings.weeklyReports")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically generate weekly analytics reports
+                      {t("companyDashboard.settings.weeklyReportsDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="timezone">Timezone</Label>
+                  <Label htmlFor="timezone">{t("companyDashboard.settings.timezone")}</Label>
                   <Select defaultValue="prague">
                     <SelectTrigger>
-                      <SelectValue placeholder="Select timezone" />
+                      <SelectValue placeholder={t("companyDashboard.settings.selectTimezone")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="prague">Prague (UTC+1)</SelectItem>
@@ -906,10 +1167,10 @@ export default function CompanyDashboard() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="currency">Default Currency</Label>
+                  <Label htmlFor="currency">{t("companyDashboard.settings.currency")}</Label>
                   <Select defaultValue="eur">
                     <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
+                      <SelectValue placeholder={t("companyDashboard.settings.selectCurrency")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="eur">Euro (EUR)</SelectItem>
@@ -921,7 +1182,7 @@ export default function CompanyDashboard() {
                 
                 <Button variant="outline" className="w-full">
                   <Settings className="h-4 w-4 mr-2" />
-                  Update Preferences
+                  {t("companyDashboard.settings.updatePreferences")}
                 </Button>
               </CardContent>
             </Card>
@@ -931,33 +1192,33 @@ export default function CompanyDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Store className="h-5 w-5" />
-                  Store Configuration
+                  {t("companyDashboard.settings.storeConfiguration")}
                 </CardTitle>
                 <CardDescription>
-                  Manage store settings and operational hours
+                  {t("companyDashboard.settings.storeConfigurationDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Maximum Number of Stores</Label>
+                  <Label>{t("companyDashboard.settings.maxStores")}</Label>
                   <div className="flex items-center gap-2">
                     <Input type="number" defaultValue="10" min="1" max="50" />
-                    <span className="text-sm text-muted-foreground">stores allowed</span>
+                    <span className="text-sm text-muted-foreground">{t("companyDashboard.settings.storesAllowed")}</span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Current: {stores.length} / 10 stores used
+                    {t("companyDashboard.settings.currentStores", { used: stores.length, limit: 10 })}
                   </p>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Default Operating Hours</Label>
+                  <Label>{t("companyDashboard.settings.defaultOperatingHours")}</Label>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs">Opening Time</Label>
+                      <Label className="text-xs">{t("companyDashboard.settings.openingTime")}</Label>
                       <Input type="time" defaultValue="08:00" />
                     </div>
                     <div>
-                      <Label className="text-xs">Closing Time</Label>
+                      <Label className="text-xs">{t("companyDashboard.settings.closingTime")}</Label>
                       <Input type="time" defaultValue="20:00" />
                     </div>
                   </div>
@@ -965,9 +1226,9 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Auto-sync Inventory</Label>
+                    <Label>{t("companyDashboard.settings.autoSyncInventory")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Automatically sync inventory across stores
+                      {t("companyDashboard.settings.autoSyncInventoryDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -975,9 +1236,9 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Centralized Pricing</Label>
+                    <Label>{t("companyDashboard.settings.centralizedPricing")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Use unified pricing across all locations
+                      {t("companyDashboard.settings.centralizedPricingDesc")}
                     </p>
                   </div>
                   <Switch />
@@ -985,7 +1246,7 @@ export default function CompanyDashboard() {
                 
                 <Button variant="outline" className="w-full">
                   <Store className="h-4 w-4 mr-2" />
-                  Apply Store Settings
+                  {t("companyDashboard.settings.applyStoreSettings")}
                 </Button>
               </CardContent>
             </Card>
@@ -995,42 +1256,42 @@ export default function CompanyDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5" />
-                  Security & Access
+                  {t("companyDashboard.settings.securityAccess")}
                 </CardTitle>
                 <CardDescription>
-                  Manage security settings and user permissions
+                  {t("companyDashboard.settings.securityAccessDesc")}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Password Policy</Label>
+                  <Label>{t("companyDashboard.settings.passwordPolicy")}</Label>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox id="require-uppercase" defaultChecked />
                       <Label htmlFor="require-uppercase" className="text-sm">
-                        Require uppercase letters
+                        {t("companyDashboard.settings.requireUppercase")}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="require-numbers" defaultChecked />
                       <Label htmlFor="require-numbers" className="text-sm">
-                        Require numbers
+                        {t("companyDashboard.settings.requireNumbers")}
                       </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Checkbox id="require-symbols" />
                       <Label htmlFor="require-symbols" className="text-sm">
-                        Require special characters
+                        {t("companyDashboard.settings.requireSymbols")}
                       </Label>
                     </div>
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="session-timeout">Session Timeout</Label>
+                  <Label htmlFor="session-timeout">{t("companyDashboard.settings.sessionTimeout")}</Label>
                   <Select defaultValue="30">
                     <SelectTrigger>
-                      <SelectValue placeholder="Select timeout" />
+                      <SelectValue placeholder={t("companyDashboard.settings.selectTimeout")} />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="15">15 minutes</SelectItem>
@@ -1043,9 +1304,9 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Two-Factor Authentication</Label>
+                    <Label>{t("companyDashboard.settings.twoFactor")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Enable 2FA for enhanced security
+                      {t("companyDashboard.settings.twoFactorDesc")}
                     </p>
                   </div>
                   <Switch />
@@ -1053,9 +1314,9 @@ export default function CompanyDashboard() {
                 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label>Login Audit Trail</Label>
+                    <Label>{t("companyDashboard.settings.loginAuditTrail")}</Label>
                     <p className="text-sm text-muted-foreground">
-                      Track all user login activities
+                      {t("companyDashboard.settings.loginAuditTrailDesc")}
                     </p>
                   </div>
                   <Switch defaultChecked />
@@ -1063,7 +1324,7 @@ export default function CompanyDashboard() {
                 
                 <Button variant="outline" className="w-full">
                   <Shield className="h-4 w-4 mr-2" />
-                  Update Security Settings
+                  {t("companyDashboard.settings.updateSecurity")}
                 </Button>
               </CardContent>
             </Card>
@@ -1074,32 +1335,32 @@ export default function CompanyDashboard() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-600">
                 <AlertTriangle className="h-5 w-5" />
-                Danger Zone
+                {t("companyDashboard.settings.dangerZone")}
               </CardTitle>
               <CardDescription>
-                These actions are permanent and cannot be undone
+                {t("companyDashboard.settings.dangerZoneDesc")}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
                 <div>
-                  <h4 className="font-semibold text-red-600">Export Company Data</h4>
-                  <p className="text-sm text-slate-600">Download all your company and store data</p>
+                  <h4 className="font-semibold text-red-600">{t("companyDashboard.settings.exportData")}</h4>
+                  <p className="text-sm text-slate-600">{t("companyDashboard.settings.exportDataDesc")}</p>
                 </div>
                 <Button variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
                   <Download className="h-4 w-4 mr-2" />
-                  Export Data
+                  {t("companyDashboard.settings.exportData")}
                 </Button>
               </div>
               
               <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg">
                 <div>
-                  <h4 className="font-semibold text-red-600">Close Company Account</h4>
-                  <p className="text-sm text-slate-600">Permanently close your company account and all associated data</p>
+                  <h4 className="font-semibold text-red-600">{t("companyDashboard.settings.closeAccount")}</h4>
+                  <p className="text-sm text-slate-600">{t("companyDashboard.settings.closeAccountDesc")}</p>
                 </div>
                 <Button variant="destructive">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Close Account
+                  {t("companyDashboard.settings.closeAccount")}
                 </Button>
               </div>
             </CardContent>
@@ -1107,112 +1368,21 @@ export default function CompanyDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Add Store Dialog */}
-      <Dialog open={isStoreDialogOpen} onOpenChange={setIsStoreDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Store</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleCreateStore)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Store Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter store name" {...field} data-testid="input-store-name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} data-testid="input-store-phone" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Address</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter store address" {...field} data-testid="input-store-address" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="managerId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assign Manager (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-manager">
-                          <SelectValue placeholder="Select a manager" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="">No manager assigned</SelectItem>
-                        {managers.map((manager) => (
-                          <SelectItem key={manager.id} value={manager.id.toString()}>
-                            {manager.firstName} {manager.lastName} - {manager.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="flex justify-end space-x-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsStoreDialogOpen(false)} data-testid="button-cancel-store">
-                  Cancel
-                </Button>
-                <Button type="submit" data-testid="button-create-store">
-                  Create Store
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
       {/* View Store Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Store Details</DialogTitle>
+            <DialogTitle>{t("companyDashboard.dialogs.viewStore.title")}</DialogTitle>
           </DialogHeader>
           {selectedStore && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Store Name</label>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.storeName")}</label>
                   <p className="text-lg font-semibold">{selectedStore.name}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.status")}</label>
                   <div className="mt-1">
                     <Badge variant={selectedStore.status === 'active' ? 'default' : 'secondary'}>
                       {selectedStore.status}
@@ -1222,51 +1392,51 @@ export default function CompanyDashboard() {
               </div>
               
               <div>
-                <label className="text-sm font-medium text-gray-500">Address</label>
+                <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.address")}</label>
                 <p className="text-base">{selectedStore.address}</p>
               </div>
 
               {selectedStore.phone && (
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Phone</label>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.phone")}</label>
                   <p className="text-base">{selectedStore.phone}</p>
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Manager</label>
+                <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.manager")}</label>
                 <p className="text-base">{selectedStore.manager}</p>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Revenue</label>
-                  <p className="text-lg font-semibold">€{selectedStore.revenue.toLocaleString()}</p>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.revenue")}</label>
+                  <p className="text-lg font-semibold">{selectedStore.revenue.toLocaleString()} Kč</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Products</label>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.products")}</label>
                   <p className="text-lg font-semibold">{selectedStore.products}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Customers</label>
+                  <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.customers")}</label>
                   <p className="text-lg font-semibold">{selectedStore.customers}</p>
                 </div>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-gray-500">Created</label>
+                <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.created")}</label>
                 <p className="text-base">{selectedStore.createdAt}</p>
               </div>
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
-                  Close
+                  {t("companyDashboard.dialogs.viewStore.close")}
                 </Button>
                 <Button onClick={() => {
                   setIsViewDialogOpen(false);
                   handleEditStore(selectedStore);
                 }}>
-                  Edit Store
+                  {t("companyDashboard.dialogs.viewStore.editStore")}
                 </Button>
               </div>
             </div>
@@ -1278,7 +1448,7 @@ export default function CompanyDashboard() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Store</DialogTitle>
+            <DialogTitle>{t("companyDashboard.dialogs.editStore.title")}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleUpdateStore)} className="space-y-4">
@@ -1288,7 +1458,7 @@ export default function CompanyDashboard() {
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Store Name</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.editStore.storeName")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter store name" {...field} />
                       </FormControl>
@@ -1302,7 +1472,7 @@ export default function CompanyDashboard() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.editStore.phone")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter phone number" {...field} />
                       </FormControl>
@@ -1317,7 +1487,7 @@ export default function CompanyDashboard() {
                 name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Address</FormLabel>
+                    <FormLabel>{t("companyDashboard.dialogs.editStore.address")}</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter store address" {...field} />
                     </FormControl>
@@ -1332,7 +1502,7 @@ export default function CompanyDashboard() {
                   name="revenue"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Revenue</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.editStore.revenue")}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -1351,7 +1521,7 @@ export default function CompanyDashboard() {
                   name="customerCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Customer Count</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.editStore.customerCount")}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -1370,7 +1540,7 @@ export default function CompanyDashboard() {
                   name="productCount"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Product Count</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.editStore.productCount")}</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 
@@ -1387,10 +1557,10 @@ export default function CompanyDashboard() {
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit">
-                  Update Store
+                  {t("companyDashboard.dialogs.editStore.update")}
                 </Button>
               </div>
             </form>
@@ -1403,7 +1573,7 @@ export default function CompanyDashboard() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>
-              {isManagerEditMode ? 'Edit Manager' : 'Add New Manager'}
+              {isManagerEditMode ? t("companyDashboard.managers.updateManager") : t("companyDashboard.managers.createManager")}
             </DialogTitle>
           </DialogHeader>
           <Form {...managerForm}>
@@ -1414,7 +1584,7 @@ export default function CompanyDashboard() {
                   name="firstName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.firstName")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter first name" {...field} />
                       </FormControl>
@@ -1428,7 +1598,7 @@ export default function CompanyDashboard() {
                   name="lastName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.lastName")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter last name" {...field} />
                       </FormControl>
@@ -1444,7 +1614,7 @@ export default function CompanyDashboard() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Email</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.email")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter email address" type="email" {...field} />
                       </FormControl>
@@ -1458,7 +1628,7 @@ export default function CompanyDashboard() {
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.phone")}</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter phone number" {...field} />
                       </FormControl>
@@ -1472,8 +1642,8 @@ export default function CompanyDashboard() {
                 control={managerForm.control}
                 name="password"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password {isManagerEditMode && "(leave blank to keep current)"}</FormLabel>
+                    <FormItem>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.password")} {isManagerEditMode && "(leave blank to keep current)"}</FormLabel>
                     <FormControl>
                       <Input placeholder="Enter password" type="password" {...field} />
                     </FormControl>
@@ -1488,11 +1658,11 @@ export default function CompanyDashboard() {
                   name="role"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Role</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.role")}</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select role" />
+                          <SelectValue placeholder={t("companyDashboard.dialogs.managerForm.role")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -1510,15 +1680,15 @@ export default function CompanyDashboard() {
                   name="storeId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assign to Store (Optional)</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.store")}</FormLabel>
                       <Select onValueChange={(value) => field.onChange(value ? Number(value) : undefined)} defaultValue={field.value?.toString()}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select store" />
+                            <SelectValue placeholder={t("companyDashboard.dialogs.managerForm.store")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No store assigned</SelectItem>
+                          <SelectItem value="">{t("companyDashboard.dialogs.managerForm.noStore")}</SelectItem>
                           {stores.map((store) => (
                             <SelectItem key={store.id} value={store.id.toString()}>
                               {store.name}
@@ -1538,9 +1708,9 @@ export default function CompanyDashboard() {
                 render={({ field }) => (
                   <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                     <div className="space-y-0.5">
-                      <FormLabel>Active Status</FormLabel>
+                      <FormLabel>{t("companyDashboard.dialogs.managerForm.activeStatus")}</FormLabel>
                       <div className="text-sm text-muted-foreground">
-                        Enable or disable this manager account
+                        {t("companyDashboard.dialogs.managerForm.activeStatusDesc")}
                       </div>
                     </div>
                     <FormControl>
@@ -1555,16 +1725,44 @@ export default function CompanyDashboard() {
 
               <div className="flex justify-end space-x-2 pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsManagerDialogOpen(false)}>
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button type="submit">
-                  {isManagerEditMode ? 'Update Manager' : 'Create Manager'}
+                  {isManagerEditMode ? t("companyDashboard.managers.updateManager") : t("companyDashboard.managers.createManager")}
                 </Button>
               </div>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Manager Dialog */}
+      <AlertDialog open={isDeleteManagerDialogOpen} onOpenChange={setIsDeleteManagerDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("companyDashboard.managers.deleteManager")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("companyDashboard.managers.deleteManagerConfirm", {
+                name: `${managerToDelete?.firstName || ""} ${managerToDelete?.lastName || ""}`.trim()
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setIsDeleteManagerDialogOpen(false);
+              setManagerToDelete(null);
+            }}>
+              {t("common.cancel")}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteManager}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {t("dialogs.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

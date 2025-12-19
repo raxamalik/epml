@@ -8,4 +8,4 @@ Archive
 dist
 .vscode
 .idea
-
+.vercel-build

@@ -1,54 +1,85 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
+import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/utils";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { Logo } from "@/components/ui/Logo";
 import { 
   Home, 
   Store, 
   Users, 
   BarChart3, 
   Settings,
-  Building,
   Building2,
   ShoppingCart,
   Package,
   ClipboardList,
   History,
-  FileText
+  FileText,
+  Tag,
+  FlaskConical,
+  RotateCcw,
+  ArrowUpDown,
+  Shield,
+  Download
 } from "lucide-react";
 
 const adminNavigation = [
-  { name: "Dashboard", href: "/", icon: Home, roles: ["super_admin", "store_owner", "manager"] },
-  { name: "Company Management", href: "/companies", icon: Building2, roles: ["super_admin"] },
-  { name: "User Management", href: "/users", icon: Users, roles: ["super_admin"] },
-  { name: "Store Management", href: "/stores", icon: Store, roles: ["store_owner"] },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "company_admin", "store_owner"] },
-  { name: "Analytics", href: "/analytics", icon: BarChart3, roles: ["store_owner", "manager"] },
-  { name: "Settings", href: "/settings", icon: Settings, roles: ["super_admin", "store_owner", "manager"] },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+  { nameKey: "navigation.companyManagement", href: "/companies", icon: Building2, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.users", href: "/users", icon: Users, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.portalAdmins", href: "/portal-admins", icon: Shield, roles: ["super_admin"] },
+  { nameKey: "navigation.activeSubstances", href: "/active-substances", icon: FlaskConical, roles: ["super_admin", "portal_admin"] },
+  { nameKey: "navigation.stores", href: "/stores", icon: Store, roles: ["company_admin"] },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText, roles: ["super_admin", "portal_admin", "company_admin", "store_owner"] },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3, roles: ["store_owner", "manager"] },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings, roles: ["super_admin", "portal_admin", "store_owner", "manager"] },
+];
+
+const storeOwnerNavigation = [
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.myStore", href: "/store-owner/store", icon: Store },
+  { nameKey: "navigation.managers", href: "/store-owner/managers", icon: Users },
+  { nameKey: "navigation.categories", href: "/categories", icon: Tag },
+  { nameKey: "navigation.products", href: "/products", icon: Package },
+  { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
+  { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
+  { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
+  { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 const companyNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "My Stores", href: "/stores", icon: Store },
-  { name: "Managers", href: "/managers", icon: Users },
-  { name: "Audit Logs", href: "/audit-logs", icon: FileText },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.myStores", href: "/stores", icon: Store },
+  { nameKey: "navigation.categories", href: "/categories", icon: Tag },
+  { nameKey: "navigation.products", href: "/products", icon: Package },
+  { nameKey: "navigation.managers", href: "/managers", icon: Users },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
+  { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 const managerNavigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "POS", href: "/manager/pos", icon: ShoppingCart },
-  { name: "Products", href: "/manager/products", icon: Package },
-  { name: "Inventory", href: "/manager/inventory", icon: ClipboardList },
-  { name: "Sales History", href: "/manager/sales-history", icon: History },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { nameKey: "navigation.dashboard", href: "/", icon: Home },
+  { nameKey: "navigation.pos", href: "/manager/pos", icon: ShoppingCart },
+  { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
+  { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
+  { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
+  { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
+  { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
+  { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];
 
 export function Sidebar() {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Determine navigation based on user role
   const getNavigation = () => {
@@ -56,6 +87,8 @@ export function Sidebar() {
       return companyNavigation;
     } else if (user?.role === 'manager') {
       return managerNavigation;
+    } else if (user?.role === 'store_owner') {
+      return storeOwnerNavigation;
     } else {
       return adminNavigation.filter(item => 
         user?.role && item.roles.includes(user.role)
@@ -72,21 +105,18 @@ export function Sidebar() {
           {/* Logo Section */}
           <div className="flex items-center flex-shrink-0 px-6">
             <div className="flex items-center">
-              <div className="bg-primary rounded-lg p-2">
-                <Building className="h-6 w-6 text-white" />
-              </div>
-              <h1 className="ml-3 text-xl font-bold text-slate-900">EPML</h1>
+              <Logo className="h-8" width={100} height={58} />
             </div>
           </div>
           
           {/* Navigation Menu */}
           <nav className="mt-8 flex-1 px-4 space-y-1">
-            {filteredNavigation.map((item) => {
+            {filteredNavigation.map((item, index) => {
               // Exact match for active state to prevent multiple active items
               const isActive = location === item.href;
               return (
                 <Link
-                  key={item.name}
+                  key={index}
                   href={item.href}
                   className={cn(
                     "group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
@@ -99,7 +129,7 @@ export function Sidebar() {
                     "mr-3 h-5 w-5",
                     isActive ? "text-white" : "text-slate-400"
                   )} />
-                  {item.name}
+                  {t(item.nameKey)}
                 </Link>
               );
             })}
@@ -115,10 +145,10 @@ export function Sidebar() {
               />
               <div className="ml-3">
                 <p className="text-sm font-medium text-slate-700">
-                  {user?.firstName || user?.email || "User"}
+                  {user?.firstName || user?.email || t("sidebar.defaultUser")}
                 </p>
                 <p className="text-xs text-slate-500 capitalize">
-                  {user?.role?.replace('_', ' ') || "Loading..."}
+                  {user?.role?.replace('_', ' ') || t("sidebar.loading")}
                 </p>
               </div>
             </div>

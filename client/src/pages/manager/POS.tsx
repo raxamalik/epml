@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +30,9 @@ import {
   List
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
 import { apiRequest } from "@/lib/queryClient";
+import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Product {
@@ -42,6 +45,7 @@ interface Product {
   barcode?: string;
   imageUrl?: string;
   storeId: number;
+  batchNumber?: string;
 }
 
 interface CartItem {
@@ -60,10 +64,11 @@ interface Sale {
 
 export default function POS() {
   const { user } = useAuth();
+  const { storeSlug } = useParams<{ storeSlug?: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation();
   
-  const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card'>('cash');
@@ -79,6 +84,10 @@ export default function POS() {
   });
   const [showCustomerInfo, setShowCustomerInfo] = useState(false);
   const [selectedStoreId, setSelectedStoreId] = useState<number | null>(null);
+  const [quantityInputs, setQuantityInputs] = useState<{ [productId: number]: string }>({});
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [showReceiptDialog, setShowReceiptDialog] = useState(false);
+  const [lastSaleId, setLastSaleId] = useState<string | null>(null);
 
   // Determine the storeId to use
   // For managers: use their assigned storeId
@@ -86,24 +95,163 @@ export default function POS() {
   const isCompanyAdmin = user?.role === 'company_admin' || user?.role === 'store_owner';
   const storeId = isCompanyAdmin ? selectedStoreId : user?.storeId;
 
+  // Fetch user settings to get timezone
+  const { data: settings } = useQuery({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/settings");
+      return response.json();
+    },
+  });
+
+  const timezone = settings?.timezone || 'Europe/Prague';
+
+  // Update time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Local state for manual items (temporary items not in database)
+  const [manualCartItems, setManualCartItems] = useState<CartItem[]>([]);
+
+  // Fetch cart from backend
+  const { data: cartData = [], isLoading: cartLoading } = useQuery({
+    queryKey: ['/api/cart', storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+      const response = await apiRequest('GET', `/api/cart?storeId=${storeId}`);
+      return response.json();
+    },
+    enabled: !!storeId,
+  });
+
+  // Convert backend cart format to frontend format and merge with manual items
+  const backendCart: CartItem[] = cartData.map((item: any) => ({
+    product: item.product,
+    quantity: item.quantity,
+  }));
+
+  // Combined cart: backend items + manual items
+  const cart: CartItem[] = [...backendCart, ...manualCartItems];
+
   // Fetch stores for company admins
-  const { data: stores = [] } = useQuery({
+  const { data: storesResponse, isLoading: storesLoading } = useQuery({
     queryKey: ['/api/stores'],
-    queryFn: () => apiRequest('GET', '/api/stores').then(res => res.json()),
+    queryFn: async () => {
+      const res = await apiRequest('GET', '/api/stores?limit=1000'); // Get all stores (high limit for company admins)
+      const data = await res.json();
+      // Extract the data array from the paginated response
+      return data.data || [];
+    },
     enabled: isCompanyAdmin,
   });
 
+  // Extract stores array from response
+  const stores = storesResponse || [];
+
+  // Auto-select store from URL slug if provided
+  useEffect(() => {
+    if (storeSlug && stores.length > 0 && isCompanyAdmin && !selectedStoreId) {
+      // Find store by slug (convert store name to slug format)
+      const matchingStore = stores.find((store: any) => 
+        store.name.toLowerCase().replace(/\s+/g, '-') === storeSlug.toLowerCase()
+      );
+      if (matchingStore) {
+        setSelectedStoreId(matchingStore.id);
+      }
+    }
+  }, [storeSlug, stores, isCompanyAdmin, selectedStoreId]);
+
   // Fetch products for the store
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const { data: productsResponse, isLoading: productsLoading } = useQuery({
     queryKey: [`/api/stores/${storeId}/products`],
-    queryFn: () => apiRequest('GET', `/api/stores/${storeId}/products`).then(res => res.json()),
+    queryFn: async () => {
+      if (!storeId) return { data: [], total: 0 };
+      const res = await apiRequest('GET', `/api/stores/${storeId}/products`);
+      const data = await res.json();
+      // Handle both paginated response and array response (for backward compatibility)
+      if (Array.isArray(data)) {
+        return { data, total: data.length };
+      }
+      return { data: data.data || [], total: data.total || 0 };
+    },
     enabled: !!storeId,
   });
+
+  // Extract products array from response
+  const products: Product[] = productsResponse?.data || [];
 
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: () => apiRequest('GET', '/api/categories').then(res => res.json()),
+  });
+
+  // Add to cart mutation
+  const addToCartMutation = useMutation({
+    mutationFn: async ({ productId, quantity }: { productId: number; quantity: number }) => {
+      const response = await apiRequest('POST', '/api/cart', {
+        productId,
+        quantity,
+        storeId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+      toast({ title: t("pos.toasts.itemAdded") });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t("pos.toasts.addErrorTitle"), 
+        description: error.message || t("pos.toasts.addErrorDesc"),
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Update quantity mutation
+  const updateQuantityMutation = useMutation({
+    mutationFn: async ({ cartId, quantity }: { cartId: number; quantity: number }) => {
+      const response = await apiRequest('PUT', `/api/cart/${cartId}`, {
+        quantity,
+        storeId,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t("pos.toasts.updateErrorTitle"), 
+        description: error.message || t("pos.toasts.updateErrorDesc"),
+        variant: "destructive" 
+      });
+    },
+  });
+
+  // Remove from cart mutation
+  const removeFromCartMutation = useMutation({
+    mutationFn: async (cartId: number) => {
+      const response = await apiRequest('DELETE', `/api/cart/${cartId}?storeId=${storeId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
+      toast({ title: t("pos.toasts.itemRemoved") });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: t("pos.toasts.removeErrorTitle"), 
+        description: error.message || t("pos.toasts.removeErrorDesc"),
+        variant: "destructive" 
+      });
+    },
   });
 
   // Process sale mutation
@@ -112,13 +260,29 @@ export default function POS() {
       const response = await apiRequest('POST', `/api/stores/${storeId}/sales`, saleData);
       return response.json();
     },
-    onSuccess: () => {
-      setCart([]);
+    onSuccess: async (sale) => {
+      // Clear cart from backend after successful sale
+      if (storeId) {
+        try {
+          await apiRequest('DELETE', `/api/cart?storeId=${storeId}`);
+        } catch (error) {
+          console.error("Error clearing cart:", error);
+        }
+      }
+      // Clear manual items
+      setManualCartItems([]);
+      queryClient.invalidateQueries({ queryKey: ['/api/cart', storeId] });
       setIsCheckoutOpen(false);
       setCashReceived("");
       setCustomerInfo({ name: "", phone: "", email: "" });
       setShowCustomerInfo(false);
-      toast({ title: "Sale processed successfully!" });
+      toast({ title: t("pos.toasts.saleSuccess") });
+      
+      // Store sale ID and show receipt dialog
+      if (sale && sale.id) {
+        setLastSaleId(sale.id);
+        setShowReceiptDialog(true);
+      }
       
       // Invalidate all related queries to update dashboard in real-time
       queryClient.invalidateQueries({ queryKey: [`/api/stores/${storeId}/products`] });
@@ -130,8 +294,8 @@ export default function POS() {
     },
     onError: (error: any) => {
       toast({ 
-        title: "Error processing sale", 
-        description: error.message,
+        title: t("pos.toasts.saleErrorTitle"), 
+        description: error.message || t("pos.toasts.saleErrorDesc"),
         variant: "destructive" 
       });
     },
@@ -139,29 +303,26 @@ export default function POS() {
 
   const addToCart = (product: Product) => {
     if (product.stock <= 0) {
-      toast({ title: "Product out of stock", variant: "destructive" });
+      toast({ title: t("pos.errors.productOutOfStock"), variant: "destructive" });
       return;
     }
-
-    setCart(prev => {
-      const existingItem = prev.find(item => item.product.id === product.id);
-      if (existingItem) {
-        if (existingItem.quantity >= product.stock) {
-          toast({ title: "Cannot add more items than available stock", variant: "destructive" });
-          return prev;
-        }
-        return prev.map(item =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prev, { product, quantity: 1 }];
-    });
+    addToCartMutation.mutate({ productId: product.id, quantity: 1 });
   };
 
   const removeFromCart = (productId: number) => {
-    setCart(prev => prev.filter(item => item.product.id !== productId));
+    // Check if it's a manual item (temporary ID)
+    const isManualItem = productId > 1000000000000; // Manual items use Date.now() as ID
+    
+    if (isManualItem) {
+      // Remove from local manual items
+      setManualCartItems(prev => prev.filter(item => item.product.id !== productId));
+    } else {
+      // Remove from backend cart
+      const cartItem = cartData.find((item: any) => item.product.id === productId);
+      if (cartItem) {
+        removeFromCartMutation.mutate(cartItem.id);
+      }
+    }
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -170,19 +331,31 @@ export default function POS() {
       return;
     }
 
-    const product = products.find((p: Product) => p.id === productId);
-    if (product && quantity > product.stock) {
-      toast({ title: "Cannot exceed available stock", variant: "destructive" });
-      return;
-    }
+    // Check if it's a manual item
+    const isManualItem = productId > 1000000000000;
+    
+    if (isManualItem) {
+      // Update local manual item
+      setManualCartItems(prev =>
+        prev.map(item =>
+          item.product.id === productId
+            ? { ...item, quantity }
+            : item
+        )
+      );
+    } else {
+      // Update backend cart item
+      const product = products.find((p: Product) => p.id === productId);
+      if (product && quantity > product.stock) {
+        toast({ title: t("pos.errors.stockLimitExceeded"), variant: "destructive" });
+        return;
+      }
 
-    setCart(prev =>
-      prev.map(item =>
-        item.product.id === productId
-          ? { ...item, quantity }
-          : item
-      )
-    );
+      const cartItem = cartData.find((item: any) => item.product.id === productId);
+      if (cartItem) {
+        updateQuantityMutation.mutate({ cartId: cartItem.id, quantity });
+      }
+    }
   };
 
   const addManualItem = () => {
@@ -201,7 +374,18 @@ export default function POS() {
       storeId: storeId || 0,
     };
 
-    addToCart(manualProduct);
+    // Add manual item to local state (not backend)
+    setManualCartItems(prev => {
+      const existingItem = prev.find(item => item.product.id === manualProduct.id);
+      if (existingItem) {
+        return prev.map(item =>
+          item.product.id === manualProduct.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product: manualProduct, quantity: 1 }];
+    });
     setManualItem({ name: "", price: "", vatRate: "21" });
     setShowManualItem(false);
   };
@@ -253,9 +437,55 @@ export default function POS() {
     return received - total;
   };
 
+  // Validate cart for stock limits
+  const validateCartStock = (): { isValid: boolean; errorMessage?: string } => {
+    for (const item of cart) {
+      // Skip validation for manual items (they don't have real stock)
+      const isManualItem = item.product.id > 1000000000000;
+      if (isManualItem) {
+        continue;
+      }
+
+      // Check if quantity exceeds available stock
+      const product = products.find((p: Product) => p.id === item.product.id);
+      if (product && item.quantity > product.stock) {
+        return {
+          isValid: false,
+          errorMessage: `"${item.product.name}" quantity (${item.quantity}) exceeds available stock (${product.stock})`
+        };
+      }
+    }
+    return { isValid: true };
+  };
+
+  const handleCheckoutClick = () => {
+    const validation = validateCartStock();
+    if (!validation.isValid) {
+      toast({
+        title: "Stock limit exceeded",
+        description: validation.errorMessage,
+        variant: "destructive"
+      });
+      return;
+    }
+    setIsCheckoutOpen(true);
+  };
+
   const processSale = () => {
+    // Validate stock limits before processing
+    const validation = validateCartStock();
+    if (!validation.isValid) {
+      toast({
+        title: "Stock limit exceeded",
+        description: validation.errorMessage,
+        variant: "destructive"
+      });
+      setIsCheckoutOpen(false);
+      return;
+    }
+
     const total = getTotalAmount();
-    
+
     if (paymentMethod === 'cash') {
       const received = parseFloat(cashReceived) || 0;
       if (received < total) {
@@ -266,7 +496,7 @@ export default function POS() {
 
     const hasCustomerInfo = customerInfo.name || customerInfo.phone || customerInfo.email;
     const vatBreakdown = getVATBreakdown();
-    
+
     const saleData = {
       items: cart.map(item => ({
         productId: item.product.id,
@@ -287,6 +517,147 @@ export default function POS() {
     processSaleMutation.mutate(saleData);
   };
 
+  // Function to print receipt
+  const printReceipt = (receiptText: string, companyLogo?: string | null) => {
+    // Replace [LOGO] placeholder with actual image if logo exists
+    let receiptHtml = receiptText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (companyLogo && receiptText.includes('[LOGO]')) {
+      const logoHtml = `<div style="text-align: center; margin: 10px 0;"><img src="${companyLogo}" alt="Company Logo" style="max-width: 200px; max-height: 80px; object-fit: contain;" /></div>`;
+      receiptHtml = receiptHtml.replace(/\[LOGO\]/g, logoHtml);
+    } else if (receiptText.includes('[LOGO]')) {
+      // Remove [LOGO] placeholder if no logo
+      receiptHtml = receiptHtml.replace(/\[LOGO\]/g, '');
+    }
+    
+    // Create a hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
+      toast({
+        title: "Print error",
+        description: "Failed to create print window",
+        variant: "destructive"
+      });
+      document.body.removeChild(iframe);
+      return;
+    }
+
+    // Write the receipt content with proper formatting
+    iframeDoc.open();
+    iframeDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @media print {
+              @page {
+                margin: 0;
+                size: 80mm auto;
+              }
+              body {
+                margin: 0;
+                padding: 10mm;
+              }
+            }
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              line-height: 1.4;
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              max-width: 80mm;
+              margin: 0 auto;
+              padding: 20px;
+            }
+            img {
+              display: block;
+              margin: 0 auto;
+            }
+          </style>
+        </head>
+        <body>
+          <pre>${receiptHtml}</pre>
+          <script>
+            // Print immediately - wait for images if any
+            function triggerPrint() {
+              const images = document.querySelectorAll('img');
+              let imagesLoaded = 0;
+              const totalImages = images.length;
+              
+              if (totalImages === 0) {
+                // No images, print immediately
+                window.print();
+                window.onafterprint = function() {
+                  window.parent.postMessage('print-complete', '*');
+                };
+                return;
+              }
+              
+              // Wait for all images to load
+              let allLoaded = false;
+              images.forEach(img => {
+                if (img.complete) {
+                  imagesLoaded++;
+                } else {
+                  img.onload = img.onerror = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === totalImages && !allLoaded) {
+                      allLoaded = true;
+                      window.print();
+                    }
+                  };
+                }
+              });
+              
+              if (imagesLoaded === totalImages && !allLoaded) {
+                allLoaded = true;
+                window.print();
+              }
+              
+              window.onafterprint = function() {
+                window.parent.postMessage('print-complete', '*');
+              };
+            }
+            
+            // Trigger print as soon as possible
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', triggerPrint);
+            } else {
+              triggerPrint();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    iframeDoc.close();
+
+    // Listen for print completion and remove iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'print-complete') {
+        document.body.removeChild(iframe);
+        window.removeEventListener('message', handleMessage);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    // Fallback: remove iframe after a delay if message not received
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+        window.removeEventListener('message', handleMessage);
+      }
+    }, 10000);
+  };
+
   // Filter products based on search and category
   const filteredProducts = products.filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -300,16 +671,29 @@ export default function POS() {
   };
 
   if (!storeId) {
+    if (isCompanyAdmin && storesLoading) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
+            <h3 className="text-lg font-semibold">{t("pos.storeSelection.loading")}</h3>
+          </div>
+        </div>
+      );
+    }
+    
     if (isCompanyAdmin && stores.length > 0) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader>
-              <CardTitle className="text-center">Select Store for POS</CardTitle>
+              <CardTitle className="text-center">
+                {t("pos.storeSelection.title")}
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center text-sm text-muted-foreground mb-4">
-                Choose which store you want to operate the Point of Sale for
+                {t("pos.storeSelection.description")}
               </div>
               <div className="space-y-2">
                 {stores.map((store: any) => (
@@ -337,8 +721,10 @@ export default function POS() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold">No store assigned</h3>
-          <p className="text-muted-foreground">Please contact your administrator to assign a store.</p>
+          <h3 className="text-lg font-semibold">{t("pos.noStoreAssigned.title")}</h3>
+          <p className="text-muted-foreground">
+            {t("pos.noStoreAssigned.description")}
+          </p>
         </div>
       </div>
     );
@@ -352,14 +738,24 @@ export default function POS() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 dark:text-white">Point of Sale</h1>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Store #{storeId}</p>
+                <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+                  {t("pos.header.title")}
+                </h1>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t("pos.header.storeLabel", { id: storeId })}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                 <Clock className="h-3 w-3 mr-1" />
-                {new Date().toLocaleTimeString()}
+                {currentTime.toLocaleTimeString('en-US', { 
+                  timeZone: timezone,
+                  hour12: false,
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit'
+                })}
               </Badge>
             </div>
           </div>
@@ -377,7 +773,7 @@ export default function POS() {
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                     <Input
-                      placeholder="Search products or scan barcode..."
+                      placeholder={t("pos.products.searchPlaceholder")}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       className="pl-10 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
@@ -386,10 +782,10 @@ export default function POS() {
                   <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="w-full sm:w-48 bg-slate-50 dark:bg-slate-800">
                       <Filter className="h-4 w-4 mr-2" />
-                      <SelectValue placeholder="Category" />
+                      <SelectValue placeholder={t("pos.products.categoryPlaceholder")} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                      <SelectItem value="all">{t("pos.products.allCategories")}</SelectItem>
                       {categories.map((category: any) => (
                         <SelectItem key={category.id} value={category.name}>
                           {category.name}
@@ -461,12 +857,12 @@ export default function POS() {
                             </Avatar>
                             {product.stock <= 5 && product.stock > 0 && (
                               <Badge variant="destructive" className="absolute top-2 right-2 text-xs">
-                                Low Stock
+                                {t("pos.products.lowStock")}
                               </Badge>
                             )}
                             {product.stock <= 0 && (
                               <Badge variant="secondary" className="absolute top-2 right-2 text-xs">
-                                Out of Stock
+                                {t("pos.products.outOfStock")}
                               </Badge>
                             )}
                           </div>
@@ -475,14 +871,28 @@ export default function POS() {
                               {product.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">{product.category}</p>
-                            <div className="flex items-center justify-between pt-2">
-                              <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                ${parseFloat(product.price.toString()).toFixed(2)}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {product.stock} in stock
-                              </Badge>
-                            </div>
+                            {(product.barcode || product.batchNumber) && (
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                {product.barcode && (
+                                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                    {t("pos.products.barcode")}: {product.barcode}
+                                  </span>
+                                )}
+                                {product.batchNumber && (
+                                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                                    {t("pos.products.batch")}: {product.batchNumber}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {formatCurrencyWithSymbol(parseFloat(product.price.toString()))}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {t("pos.products.inStockLabel", { count: product.stock })}
+                            </Badge>
+                          </div>
                           </div>
                         </>
                       ) : (
@@ -502,13 +912,27 @@ export default function POS() {
                               {product.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">{product.category}</p>
+                            {(product.barcode || product.batchNumber) && (
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400 mt-1">
+                                {product.barcode && (
+                                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                    {t("pos.products.barcode")}: {product.barcode}
+                                  </span>
+                                )}
+                                {product.batchNumber && (
+                                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                                    {t("pos.products.batch")}: {product.batchNumber}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              ${parseFloat(product.price.toString()).toFixed(2)}
+                              {formatCurrencyWithSymbol(parseFloat(product.price.toString()))}
                             </div>
                             <Badge variant="outline" className="text-xs">
-                              {product.stock} in stock
+                              {t("pos.products.inStockLabel", { count: product.stock })}
                             </Badge>
                           </div>
                         </>
@@ -540,15 +964,19 @@ export default function POS() {
               <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-lg">
                 <CardTitle className="flex items-center">
                   <ShoppingCart className="h-5 w-5 mr-2" />
-                  Cart ({cart.length} items)
+                  {t("pos.cart.title", { count: cart.length })}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 {cart.length === 0 ? (
                   <div className="text-center py-12">
                     <ShoppingCart className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                    <p className="text-slate-500 dark:text-slate-400">Your cart is empty</p>
-                    <p className="text-sm text-slate-400 dark:text-slate-500">Add products to start a sale</p>
+                    <p className="text-slate-500 dark:text-slate-400">
+                      {t("pos.cart.emptyTitle")}
+                    </p>
+                    <p className="text-sm text-slate-400 dark:text-slate-500">
+                      {t("pos.cart.emptyDescription")}
+                    </p>
                   </div>
                 ) : (
                   <div className="max-h-96 overflow-y-auto">
@@ -569,7 +997,8 @@ export default function POS() {
                             {item.product.name}
                           </h4>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            ${parseFloat(item.product.price.toString()).toFixed(2)} each
+                            {formatCurrencyWithSymbol(parseFloat(item.product.price.toString()))}{" "}
+                            {t("pos.cart.each")}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -581,7 +1010,65 @@ export default function POS() {
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center font-medium">{item.quantity}</span>
+                          <Input
+                            type="number"
+                            min="1"
+                            value={quantityInputs[item.product.id] !== undefined 
+                              ? quantityInputs[item.product.id] 
+                              : item.quantity.toString()}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Update local state for immediate UI feedback
+                              setQuantityInputs(prev => ({
+                                ...prev,
+                                [item.product.id]: value
+                              }));
+                            }}
+                            onBlur={(e) => {
+                              const value = e.target.value;
+                              const numValue = parseInt(value, 10);
+                              
+                              // Clear the local input state
+                              setQuantityInputs(prev => {
+                                const newState = { ...prev };
+                                delete newState[item.product.id];
+                                return newState;
+                              });
+                              
+                              // Validate and update quantity
+                              if (value === '' || isNaN(numValue) || numValue <= 0) {
+                                // Reset to current quantity if invalid
+                                return;
+                              }
+                              
+                              // Check stock limit for backend cart items (not manual items)
+                              const isManualItem = item.product.id > 1000000000000;
+                              if (!isManualItem) {
+                                const product = products.find((p: Product) => p.id === item.product.id);
+                                if (product && numValue > product.stock) {
+                                  toast({ 
+                                    title: "Cannot exceed available stock", 
+                                    description: `Only ${product.stock} units available`,
+                                    variant: "destructive" 
+                                  });
+                                  return;
+                                }
+                              }
+                              
+                              // Update quantity if it's different
+                              if (numValue !== item.quantity) {
+                                updateQuantity(item.product.id, numValue);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              // Update on Enter key as well
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                            }}
+                            className="w-16 h-8 text-center font-medium p-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            style={{ MozAppearance: 'textfield' }}
+                          />
                           <Button
                             variant="outline"
                             size="sm"
@@ -609,37 +1096,39 @@ export default function POS() {
                 <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-b-lg">
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span>Net Amount:</span>
+                      <span>{t("pos.summary.netAmount")}</span>
                       <span>${getNetAmount().toFixed(2)}</span>
                     </div>
                     
                     {/* VAT Breakdown by Rate */}
                     {Object.entries(getVATBreakdown()).map(([rate, breakdown]) => (
                       <div key={rate} className="flex justify-between text-sm text-slate-600 dark:text-slate-400">
-                        <span>VAT {breakdown.rate}%:</span>
+                        <span>
+                          {t("pos.summary.vatRateLabel", { rate: breakdown.rate })}
+                        </span>
                         <span>${breakdown.vat.toFixed(2)}</span>
                       </div>
                     ))}
                     
                     <div className="flex justify-between text-sm font-medium">
-                      <span>Total VAT:</span>
+                      <span>{t("pos.summary.totalVat")}</span>
                       <span>${getTotalVAT().toFixed(2)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
-                      <span>Total:</span>
+                      <span>{t("pos.summary.total")}</span>
                       <span className="text-green-600 dark:text-green-400">
                         ${getTotalAmount().toFixed(2)}
                       </span>
                     </div>
                   </div>
                   <Button
-                    onClick={() => setIsCheckoutOpen(true)}
+                    onClick={handleCheckoutClick}
                     className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3"
                     size="lg"
                   >
                     <CreditCard className="h-5 w-5 mr-2" />
-                    Checkout
+                    {t("pos.cart.checkoutButton")}
                   </Button>
                 </div>
               )}
@@ -652,20 +1141,20 @@ export default function POS() {
       <Dialog open={showManualItem} onOpenChange={setShowManualItem}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Manual Item</DialogTitle>
+            <DialogTitle>{t("pos.manualItem.title")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="manual-name">Item Name</Label>
+              <Label htmlFor="manual-name">{t("pos.manualItem.nameLabel")}</Label>
               <Input
                 id="manual-name"
                 value={manualItem.name}
                 onChange={(e) => setManualItem({ ...manualItem, name: e.target.value })}
-                placeholder="Enter item name"
+                placeholder={t("pos.manualItem.namePlaceholder")}
               />
             </div>
             <div>
-              <Label htmlFor="manual-price">Price</Label>
+              <Label htmlFor="manual-price">{t("pos.manualItem.priceLabel")}</Label>
               <Input
                 id="manual-price"
                 type="number"
@@ -676,7 +1165,7 @@ export default function POS() {
               />
             </div>
             <div>
-              <Label htmlFor="manual-vatRate">VAT Rate (%)</Label>
+              <Label htmlFor="manual-vatRate">{t("pos.manualItem.vatLabel")}</Label>
               <Input
                 id="manual-vatRate"
                 type="number"
@@ -688,22 +1177,22 @@ export default function POS() {
                 placeholder="21"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Enter percentage (e.g., 21 for 21%)
+                {t("pos.manualItem.vatHint")}
               </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowManualItem(false)}>
-              Cancel
+              {t("common.cancel")}
             </Button>
-            <Button onClick={addManualItem}>Add Item</Button>
+            <Button onClick={addManualItem}>{t("pos.manualItem.addButton")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Checkout Dialog */}
       <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center">
               <Receipt className="h-5 w-5 mr-2" />
@@ -865,6 +1354,89 @@ export default function POS() {
                   Complete Sale
                 </>
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Printing Dialog */}
+      <Dialog open={showReceiptDialog} onOpenChange={setShowReceiptDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center">
+              <Receipt className="h-5 w-5 mr-2" />
+              {t("receipt.printReceipt")}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              {t("receipt.selectReceiptType")}
+            </p>
+            <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded">
+              {t("receipt.printNote")}
+            </p>
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  setShowReceiptDialog(false);
+                  if (lastSaleId) {
+                    try {
+                      const response = await apiRequest(
+                        'GET',
+                        `/api/sales/${lastSaleId}/receipt?language=en&mode=live&paymentMethod=${paymentMethod}&format=json`
+                      );
+                      const data = await response.json();
+                      printReceipt(data.receipt, data.companyLogo);
+                    } catch (error: any) {
+                      toast({
+                        title: "Error loading receipt",
+                        description: error.message || "Failed to load receipt",
+                        variant: "destructive"
+                      });
+                    }
+                  }
+                }}
+              >
+                <span className="font-semibold">{t("receipt.englishReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  English receipt with real data
+                </span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex flex-col items-start"
+                onClick={async () => {
+                  setShowReceiptDialog(false);
+                  if (lastSaleId) {
+                    try {
+                      const response = await apiRequest(
+                        'GET',
+                        `/api/sales/${lastSaleId}/receipt?language=cz&mode=live&paymentMethod=${paymentMethod}&format=json`
+                      );
+                      const data = await response.json();
+                      printReceipt(data.receipt, data.companyLogo);
+                    } catch (error: any) {
+                      toast({
+                        title: "Error loading receipt",
+                        description: error.message || "Failed to load receipt",
+                        variant: "destructive"
+                      });
+                    }
+                  }
+                }}
+              >
+                <span className="font-semibold">{t("receipt.czechReceipt")}</span>
+                <span className="text-xs text-muted-foreground mt-1">
+                  Český doklad s reálnými údaji
+                </span>
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowReceiptDialog(false)}>
+              {t("receipt.close")}
             </Button>
           </DialogFooter>
         </DialogContent>

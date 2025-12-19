@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "lucide-react";
 
@@ -21,27 +20,8 @@ export function ProfileAvatar({
   className = "", 
   showBorder = false 
 }: ProfileAvatarProps) {
-  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
-
-  // Get profile image from localStorage settings if not provided in user
-  useEffect(() => {
-    if (user?.profileImageUrl) {
-      setProfileImageUrl(user.profileImageUrl);
-    } else {
-      // Check localStorage for saved profile image
-      const savedSettings = localStorage.getItem('userSettings');
-      if (savedSettings) {
-        try {
-          const settings = JSON.parse(savedSettings);
-          if (settings.profileImageUrl) {
-            setProfileImageUrl(settings.profileImageUrl);
-          }
-        } catch (error) {
-          console.warn('Failed to parse user settings:', error);
-        }
-      }
-    }
-  }, [user?.profileImageUrl]);
+  // Get profile image directly from user object (which includes settings data from backend)
+  const profileImageUrl = user?.profileImageUrl || null;
 
   // Size classes
   const sizeClasses = {

@@ -97,11 +97,31 @@ export default function CompleteProfile() {
         window.location.href = '/';
       }, 1500);
     } catch (error: any) {
+      // Extract error message properly
+      let errorMessage = "An error occurred while completing your profile.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error?.errorData?.message) {
+        errorMessage = error.errorData.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to complete profile. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      // If company is suspended, clear the profile completion data and redirect to login
+      if (errorMessage.includes("suspended")) {
+        localStorage.removeItem('pendingProfileCompletion');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
+      
       setIsSubmitting(false);
     }
   };

@@ -7,12 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { 
   User,
   Building,
@@ -31,11 +32,18 @@ import {
   Smartphone,
   Key,
   Copy,
-  Download
+  Download,
+  AlertTriangle,
+  Eye,
+  EyeOff,
+  Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { useTranslation } from "@/hooks/useTranslation";
+import { CompanyEditDialog } from "@/components/company/CompanyEditDialog";
 
 // Settings form schema
 const settingsSchema = z.object({
@@ -79,15 +87,18 @@ interface UserInfo {
 }
 
 export default function DynamicSettings() {
+  const { t } = useTranslation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCompanyEditDialogOpen, setIsCompanyEditDialogOpen] = useState(false);
   
   // 2FA States
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
   const [is2FASetupModalOpen, setIs2FASetupModalOpen] = useState(false);
+  const [is2FADisableModalOpen, setIs2FADisableModalOpen] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
   const [manualEntryKey, setManualEntryKey] = useState<string | null>(null);
   const [twoFactorSecret, setTwoFactorSecret] = useState<string | null>(null);
@@ -95,6 +106,8 @@ export default function DynamicSettings() {
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isLoading2FA, setIsLoading2FA] = useState(false);
+  const [disablePassword, setDisablePassword] = useState("");
+  const [showDisablePassword, setShowDisablePassword] = useState(false);
 
   // Get current user info
   const { data: user } = useQuery({
@@ -102,8 +115,12 @@ export default function DynamicSettings() {
     retry: false,
   });
 
-  // Check 2FA status from localStorage
+  // Check 2FA status from user data and localStorage
   useEffect(() => {
+    if (user && (user as any).twoFactorEnabled !== undefined) {
+      setIs2FAEnabled((user as any).twoFactorEnabled || false);
+    } else {
+      // Fallback to localStorage
     const stored2FA = localStorage.getItem('user2FA');
     if (stored2FA) {
       try {
@@ -114,7 +131,8 @@ export default function DynamicSettings() {
         console.warn('Failed to parse 2FA settings:', error);
       }
     }
-  }, []);
+    }
+  }, [user]);
 
   // 2FA Setup Functions
   const setup2FA = async () => {
@@ -127,10 +145,10 @@ export default function DynamicSettings() {
       setManualEntryKey(data.manualEntryKey);
       setTwoFactorSecret(data.secret);
       setIs2FASetupModalOpen(true);
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to setup 2FA. Please try again.",
+        title: t("settings.toasts.error"),
+        description: error.message || t("errors.generic"),
         variant: "destructive",
       });
     } finally {
@@ -141,8 +159,8 @@ export default function DynamicSettings() {
   const verify2FASetup = async () => {
     if (!twoFactorSecret || !verificationCode) {
       toast({
-        title: "Error",
-        description: "Please enter the verification code.",
+        title: t("settings.toasts.error"),
+        description: t("settings.toasts.secretTokenRequired"),
         variant: "destructive",
       });
       return;
@@ -168,15 +186,18 @@ export default function DynamicSettings() {
         setBackupCodes(data.backupCodes);
         setIsSetupComplete(true);
         
+        // Refresh user data
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        
         toast({
-          title: "Success",
-          description: "Two-Factor Authentication has been enabled successfully!",
+          title: t("settings.toasts.verifySuccess"),
+          description: data.message || t("settings.toasts.verifySuccess"),
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Invalid verification code. Please try again.",
+        title: t("settings.toasts.verifyError"),
+        description: error.message || t("errors.generic"),
         variant: "destructive",
       });
     } finally {
@@ -184,32 +205,58 @@ export default function DynamicSettings() {
     }
   };
 
-  const disable2FA = async () => {
+  const handleDisable2FA = async () => {
+    if (!disablePassword) {
+      toast({
+        title: t("settings.toasts.error"),
+        description: t("settings.toasts.passwordRequired"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading2FA(true);
     try {
+      const response = await apiRequest("POST", "/api/2fa/disable", {
+        password: disablePassword,
+      });
+      const data = await response.json();
+
+      if (data.success) {
       // Remove from localStorage
       localStorage.removeItem('user2FA');
       
       setIs2FAEnabled(false);
       setTwoFactorSecret(null);
+        setIs2FADisableModalOpen(false);
       setIs2FASetupModalOpen(false);
       setIsSetupComplete(false);
       setBackupCodes([]);
       setVerificationCode("");
+        setDisablePassword("");
+        
+        // Refresh user data
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       
       toast({
-        title: "Success",
-        description: "Two-Factor Authentication has been disabled.",
+        title: t("settings.toasts.disableSuccess"),
+          description: data.message || t("settings.toasts.disableSuccess"),
       });
-    } catch (error) {
+      }
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to disable 2FA. Please try again.",
+        title: t("settings.toasts.disableError"),
+        description: error.message || t("errors.generic"),
         variant: "destructive",
       });
     } finally {
       setIsLoading2FA(false);
     }
+  };
+
+  const closeDisableModal = () => {
+    setIs2FADisableModalOpen(false);
+    setDisablePassword("");
   };
 
   const closeSetupModal = () => {
@@ -222,22 +269,23 @@ export default function DynamicSettings() {
     setBackupCodes([]);
   };
 
-  // Get settings (temporarily use localStorage until backend is ready)
+  // Get settings from backend
   const { data: settings, isLoading: settingsLoading } = useQuery({
     queryKey: ["/api/settings"],
     queryFn: async () => {
-      // For now, return default settings from localStorage or defaults
-      const stored = localStorage.getItem('userSettings');
-      let parsedSettings = null;
-      if (stored) {
-        parsedSettings = JSON.parse(stored);
-        // Force loginAuditTrail to always be true for security compliance
-        parsedSettings.loginAuditTrail = true;
+      try {
+        const response = await apiRequest("GET", "/api/settings");
+        const data = await response.json();
+        
+        // Ensure loginAuditTrail is always true for security compliance
+        if (data) {
+          data.loginAuditTrail = true;
       }
-      return parsedSettings || {
+        
+        return data || {
         timezone: "Europe/Prague",
         language: "en",
-        currency: "EUR",
+        currency: "CZK",
         emailNotifications: true,
         smsAlerts: false,
         weeklyReports: true,
@@ -250,6 +298,26 @@ export default function DynamicSettings() {
         loginAuditTrail: true,
         dataRetention: 365,
       };
+      } catch (error: any) {
+        console.error("Error fetching settings:", error);
+        // Return defaults on error
+        return {
+          timezone: "Europe/Prague",
+          language: "en",
+          currency: "CZK",
+          emailNotifications: true,
+          smsAlerts: false,
+          weeklyReports: true,
+          storeAlerts: true,
+          sessionTimeout: 30,
+          requireUppercase: true,
+          requireNumbers: true,
+          requireSymbols: false,
+          twoFactorEnabled: false,
+          loginAuditTrail: true,
+          dataRetention: 365,
+        };
+      }
     },
     retry: false,
   });
@@ -260,7 +328,7 @@ export default function DynamicSettings() {
     defaultValues: {
       timezone: "Europe/Prague",
       language: "en",
-      currency: "EUR",
+      currency: "CZK",
       emailNotifications: true,
       smsAlerts: false,
       weeklyReports: true,
@@ -275,27 +343,42 @@ export default function DynamicSettings() {
     },
   });
 
-  // Update form when settings are loaded
+  // Update form when settings are loaded, merging with user data for profile fields
   useEffect(() => {
-    if (settings) {
-      form.reset(settings);
+    if (settings || user) {
+      const userData = user as any;
+      const mergedData = {
+        ...settings,
+        // Prefill profile fields from user object if not in settings
+        firstName: settings?.firstName || userData?.firstName || "",
+        lastName: settings?.lastName || userData?.lastName || "",
+        phone: settings?.phone || userData?.phone || "",
+        profileImageUrl: settings?.profileImageUrl || userData?.profileImageUrl || "",
+      };
+      form.reset(mergedData);
     }
-  }, [settings, form]);
+  }, [settings, user, form]);
 
-  // Determine user type from the user data
+  // Determine user type from the user data and set profile image preview
   useEffect(() => {
     if (user) {
+      const userData = user as any;
       setUserInfo({
-        id: user.id,
-        email: user.email,
-        role: user.role || 'manager',
-        type: user.type || 'user',
-        companyId: user.companyId,
+        id: userData.id,
+        email: userData.email,
+        role: userData.role || 'manager',
+        type: userData.type || 'user',
+        companyId: userData.companyId,
       });
+      
+      // Set profile image preview if user has profileImageUrl
+      if (userData.profileImageUrl && !profileImagePreview) {
+        setProfileImagePreview(userData.profileImageUrl);
+      }
     }
   }, [user]);
 
-  // Settings mutation (temporarily use localStorage)
+  // Settings mutation - save to backend
   const settingsMutation = useMutation({
     mutationFn: async (data: SettingsFormData) => {
       // Force loginAuditTrail to always be true for security compliance
@@ -303,21 +386,26 @@ export default function DynamicSettings() {
         ...data,
         loginAuditTrail: true,
       };
-      // Store in localStorage for now
-      localStorage.setItem('userSettings', JSON.stringify(safeData));
-      return safeData;
+      
+      // Save to backend
+      const response = await apiRequest("PUT", "/api/settings", safeData);
+      const result = await response.json();
+      return result;
     },
     onSuccess: () => {
       toast({
-        title: "Settings Updated",
-        description: "Your settings have been successfully updated.",
+        title: t("settings.toasts.updated"),
+        description: t("settings.toasts.updatedDesc"),
       });
       queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      // Invalidate user query to refresh profile image in header
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorMessage = error.message || t("errors.generic");
       toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update settings. Please try again.",
+        title: t("settings.toasts.error"),
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -335,8 +423,8 @@ export default function DynamicSettings() {
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
-        title: "Invalid File",
-        description: "Please select an image file (JPG, PNG, GIF, etc.)",
+        title: t("settings.invalidFile"),
+        description: t("settings.invalidFileDesc"),
         variant: "destructive",
       });
       return;
@@ -345,8 +433,8 @@ export default function DynamicSettings() {
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "File Too Large",
-        description: "Please select an image smaller than 5MB",
+        title: t("settings.fileTooLarge"),
+        description: t("settings.fileTooLargeDesc"),
         variant: "destructive",
       });
       return;
@@ -355,27 +443,43 @@ export default function DynamicSettings() {
     setIsUploadingImage(true);
 
     try {
-      // Create a preview URL
+      // Create a preview URL for immediate display
       const previewUrl = URL.createObjectURL(file);
       setProfileImagePreview(previewUrl);
 
-      // Convert to base64 for storage
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const base64String = e.target?.result as string;
-        form.setValue('profileImageUrl', base64String);
+      // Upload file to backend
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetchWithAuth('/api/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.message || errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      const imageUrl = data.imageUrl;
+
+      // Set the image URL in the form (this will be saved when user clicks Save Settings)
+      form.setValue('profileImageUrl', imageUrl);
+      
         toast({
-          title: "Image Uploaded",
-          description: "Profile image has been updated. Remember to save your settings.",
+          title: t("settings.imageUploaded"),
+        description: t("settings.imageUploadedDesc"),
         });
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Upload error:', error);
       toast({
-        title: "Upload Failed",
-        description: "Failed to upload image. Please try again.",
+        title: t("settings.uploadFailed"),
+        description: error.message || t("errors.generic"),
         variant: "destructive",
       });
+      // Reset preview on error
+      setProfileImagePreview(null);
     } finally {
       setIsUploadingImage(false);
     }
@@ -385,10 +489,32 @@ export default function DynamicSettings() {
     form.setValue('profileImageUrl', '');
     setProfileImagePreview(null);
     toast({
-      title: "Image Removed",
-      description: "Profile image has been removed. Remember to save your settings.",
+      title: t("settings.imageRemoved"),
+      description: t("settings.imageRemovedDesc"),
     });
   };
+
+  // Load company information for company accounts so we can show it in the Company tab
+  // This hook must be called before any early returns to follow Rules of Hooks
+  const {
+    data: companyInfo,
+    isLoading: companyInfoLoading,
+    error: companyInfoError,
+    refetch: refetchCompanyInfo,
+  } = useQuery({
+    queryKey: ["/api/companies", userInfo?.companyId],
+    queryFn: async () => {
+      if (!userInfo?.companyId || userInfo.type !== "company") return null;
+      const response = await fetchWithAuth(`/api/companies/${userInfo.companyId}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "" }));
+        throw new Error(errorData.message || errorData.error || "Failed to load company information");
+      }
+      return response.json();
+    },
+    enabled: !!userInfo?.companyId && userInfo?.type === "company",
+    retry: false,
+  });
 
   if (settingsLoading || !userInfo) {
     return (
@@ -404,26 +530,26 @@ export default function DynamicSettings() {
     
     // Profile tab only for individual users, not companies
     if (userInfo.type === 'user') {
-      tabs.push({ id: 'profile', label: 'Profile', icon: User });
+      tabs.push({ id: 'profile', label: t("settings.tabs.profile"), icon: User });
     }
     
     // Company info tab only for companies
     if (userInfo.type === 'company') {
-      tabs.push({ id: 'company', label: 'Company Info', icon: Building });
+      tabs.push({ id: 'company', label: t("settings.tabs.companyInfo"), icon: Building });
     }
     
     // Regional settings for everyone
-    tabs.push({ id: 'regional', label: 'Regional', icon: Globe });
+    tabs.push({ id: 'regional', label: t("settings.tabs.regional"), icon: Globe });
     
     // Notifications for everyone
-    tabs.push({ id: 'notifications', label: 'Notifications', icon: Bell });
+    tabs.push({ id: 'notifications', label: t("settings.tabs.notifications"), icon: Bell });
     
     // Security settings for everyone
-    tabs.push({ id: 'security', label: 'Security', icon: Shield });
+    tabs.push({ id: 'security', label: t("settings.tabs.security"), icon: Shield });
     
     // System settings only for admins and company admins
-    if (userInfo.role === 'super_admin' || userInfo.role === 'company_admin') {
-      tabs.push({ id: 'system', label: 'System', icon: Database });
+    if (userInfo.role === 'super_admin' || userInfo.role === 'portal_admin' || userInfo.role === 'company_admin') {
+      tabs.push({ id: 'system', label: t("settings.tabs.system"), icon: Database });
     }
     
     return tabs;
@@ -435,11 +561,11 @@ export default function DynamicSettings() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-slate-900">{t("settings.title")}</h1>
         <p className="text-slate-600 mt-2">
           {userInfo.type === 'company' ? 
-            `Manage your company settings and preferences` : 
-            `Manage your personal settings and preferences`
+            t("settings.companyDescription") : 
+            t("settings.personalDescription")
           }
         </p>
       </div>
@@ -463,10 +589,10 @@ export default function DynamicSettings() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <User className="h-5 w-5" />
-                      Personal Information
+                      {t("settings.personalInformation")}
                     </CardTitle>
                     <CardDescription>
-                      Update your personal details and contact information
+                      {t("settings.personalInformationDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -476,7 +602,7 @@ export default function DynamicSettings() {
                         name="firstName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>First Name</FormLabel>
+                            <FormLabel>{t("settings.firstName")}</FormLabel>
                             <FormControl>
                               <Input {...field} value={field.value || ""} />
                             </FormControl>
@@ -489,7 +615,7 @@ export default function DynamicSettings() {
                         name="lastName"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Last Name</FormLabel>
+                            <FormLabel>{t("settings.lastName")}</FormLabel>
                             <FormControl>
                               <Input {...field} value={field.value || ""} />
                             </FormControl>
@@ -503,7 +629,7 @@ export default function DynamicSettings() {
                       name="phone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Phone Number</FormLabel>
+                          <FormLabel>{t("settings.phoneNumber")}</FormLabel>
                           <FormControl>
                             <Input {...field} value={field.value || ""} />
                           </FormControl>
@@ -516,7 +642,7 @@ export default function DynamicSettings() {
                       name="profileImageUrl"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Profile Image</FormLabel>
+                          <FormLabel>{t("settings.profileImage")}</FormLabel>
                           <div className="space-y-4">
                             {/* Current Image Preview */}
                             <div className="flex items-center space-x-4">
@@ -565,18 +691,18 @@ export default function DynamicSettings() {
                                     ) : (
                                       <Camera className="h-4 w-4" />
                                     )}
-                                    {isUploadingImage ? "Uploading..." : "Upload Image"}
+                                    {isUploadingImage ? t("settings.uploading") : t("settings.uploadImage")}
                                   </div>
                                 </label>
                                 <p className="text-xs text-gray-500">
-                                  JPG, PNG, GIF up to 5MB
+                                  {t("settings.imageFormatHint")}
                                 </p>
                               </div>
                             </div>
 
                             {/* Alternative URL Input */}
                             <div>
-                              <FormLabel className="text-sm text-gray-600">Or enter image URL:</FormLabel>
+                              <FormLabel className="text-sm text-gray-600">{t("settings.orEnterImageUrl")}</FormLabel>
                               <FormControl>
                                 <Input 
                                   {...field} 
@@ -604,26 +730,196 @@ export default function DynamicSettings() {
 
             {/* Company Info Tab (Companies Only) */}
             {userInfo.type === 'company' && (
-              <TabsContent value="company" className="space-y-6">
-                <Card>
-                  <CardHeader>
+            <TabsContent value="company" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
                     <CardTitle className="flex items-center gap-2">
                       <Building className="h-5 w-5" />
-                      Company Information
+                      {t("settings.companyInformation")}
                     </CardTitle>
                     <CardDescription>
-                      Company-wide settings and preferences
+                      {t("settings.companyInformationDesc")}
                     </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  </div>
+                  {companyInfo && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 md:mt-0"
+                      onClick={() => setIsCompanyEditDialogOpen(true)}
+                    >
+                      <SettingsIcon className="h-4 w-4 mr-2" />
+                      {t("settings.editCompanyProfile") || "Edit company profile"}
+                    </Button>
+                  )}
+                </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Company information */}
+                    {companyInfoLoading && (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
+                      </div>
+                    )}
+
+                    {companyInfoError && (
+                      <p className="text-sm text-red-600">
+                        {(companyInfoError as Error).message || t("errors.generic")}
+                      </p>
+                    )}
+
+                    {companyInfo && !companyInfoLoading && !companyInfoError && (
+                      <div className="space-y-6">
+                        {/* Logo + basic info header */}
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-lg border bg-white flex items-center justify-center overflow-hidden">
+                              {((companyInfo as any).companyLogo) ? (
+                                <img
+                                  src={companyInfo.companyLogo}
+                                  alt={companyInfo.name}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs text-slate-400 text-center px-2">
+                                  {t("companyForm.companyLogo") || "Company logo"}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-500">
+                                {t("companyDashboard.settings.companyName") || "Company name"}
+                              </p>
+                              <p className="text-lg font-semibold text-slate-900">
+                                {companyInfo.name}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.registrationNumber") || "Registration number"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.registrationNumber}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.vatNumber") || "VAT number"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.vatNumber || "—"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              Email
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.email}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.phone") || "Phone"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.phone}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyForm.contactPerson")}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.contactPerson}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1 md:col-span-2">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.address") || "Address"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.address}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Company settings / license summary */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.status") || "Status"}
+                            </Label>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={companyInfo.isActive ? "default" : "secondary"}>
+                                {companyInfo.licenseStatus || (companyInfo.isActive ? "Active" : "Inactive")}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.maxBranches") || "Max branches"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.maxBranches ?? "—"}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.currentBranches") || "Current branches"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.branchCount ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Helper note for full company management */}
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-sm text-blue-800">
-                        <strong>Company Account:</strong> These settings apply to all users in your company.
-                        Individual users can override some preferences in their personal settings.
+                        {t("settings.companyAccountNote")}
                       </p>
                     </div>
                   </CardContent>
                 </Card>
+
+                {companyInfo && (
+                  <CompanyEditDialog
+                    isOpen={isCompanyEditDialogOpen}
+                    onOpenChange={setIsCompanyEditDialogOpen}
+                    mode="limited"
+                    company={{
+                      id: companyInfo.id,
+                      name: companyInfo.name,
+                      registrationNumber: companyInfo.registrationNumber,
+                      vatNumber: companyInfo.vatNumber,
+                      address: companyInfo.address,
+                      email: companyInfo.email,
+                      phone: companyInfo.phone,
+                      contactPerson: companyInfo.contactPerson,
+                      maxBranches: companyInfo.maxBranches,
+                      companyLogo: (companyInfo as any).companyLogo,
+                    }}
+                    onUpdated={() => {
+                      refetchCompanyInfo();
+                    }}
+                  />
+                )}
               </TabsContent>
             )}
 
@@ -633,10 +929,10 @@ export default function DynamicSettings() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Globe className="h-5 w-5" />
-                    Regional Settings
+                    {t("settings.regionalSettings")}
                   </CardTitle>
                   <CardDescription>
-                    Configure timezone, currency, and language preferences
+                    {t("settings.regionalSettingsDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -645,11 +941,11 @@ export default function DynamicSettings() {
                     name="timezone"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Timezone</FormLabel>
+                        <FormLabel>{t("settings.timezone")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select timezone" />
+                              <SelectValue placeholder={t("settings.selectTimezone")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -670,11 +966,11 @@ export default function DynamicSettings() {
                     name="currency"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Default Currency</FormLabel>
+                        <FormLabel>{t("settings.currency")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select currency" />
+                              <SelectValue placeholder={t("settings.selectCurrency")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -694,11 +990,11 @@ export default function DynamicSettings() {
                     name="language"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Language</FormLabel>
+                        <FormLabel>{t("settings.language")}</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select language" />
+                              <SelectValue placeholder={t("settings.selectLanguage")} />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
@@ -722,10 +1018,10 @@ export default function DynamicSettings() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="h-5 w-5" />
-                    Notification Preferences
+                    {t("settings.notificationPreferences")}
                   </CardTitle>
                   <CardDescription>
-                    Choose how you want to receive alerts and notifications
+                    {t("settings.notificationPreferencesDesc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -735,9 +1031,9 @@ export default function DynamicSettings() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Email Notifications</FormLabel>
+                          <FormLabel className="text-base">{t("settings.emailNotifications")}</FormLabel>
                           <FormDescription>
-                            Receive email alerts for important events and updates
+                            {t("settings.emailNotificationsDesc")}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -756,9 +1052,9 @@ export default function DynamicSettings() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">SMS Alerts</FormLabel>
+                          <FormLabel className="text-base">{t("settings.smsAlerts")}</FormLabel>
                           <FormDescription>
-                            Get SMS notifications for critical issues
+                            {t("settings.smsAlertsDesc")}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -777,9 +1073,9 @@ export default function DynamicSettings() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Weekly Reports</FormLabel>
+                          <FormLabel className="text-base">{t("settings.weeklyReports")}</FormLabel>
                           <FormDescription>
-                            Automatically generate and send weekly analytics reports
+                            {t("settings.weeklyReportsDesc")}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -798,9 +1094,9 @@ export default function DynamicSettings() {
                     render={({ field }) => (
                       <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                         <div className="space-y-0.5">
-                          <FormLabel className="text-base">Store Alerts</FormLabel>
+                          <FormLabel className="text-base">{t("settings.storeAlerts")}</FormLabel>
                           <FormDescription>
-                            Notifications when stores go offline or have issues
+                            {t("settings.storeAlertsDesc")}
                           </FormDescription>
                         </div>
                         <FormControl>
@@ -824,10 +1120,10 @@ export default function DynamicSettings() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Lock className="h-5 w-5" />
-                      Password & Authentication
+                      {t("settings.passwordAuthentication")}
                     </CardTitle>
                     <CardDescription>
-                      Manage security settings and authentication methods
+                      {t("settings.passwordAuthenticationDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -836,11 +1132,11 @@ export default function DynamicSettings() {
                       name="sessionTimeout"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Session Timeout (minutes)</FormLabel>
+                          <FormLabel>{t("settings.sessionTimeout")}</FormLabel>
                           <Select onValueChange={(value) => field.onChange(Number(value))} value={field.value?.toString()}>
                             <FormControl>
                               <SelectTrigger>
-                                <SelectValue placeholder="Select timeout" />
+                                <SelectValue placeholder={t("settings.selectTimeout")} />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
@@ -861,23 +1157,30 @@ export default function DynamicSettings() {
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2">
                             <Smartphone className="h-4 w-4" />
-                            <Label className="text-base font-medium">Two-Factor Authentication</Label>
+                            <Label className="text-base font-medium">{t("settings.twoFactorAuth")}</Label>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Add an extra layer of security using Google Authenticator
+                            {t("settings.twoFactorAuthDesc")}
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
                           {is2FAEnabled ? (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-green-600">Enabled</span>
+                              <span className="text-sm font-medium text-green-600">{t("settings.enabled")}</span>
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={disable2FA}
+                                onClick={() => setIs2FADisableModalOpen(true)}
                                 disabled={isLoading2FA}
                               >
-                                {isLoading2FA ? "Disabling..." : "Disable"}
+                                {isLoading2FA ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {t("settings.disabling")}
+                                  </>
+                                ) : (
+                                  t("settings.disable2FA")
+                                )}
                               </Button>
                             </div>
                           ) : (
@@ -886,7 +1189,7 @@ export default function DynamicSettings() {
                               disabled={isLoading2FA}
                               size="sm"
                             >
-                              {isLoading2FA ? "Setting up..." : "Enable 2FA"}
+                              {isLoading2FA ? t("settings.settingUp") : t("settings.enable2FA")}
                             </Button>
                           )}
                         </div>
@@ -894,8 +1197,8 @@ export default function DynamicSettings() {
                       
                       {is2FAEnabled && (
                         <div className="text-sm text-muted-foreground pt-2 border-t">
-                          <p>✓ Two-factor authentication is active on your account</p>
-                          <p>Use your authenticator app to generate codes when logging in</p>
+                          <p>{t("settings.twoFactorActive")}</p>
+                          <p>{t("settings.twoFactorActiveDesc")}</p>
                         </div>
                       )}
                     </div>
@@ -907,10 +1210,10 @@ export default function DynamicSettings() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Shield className="h-5 w-5" />
-                      Password Policy
+                      {t("settings.passwordPolicy")}
                     </CardTitle>
                     <CardDescription>
-                      Configure password requirements
+                      {t("settings.passwordPolicyDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -927,7 +1230,7 @@ export default function DynamicSettings() {
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel className="text-sm">
-                              Require uppercase letters
+                              {t("settings.requireUppercase")}
                             </FormLabel>
                           </div>
                         </FormItem>
@@ -947,7 +1250,7 @@ export default function DynamicSettings() {
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel className="text-sm">
-                              Require numbers
+                              {t("settings.requireNumbers")}
                             </FormLabel>
                           </div>
                         </FormItem>
@@ -967,7 +1270,7 @@ export default function DynamicSettings() {
                           </FormControl>
                           <div className="space-y-1 leading-none">
                             <FormLabel className="text-sm">
-                              Require special characters
+                              {t("settings.requireSymbols")}
                             </FormLabel>
                           </div>
                         </FormItem>
@@ -979,16 +1282,16 @@ export default function DynamicSettings() {
             </TabsContent>
 
             {/* System Settings Tab (Admin Only) */}
-            {(userInfo.role === 'super_admin' || userInfo.role === 'company_admin') && (
+            {(userInfo.role === 'super_admin' || userInfo.role === 'portal_admin' || userInfo.role === 'company_admin') && (
               <TabsContent value="system" className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Database className="h-5 w-5" />
-                      System Settings
+                      {t("settings.systemSettings")}
                     </CardTitle>
                     <CardDescription>
-                      Advanced system configuration and audit settings
+                      {t("settings.systemSettingsDesc")}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -999,13 +1302,13 @@ export default function DynamicSettings() {
                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4 bg-slate-50/50">
                           <div className="space-y-0.5">
                             <FormLabel className="text-base flex items-center gap-2">
-                              Login Audit Trail
+                              {t("settings.loginAuditTrail")}
                               <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                                Always Enabled
+                                {t("settings.alwaysEnabled")}
                               </span>
                             </FormLabel>
                             <FormDescription>
-                              Track all user login activities and maintain logs (cannot be disabled for security compliance)
+                              {t("settings.loginAuditTrailDesc")}
                             </FormDescription>
                           </div>
                           <FormControl>
@@ -1024,7 +1327,7 @@ export default function DynamicSettings() {
                       name="dataRetention"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Data Retention Period (days)</FormLabel>
+                          <FormLabel>{t("settings.dataRetention")}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -1035,7 +1338,7 @@ export default function DynamicSettings() {
                             />
                           </FormControl>
                           <FormDescription>
-                            How long to keep user activity logs and system data
+                            {t("settings.dataRetentionDesc")}
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -1055,7 +1358,7 @@ export default function DynamicSettings() {
               className="min-w-[120px]"
             >
               <Save className="h-4 w-4 mr-2" />
-              {settingsMutation.isPending ? "Saving..." : "Save Settings"}
+              {settingsMutation.isPending ? t("settings.saving") : t("settings.saveSettings")}
             </Button>
           </div>
         </form>
@@ -1063,16 +1366,16 @@ export default function DynamicSettings() {
 
       {/* 2FA Setup Modal */}
       <Dialog open={is2FASetupModalOpen} onOpenChange={setIs2FASetupModalOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader className="pb-4">
             <DialogTitle className="flex items-center gap-3 text-lg">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                 <Smartphone className="h-5 w-5 text-blue-600" />
               </div>
-              Set Up Two-Factor Authentication
+              {t("settings.setup2FATitle")}
             </DialogTitle>
             <DialogDescription className="text-base text-slate-600 mt-2">
-              Secure your account with Google Authenticator for enhanced protection
+              {t("settings.setup2FADesc")}
             </DialogDescription>
           </DialogHeader>
 
@@ -1080,15 +1383,27 @@ export default function DynamicSettings() {
             <div className="space-y-6">
               {qrCodeUrl && (
                 <div className="space-y-4">
+                  <div className="bg-amber-50 p-4 rounded-lg border-l-4 border-amber-400">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-900 mb-1">{t("settings.importantDeleteExisting")}</p>
+                        <p className="text-amber-700 text-sm">
+                          {t("settings.importantDeleteExistingDesc")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <div className="bg-blue-50 p-4 rounded-lg border-l-4 border-blue-400">
                     <div className="flex items-start gap-3">
                       <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
                         1
                       </div>
                       <div>
-                        <p className="font-semibold text-blue-900 mb-1">Scan QR Code</p>
+                        <p className="font-semibold text-blue-900 mb-1">{t("settings.scanQRCode")}</p>
                         <p className="text-blue-700 text-sm">
-                          Open Google Authenticator and scan the QR code below
+                          {t("settings.scanQRCodeDesc")}
                         </p>
                       </div>
                     </div>
@@ -1107,7 +1422,7 @@ export default function DynamicSettings() {
                   {manualEntryKey && (
                     <div className="bg-gray-50 p-4 rounded-lg border">
                       <p className="font-medium text-gray-800 mb-2 text-sm">
-                        Can't scan? Enter this key manually:
+                        {t("settings.cantScan")}
                       </p>
                       <div className="flex items-center gap-3 p-3 bg-white rounded border">
                         <code className="font-mono text-sm flex-1 text-gray-800 break-all">
@@ -1120,8 +1435,8 @@ export default function DynamicSettings() {
                           onClick={() => {
                             navigator.clipboard.writeText(manualEntryKey);
                             toast({
-                              title: "Copied!",
-                              description: "Manual entry key copied to clipboard",
+                              title: t("settings.copied"),
+                              description: t("settings.manualKeyCopied"),
                             });
                           }}
                         >
@@ -1140,9 +1455,9 @@ export default function DynamicSettings() {
                       2
                     </div>
                     <div>
-                      <p className="font-semibold text-green-900 mb-1">Enter Verification Code</p>
+                      <p className="font-semibold text-green-900 mb-1">{t("settings.enterVerificationCode")}</p>
                       <p className="text-green-700 text-sm">
-                        Type the 6-digit code from your authenticator app
+                        {t("settings.enterVerificationCodeDesc")}
                       </p>
                     </div>
                   </div>
@@ -1150,7 +1465,7 @@ export default function DynamicSettings() {
                 
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-gray-700">
-                    Verification Code
+                    {t("settings.verificationCode")}
                   </Label>
                   <Input
                     type="text"
@@ -1161,7 +1476,7 @@ export default function DynamicSettings() {
                     className="text-center text-xl tracking-[0.5em] font-mono h-12 border-2 focus:border-blue-500"
                   />
                   <p className="text-xs text-gray-500 text-center">
-                    Enter the 6-digit code that appears in your Google Authenticator app
+                    {t("settings.verificationCodeHint")}
                   </p>
                 </div>
               </div>
@@ -1173,7 +1488,7 @@ export default function DynamicSettings() {
                   disabled={isLoading2FA}
                   className="flex-1 h-11"
                 >
-                  Cancel
+                  {t("common.cancel")}
                 </Button>
                 <Button
                   onClick={verify2FASetup}
@@ -1183,12 +1498,12 @@ export default function DynamicSettings() {
                   {isLoading2FA ? (
                     <>
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-                      Verifying...
+                      {t("settings.verifying")}
                     </>
                   ) : (
                     <>
                       <Key className="h-4 w-4 mr-2" />
-                      Verify & Enable
+                      {t("settings.verifyEnable")}
                     </>
                   )}
                 </Button>
@@ -1201,10 +1516,10 @@ export default function DynamicSettings() {
                   <Key className="h-8 w-8 text-white" />
                 </div>
                 <h3 className="text-xl font-semibold text-green-600 mb-2">
-                  2FA Successfully Enabled!
+                  {t("settings.twoFactorSuccessTitle")}
                 </h3>
                 <p className="text-slate-600">
-                  Two-factor authentication is now protecting your account
+                  {t("settings.twoFactorSuccessDesc")}
                 </p>
               </div>
 
@@ -1216,10 +1531,10 @@ export default function DynamicSettings() {
                         <Download className="h-5 w-5 text-amber-600 mt-0.5" />
                         <div>
                           <h4 className="font-semibold text-amber-800 mb-1">
-                            Important: Save Your Backup Codes
+                            {t("settings.saveBackupCodes")}
                           </h4>
                           <p className="text-sm text-amber-700">
-                            Store these codes in a safe place. Use them to access your account if you lose your phone.
+                            {t("settings.saveBackupCodesDesc")}
                           </p>
                         </div>
                       </div>
@@ -1244,13 +1559,13 @@ export default function DynamicSettings() {
                         const codesText = backupCodes.join('\n');
                         navigator.clipboard.writeText(codesText);
                         toast({
-                          title: "Copied!",
-                          description: "Backup codes copied to clipboard",
+                          title: t("settings.copied"),
+                          description: t("settings.backupCodesCopied"),
                         });
                       }}
                     >
                       <Copy className="h-4 w-4 mr-2" />
-                      Copy All Backup Codes
+                      {t("settings.copyAllBackupCodes")}
                     </Button>
                   </div>
                 </div>
@@ -1261,10 +1576,74 @@ export default function DynamicSettings() {
                 className="w-full h-11 bg-green-600 hover:bg-green-700"
               >
                 <Key className="h-4 w-4 mr-2" />
-                Complete Setup
+                {t("settings.completeSetup")}
               </Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* 2FA Disable Modal */}
+      <Dialog open={is2FADisableModalOpen} onOpenChange={setIs2FADisableModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              {t("settings.disable2FATitle")}
+            </DialogTitle>
+            <DialogDescription className="text-base text-slate-600 mt-2">
+              {t("settings.disable2FADesc")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>{t("settings.warning")}</strong> {t("settings.disable2FAWarning")}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="disable-password">{t("settings.enterPassword")}</Label>
+              <div className="relative">
+                <Input
+                  id="disable-password"
+                  type={showDisablePassword ? "text" : "password"}
+                  placeholder={t("settings.enterPasswordPlaceholder")}
+                  value={disablePassword}
+                  onChange={(e) => setDisablePassword(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDisablePassword(!showDisablePassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  {showDisablePassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={closeDisableModal}>
+              {t("common.cancel")}
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleDisable2FA}
+              disabled={!disablePassword || isLoading2FA}
+            >
+              {isLoading2FA ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  {t("settings.disabling")}
+                </>
+              ) : (
+                t("settings.disable2FA")
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
