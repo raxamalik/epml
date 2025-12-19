@@ -409,8 +409,8 @@ export default function StoreOwnerDashboard() {
                     <LineChart data={salesTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
-                      <YAxis tickFormatter={(value) => `€${value}`} />
-                      <Tooltip formatter={(value) => `€${value}`} />
+                      <YAxis tickFormatter={(value) => `${value} Kč`} />
+                      <Tooltip formatter={(value) => `${value} Kč`} />
                       <Line 
                         type="monotone" 
                         dataKey="sales" 
@@ -530,8 +530,8 @@ export default function StoreOwnerDashboard() {
                     <BarChart data={salesTrendData}>
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="day" />
-                      <YAxis tickFormatter={(value) => `€${value}`} />
-                      <Tooltip formatter={(value) => `€${value}`} />
+                      <YAxis tickFormatter={(value) => `${value} Kč`} />
+                      <Tooltip formatter={(value) => `${value} Kč`} />
                       <Bar dataKey="sales" fill="#0088FE" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>

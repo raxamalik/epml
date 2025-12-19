@@ -366,13 +366,6 @@ export default function CompanyDetails() {
                           <Building2 className="h-12 w-12 text-indigo-600 dark:text-indigo-400" />
                         </div>
                       )}
-                      <div className="text-sm text-slate-500 dark:text-slate-400">
-                        {company.companyLogo ? (
-                          <p>Company logo is displayed</p>
-                        ) : (
-                          <p>No logo uploaded. Edit company to add a logo.</p>
-                        )}
-                      </div>
                     </div>
                     </div>
 

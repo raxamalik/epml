@@ -670,7 +670,7 @@ export default function CompanyDashboard() {
             </div>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">€{calculatedMetrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">{calculatedMetrics.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {t("companyDashboard.cards.revenuePeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
             </p>
@@ -733,7 +733,7 @@ export default function CompanyDashboard() {
             </div>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">€{calculatedMetrics.averageTicket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent">{calculatedMetrics.averageTicket.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {t("companyDashboard.cards.averageTicketPeriod", { period: t(`companyDashboard.timePeriod.${timePeriod}`) })}
             </p>
@@ -748,7 +748,7 @@ export default function CompanyDashboard() {
             </div>
           </CardHeader>
           <CardContent className="pt-4">
-            <div className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">€{calculatedMetrics.refunds.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            <div className="text-3xl font-bold bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">{calculatedMetrics.refunds.total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč</div>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               {calculatedMetrics.refunds.count} {t("companyDashboard.cards.refundsCount")} ({t(`companyDashboard.timePeriod.${timePeriod}`)})
             </p>
@@ -802,10 +802,10 @@ export default function CompanyDashboard() {
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k Kč`}
                     />
                     <Tooltip 
-                      formatter={(value) => [`€${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 'Revenue']}
+                      formatter={(value) => [`${Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč`, 'Revenue']}
                     />
                     <Bar dataKey="revenue" fill="#0088FE" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -939,7 +939,7 @@ export default function CompanyDashboard() {
                     </div>
                     <div className="flex items-center space-x-4">
                       <div className="text-right">
-                        <p className="font-semibold">€{store.revenue.toLocaleString()}</p>
+                        <p className="font-semibold">{store.revenue.toLocaleString()} Kč</p>
                         <p className="text-xs text-slate-600">{store.products} products</p>
                       </div>
                       <Badge variant={store.status === 'active' ? 'default' : 'secondary'}>
@@ -1411,7 +1411,7 @@ export default function CompanyDashboard() {
               <div className="grid grid-cols-3 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.revenue")}</label>
-                  <p className="text-lg font-semibold">€{selectedStore.revenue.toLocaleString()}</p>
+                  <p className="text-lg font-semibold">{selectedStore.revenue.toLocaleString()} Kč</p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">{t("companyDashboard.dialogs.viewStore.products")}</label>

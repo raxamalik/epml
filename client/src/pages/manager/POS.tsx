@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { apiRequest } from "@/lib/queryClient";
+import { formatCurrencyWithSymbol } from "@/lib/utils/currency";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Product {
@@ -44,6 +45,7 @@ interface Product {
   barcode?: string;
   imageUrl?: string;
   storeId: number;
+  batchNumber?: string;
 }
 
 interface CartItem {
@@ -527,19 +529,30 @@ export default function POS() {
       receiptHtml = receiptHtml.replace(/\[LOGO\]/g, '');
     }
     
-    // Create a new window for printing
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
+    // Create a hidden iframe for printing
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!iframeDoc) {
       toast({
-        title: "Print blocked",
-        description: "Please allow pop-ups to print receipts",
+        title: "Print error",
+        description: "Failed to create print window",
         variant: "destructive"
       });
+      document.body.removeChild(iframe);
       return;
     }
 
     // Write the receipt content with proper formatting
-    printWindow.document.write(`
+    iframeDoc.open();
+    iframeDoc.write(`
       <!DOCTYPE html>
       <html>
         <head>
@@ -574,16 +587,75 @@ export default function POS() {
         <body>
           <pre>${receiptHtml}</pre>
           <script>
-            window.onload = function() {
-              window.print();
-              // Close window after printing (optional)
-              // window.onafterprint = function() { window.close(); };
-            };
+            // Print immediately - wait for images if any
+            function triggerPrint() {
+              const images = document.querySelectorAll('img');
+              let imagesLoaded = 0;
+              const totalImages = images.length;
+              
+              if (totalImages === 0) {
+                // No images, print immediately
+                window.print();
+                window.onafterprint = function() {
+                  window.parent.postMessage('print-complete', '*');
+                };
+                return;
+              }
+              
+              // Wait for all images to load
+              let allLoaded = false;
+              images.forEach(img => {
+                if (img.complete) {
+                  imagesLoaded++;
+                } else {
+                  img.onload = img.onerror = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === totalImages && !allLoaded) {
+                      allLoaded = true;
+                      window.print();
+                    }
+                  };
+                }
+              });
+              
+              if (imagesLoaded === totalImages && !allLoaded) {
+                allLoaded = true;
+                window.print();
+              }
+              
+              window.onafterprint = function() {
+                window.parent.postMessage('print-complete', '*');
+              };
+            }
+            
+            // Trigger print as soon as possible
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', triggerPrint);
+            } else {
+              triggerPrint();
+            }
           </script>
         </body>
       </html>
     `);
-    printWindow.document.close();
+    iframeDoc.close();
+
+    // Listen for print completion and remove iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'print-complete') {
+        document.body.removeChild(iframe);
+        window.removeEventListener('message', handleMessage);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    // Fallback: remove iframe after a delay if message not received
+    setTimeout(() => {
+      if (document.body.contains(iframe)) {
+        document.body.removeChild(iframe);
+        window.removeEventListener('message', handleMessage);
+      }
+    }, 10000);
   };
 
   // Filter products based on search and category
@@ -799,14 +871,28 @@ export default function POS() {
                               {product.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">{product.category}</p>
-                            <div className="flex items-center justify-between pt-2">
-                              <span className="text-lg font-bold text-green-600 dark:text-green-400">
-                                ${parseFloat(product.price.toString()).toFixed(2)}
-                              </span>
-                              <Badge variant="outline" className="text-xs">
-                                {t("pos.products.inStockLabel", { count: product.stock })}
-                              </Badge>
-                            </div>
+                            {(product.barcode || product.batchNumber) && (
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400">
+                                {product.barcode && (
+                                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                    {t("pos.products.barcode")}: {product.barcode}
+                                  </span>
+                                )}
+                                {product.batchNumber && (
+                                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                                    {t("pos.products.batch")}: {product.batchNumber}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {formatCurrencyWithSymbol(parseFloat(product.price.toString()))}
+                            </span>
+                            <Badge variant="outline" className="text-xs">
+                              {t("pos.products.inStockLabel", { count: product.stock })}
+                            </Badge>
+                          </div>
                           </div>
                         </>
                       ) : (
@@ -826,10 +912,24 @@ export default function POS() {
                               {product.name}
                             </h3>
                             <p className="text-sm text-slate-500 dark:text-slate-400">{product.category}</p>
+                            {(product.barcode || product.batchNumber) && (
+                              <div className="flex flex-wrap gap-2 text-xs text-slate-600 dark:text-slate-400 mt-1">
+                                {product.barcode && (
+                                  <span className="font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                    {t("pos.products.barcode")}: {product.barcode}
+                                  </span>
+                                )}
+                                {product.batchNumber && (
+                                  <span className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                                    {t("pos.products.batch")}: {product.batchNumber}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-green-600 dark:text-green-400">
-                              ${parseFloat(product.price.toString()).toFixed(2)}
+                              {formatCurrencyWithSymbol(parseFloat(product.price.toString()))}
                             </div>
                             <Badge variant="outline" className="text-xs">
                               {t("pos.products.inStockLabel", { count: product.stock })}
@@ -897,7 +997,7 @@ export default function POS() {
                             {item.product.name}
                           </h4>
                           <p className="text-sm text-slate-500 dark:text-slate-400">
-                            ${parseFloat(item.product.price.toString()).toFixed(2)}{" "}
+                            {formatCurrencyWithSymbol(parseFloat(item.product.price.toString()))}{" "}
                             {t("pos.cart.each")}
                           </p>
                         </div>
@@ -1272,11 +1372,15 @@ export default function POS() {
             <p className="text-sm text-muted-foreground">
               {t("receipt.selectReceiptType")}
             </p>
+            <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded">
+              {t("receipt.printNote")}
+            </p>
             <div className="grid grid-cols-1 gap-3">
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start"
                 onClick={async () => {
+                  setShowReceiptDialog(false);
                   if (lastSaleId) {
                     try {
                       const response = await apiRequest(
@@ -1293,7 +1397,6 @@ export default function POS() {
                       });
                     }
                   }
-                  setShowReceiptDialog(false);
                 }}
               >
                 <span className="font-semibold">{t("receipt.englishReceipt")}</span>
@@ -1305,6 +1408,7 @@ export default function POS() {
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start"
                 onClick={async () => {
+                  setShowReceiptDialog(false);
                   if (lastSaleId) {
                     try {
                       const response = await apiRequest(
@@ -1321,7 +1425,6 @@ export default function POS() {
                       });
                     }
                   }
-                  setShowReceiptDialog(false);
                 }}
               >
                 <span className="font-semibold">{t("receipt.czechReceipt")}</span>

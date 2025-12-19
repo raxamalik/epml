@@ -171,7 +171,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              €{analytics?.totalRevenue?.toLocaleString() || "0"}
+              {analytics?.totalRevenue?.toLocaleString() || "0"} Kč
             </div>
             <p className="text-xs text-muted-foreground">
               {t("analyticsDashboard.cards.monthlyGrowth", {
@@ -276,11 +276,11 @@ export default function Analytics() {
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
-                      tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}k Kč`}
                     />
                     <Tooltip 
                       formatter={(value, name) => [
-                        `€${Number(value).toLocaleString()}`, 
+                        `${Number(value).toLocaleString()} Kč`, 
                         name === 'revenue' ? 'Revenue' : name
                       ]}
                     />
@@ -302,7 +302,7 @@ export default function Analytics() {
               <div className="h-80 flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-4xl font-bold mb-2">
-                    €{analytics?.totalRevenue?.toLocaleString() || "0"}
+                    {analytics?.totalRevenue?.toLocaleString() || "0"} Kč
                   </div>
                   <p className="text-muted-foreground">
                     {analytics?.storeName || "Total Revenue"}
@@ -397,11 +397,11 @@ export default function Analytics() {
                   <AreaChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`} />
+                    <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}k Kč`} />
                     <Tooltip 
                       formatter={(value: any, name: string) => {
                         if (name === 'revenue') {
-                          return [`€${Number(value).toLocaleString()}`, 'Revenue'];
+                          return [`${Number(value).toLocaleString()} Kč`, 'Revenue'];
                         }
                         return [Number(value).toLocaleString(), name];
                       }}
@@ -476,7 +476,7 @@ export default function Analytics() {
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
                       <p className="font-semibold">
-                        €{store.revenue?.toLocaleString() || "0"}
+                        {store.revenue?.toLocaleString() || "0"} Kč
                       </p>
                       <p className="text-xs text-slate-600">
                         {t("analyticsDashboard.topStores.revenue", {

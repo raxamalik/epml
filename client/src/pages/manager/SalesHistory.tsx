@@ -220,19 +220,30 @@ function SalesHistory() {
         receiptHtml = receiptHtml.replace(/\[LOGO\]/g, '');
       }
       
-      // Create a new window for printing
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
+      // Create a hidden iframe for printing
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!iframeDoc) {
         toast({
-          title: "Print blocked",
-          description: "Please allow pop-ups to print receipts",
+          title: "Print error",
+          description: "Failed to create print window",
           variant: "destructive"
         });
+        document.body.removeChild(iframe);
         return;
       }
 
       // Write the receipt content with proper formatting
-      printWindow.document.write(`
+      iframeDoc.open();
+      iframeDoc.write(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -267,14 +278,75 @@ function SalesHistory() {
           <body>
             <pre>${receiptHtml}</pre>
             <script>
-              window.onload = function() {
-                window.print();
-              };
+              // Print immediately - wait for images if any
+              function triggerPrint() {
+                const images = document.querySelectorAll('img');
+                let imagesLoaded = 0;
+                const totalImages = images.length;
+                
+                if (totalImages === 0) {
+                  // No images, print immediately
+                  window.print();
+                  window.onafterprint = function() {
+                    window.parent.postMessage('print-complete', '*');
+                  };
+                  return;
+                }
+                
+                // Wait for all images to load
+                let allLoaded = false;
+                images.forEach(img => {
+                  if (img.complete) {
+                    imagesLoaded++;
+                  } else {
+                    img.onload = img.onerror = () => {
+                      imagesLoaded++;
+                      if (imagesLoaded === totalImages && !allLoaded) {
+                        allLoaded = true;
+                        window.print();
+                      }
+                    };
+                  }
+                });
+                
+                if (imagesLoaded === totalImages && !allLoaded) {
+                  allLoaded = true;
+                  window.print();
+                }
+                
+                window.onafterprint = function() {
+                  window.parent.postMessage('print-complete', '*');
+                };
+              }
+              
+              // Trigger print as soon as possible
+              if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', triggerPrint);
+              } else {
+                triggerPrint();
+              }
             </script>
           </body>
         </html>
       `);
-      printWindow.document.close();
+      iframeDoc.close();
+
+      // Listen for print completion and remove iframe
+      const handleMessage = (event: MessageEvent) => {
+        if (event.data === 'print-complete') {
+          document.body.removeChild(iframe);
+          window.removeEventListener('message', handleMessage);
+        }
+      };
+      window.addEventListener('message', handleMessage);
+
+      // Fallback: remove iframe after a delay if message not received
+      setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+          window.removeEventListener('message', handleMessage);
+        }
+      }, 10000);
     } catch (error: any) {
       toast({
         title: "Error loading receipt",
@@ -1363,15 +1435,18 @@ function SalesHistory() {
             <p className="text-sm text-muted-foreground">
               {t("receipt.selectReceiptType")}
             </p>
+            <p className="text-xs text-muted-foreground bg-blue-50 dark:bg-blue-950 p-2 rounded">
+              {t("receipt.printNote")}
+            </p>
             <div className="grid grid-cols-1 gap-3">
               <Button
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start"
                 onClick={async () => {
+                  setShowReceiptDialog(false);
                   if (selectedSaleForReceipt) {
                     await printReceipt(selectedSaleForReceipt, 'en', 'live');
                   }
-                  setShowReceiptDialog(false);
                 }}
               >
                 <span className="font-semibold">{t("receipt.englishReceipt")}</span>
@@ -1383,10 +1458,10 @@ function SalesHistory() {
                 variant="outline"
                 className="h-auto py-4 flex flex-col items-start"
                 onClick={async () => {
+                  setShowReceiptDialog(false);
                   if (selectedSaleForReceipt) {
                     await printReceipt(selectedSaleForReceipt, 'cz', 'live');
                   }
-                  setShowReceiptDialog(false);
                 }}
               >
                 <span className="font-semibold">{t("receipt.czechReceipt")}</span>

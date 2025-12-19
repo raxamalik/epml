@@ -197,7 +197,7 @@ export default function CompanyProducts() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">€{totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{totalRevenue.toLocaleString()} Kč</div>
             <p className="text-xs text-muted-foreground">From all products</p>
           </CardContent>
         </Card>
@@ -314,7 +314,7 @@ export default function CompanyProducts() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <span className="font-medium">€{product.price.toFixed(2)}</span>
+                          <span className="font-medium">{product.price.toFixed(2)} Kč</span>
                         </TableCell>
                         <TableCell>
                           <span className="font-semibold text-lg">{product.totalStock}</span>
@@ -352,7 +352,7 @@ export default function CompanyProducts() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div>
-                            <p className="font-medium text-green-600">€{product.totalRevenue.toLocaleString()}</p>
+                            <p className="font-medium text-green-600">{product.totalRevenue.toLocaleString()} Kč</p>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -388,7 +388,7 @@ export default function CompanyProducts() {
                       <p className="text-sm text-slate-600">{categoryProducts.length} products • {categoryStock} units in stock</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">€{categoryRevenue.toLocaleString()}</p>
+                      <p className="font-semibold text-green-600">{categoryRevenue.toLocaleString()} Kč</p>
                       <p className="text-xs text-slate-500">revenue</p>
                     </div>
                   </div>
@@ -422,7 +422,7 @@ export default function CompanyProducts() {
                       <p className="text-sm text-slate-600">{storeStock} units • {storeSales} sales</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">€{storeRevenue.toLocaleString()}</p>
+                      <p className="font-semibold text-green-600">{storeRevenue.toLocaleString()} Kč</p>
                       <p className="text-xs text-slate-500">revenue</p>
                     </div>
                   </div>

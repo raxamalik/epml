@@ -63,7 +63,9 @@
     "activeSubstances": "Active Substances",
     "salesHistory": "Sales History",
     "returnsHistory": "Returns History",
-    "stockTransactions": "Stock Transactions"
+    "stockTransactions": "Stock Transactions",
+    "exports": "Exports"
+    
   },
   "header": {
     "searchPlaceholder": "Search users, stores, analytics...",
@@ -94,9 +96,7 @@
       "totalUsers": "Total Users",
       "activeStores": "Active Stores",
       "monthlyRevenue": "Monthly Revenue",
-      "systemUptime": "System Uptime",
       "fromLastMonth": "from last month",
-      "allSystemsOperational": "All systems operational",
       "totalCompanies": "Total Companies",
       "totalCompaniesDesc": "Registered companies",
       "totalBranches": "Total Branches",
@@ -499,6 +499,7 @@
     "imageFormatHint": "JPG, PNG, GIF up to 5MB",
     "companyInformation": "Company Information",
     "companyInformationDesc": "Company-wide settings and preferences",
+    "editCompanyProfile": "Edit company profile",
     "companyAccountNote": "Company Account: These settings apply to all users in your company. Individual users can override some preferences in their personal settings.",
     "regionalSettings": "Regional Settings",
     "regionalSettingsDesc": "Configure timezone, currency, and language preferences",
@@ -707,6 +708,10 @@
       "centralizedPricingDesc": "Use unified pricing across all locations",
       "applyStoreSettings": "Apply Store Settings",
       "securityAccess": "Security & Access",
+      "status": "Status",
+      "maxBranches": "Max branches",
+      "currentBranches": "Current branches",
+      "editCompanyProfile": "Edit company profile",
       "securityAccessDesc": "Manage security settings and user permissions",
       "passwordPolicy": "Password Policy",
       "requireUppercase": "Require uppercase letters",
@@ -1324,7 +1329,7 @@
       "vat": {
         "breakdownTitle": "VAT Breakdown",
         "netAmount": "Net Amount:",
-        "rateLine": "VAT {{rate}}% (Net: ${{net}}):",
+        "rateLine": "VAT {{rate}}% (Net: {{net}} Kč):",
         "totalVat": "Total VAT:"
       },
       "totalAmount": "Total Amount:",
@@ -1343,9 +1348,9 @@
       "selectItemsLabel": "Select Items to Return",
       "noItemsReturnTitle": "This sale does not have item records available for return processing.",
       "noItemsReturnDesc": "Returns are only available for sales with proper item tracking.",
-      "itemLine": "Original Qty: {{quantity}} | Available: {{availableQty}} | Price: ${{price}} | VAT: {{vatRate}}%",
+      "itemLine": "Original Qty: {{quantity}} | Available: {{availableQty}} | Price: {{price}} Kč | VAT: {{vatRate}}%",
       "alreadyReturned": "Already Returned: {{count}}",
-      "returningLine": "Returning: {{quantity}} (Refund: ${{refund}})",
+      "returningLine": "Returning: {{quantity}} (Refund: {{refund}} Kč)",
       "qtyPlaceholder": "Qty",
       "summaryTitle": "Return Summary",
       "summaryItem": "Item {{index}}",
@@ -1532,7 +1537,9 @@
       "allCategories": "All Categories",
       "lowStock": "Low Stock",
       "outOfStock": "Out of Stock",
-      "inStockLabel": "{{count}} in stock"
+      "inStockLabel": "{{count}} in stock",
+      "barcode": "Barcode",
+      "batch": "Batch"
     },
     "cart": {
       "title": "Cart ({{count}} items)",
@@ -1893,7 +1900,48 @@
     "englishReceipt": "English Receipt",
     "czechReceipt": "Czech Receipt",
     "print": "Print",
-    "close": "Close"
+    "close": "Close",
+    "printNote": "Note: In the print dialog, select your printer from the 'Destination' dropdown to print directly."
+  },
+  "exports": {
+    "title": "Exports",
+    "description": "Generate revenue, VAT, and sold products reports for a selected date range.",
+    "form": {
+      "title": "Create Export",
+      "description": "Choose what you want to export, the format, and the date range.",
+      "exportType": "Export type",
+      "format": "Format",
+      "dateFrom": "Date from",
+      "dateTo": "Date to"
+    },
+    "exportTypes": {
+      "daily-revenue": "Daily revenue",
+      "vat-breakdown": "VAT breakdown",
+      "sold-products": "Sold products"
+    },
+    "generating": "Generating...",
+    "download": "Download",
+    "validation": {
+      "dateRangeRequired": "Select a date range",
+      "dateRangeRequiredDesc": "Both start and end dates are required.",
+      "invalidDateRange": "Invalid date range",
+      "invalidDateRangeDesc": "The start date must be before the end date."
+    },
+    "success": {
+      "title": "Export generated",
+      "description": "Your export was generated successfully."
+    },
+    "error": {
+      "title": "Export failed",
+      "description": "We couldn't generate the export. Please try again."
+    },
+    "info": {
+      "title": "About exports",
+      "csvFormat": "CSV is ideal for spreadsheets and further analysis.",
+      "pdfFormat": "PDF is optimized for printing and sharing.",
+      "dateRange": "Exports use the date range you select above.",
+      "totals": "Reports include summaries to help you review totals quickly."
+    }
   }
 }
 

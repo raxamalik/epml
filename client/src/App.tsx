@@ -43,6 +43,7 @@ import AuditLogs from "@/pages/AuditLogs";
 import CompanyProducts from "@/pages/CompanyProducts";
 import CategoryManagement from "@/pages/CategoryManagement";
 import ActiveSubstances from "@/pages/ActiveSubstances";
+import Exports from "@/pages/Exports";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
@@ -155,7 +156,7 @@ function Router() {
       </Route>
       
       <Route path="/inventory">
-        <ProtectedRoute requiredRoles={["manager", "store_owner", "company_admin"]}>
+        <ProtectedRoute requiredRoles={["manager", "store_owner"]}>
           <MainLayout>
             <Inventory />
           </MainLayout>
@@ -182,6 +183,14 @@ function Router() {
         <ProtectedRoute requiredRoles={["manager", "super_admin", "store_owner", "company_admin"]}>
           <MainLayout>
             <StockTransactionsHistory />
+          </MainLayout>
+        </ProtectedRoute>
+      </Route>
+      
+      <Route path="/exports">
+        <ProtectedRoute requiredRoles={["manager", "super_admin", "store_owner", "company_admin"]}>
+          <MainLayout>
+            <Exports />
           </MainLayout>
         </ProtectedRoute>
       </Route>

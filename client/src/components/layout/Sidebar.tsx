@@ -20,7 +20,8 @@ import {
   FlaskConical,
   RotateCcw,
   ArrowUpDown,
-  Shield
+  Shield,
+  Download
 } from "lucide-react";
 
 const adminNavigation = [
@@ -38,13 +39,14 @@ const adminNavigation = [
 const storeOwnerNavigation = [
   { nameKey: "navigation.dashboard", href: "/", icon: Home },
   { nameKey: "navigation.myStore", href: "/store-owner/store", icon: Store },
+  { nameKey: "navigation.managers", href: "/store-owner/managers", icon: Users },
   { nameKey: "navigation.categories", href: "/categories", icon: Tag },
   { nameKey: "navigation.products", href: "/products", icon: Package },
-  { nameKey: "navigation.managers", href: "/store-owner/managers", icon: Users },
-  // { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
+  { nameKey: "navigation.inventory", href: "/inventory", icon: ClipboardList },
   { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
   { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
   { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
   { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
   { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
   { nameKey: "navigation.settings", href: "/settings", icon: Settings },
@@ -56,6 +58,7 @@ const companyNavigation = [
   { nameKey: "navigation.categories", href: "/categories", icon: Tag },
   { nameKey: "navigation.products", href: "/products", icon: Package },
   { nameKey: "navigation.managers", href: "/managers", icon: Users },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
   { nameKey: "navigation.auditLogs", href: "/audit-logs", icon: FileText },
   { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
   { nameKey: "navigation.settings", href: "/settings", icon: Settings },
@@ -68,6 +71,7 @@ const managerNavigation = [
   { nameKey: "navigation.salesHistory", href: "/sales-history", icon: History },
   { nameKey: "navigation.returnsHistory", href: "/returns-history", icon: RotateCcw },
   { nameKey: "navigation.stockTransactions", href: "/stock-transactions", icon: ArrowUpDown },
+  { nameKey: "navigation.exports", href: "/exports", icon: Download },
   { nameKey: "navigation.analytics", href: "/analytics", icon: BarChart3 },
   { nameKey: "navigation.settings", href: "/settings", icon: Settings },
 ];

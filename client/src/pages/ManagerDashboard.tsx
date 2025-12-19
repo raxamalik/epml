@@ -1107,7 +1107,7 @@ export default function ManagerDashboard() {
                     {sales.map((sale: Sale) => (
                       <TableRow key={sale.id}>
                         <TableCell className="font-mono text-sm">{sale.id}</TableCell>
-                        <TableCell className="font-semibold">${(parseFloat(sale.total) || 0).toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold">{(parseFloat(sale.total) || 0).toFixed(2)} Kč</TableCell>
                         <TableCell>
                           <Badge variant={sale.paymentMethod === 'cash' ? 'default' : 'secondary'}>
                             {sale.paymentMethod.toUpperCase()}

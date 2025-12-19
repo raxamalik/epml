@@ -14,7 +14,7 @@ import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, desc, count, and, or, isNotNull, isNull, sql, inArray, lt, ilike } from "drizzle-orm";
+import { eq, desc, count, and, or, isNotNull, isNull, sql, inArray, lt, ilike, gte, lte } from "drizzle-orm";
 import { promisify } from 'util';
 import {
   pgTable,
@@ -40,6 +40,9 @@ import { promises as fs } from 'fs';
 import { randomUUID } from 'crypto';
 import cron from 'node-cron';
 import { generateToken, verifyToken, extractTokenFromHeader, type JWTPayload } from './jwt-utils.js';
+import { generateCSV, generateCSVFilename } from './exports/csvGenerator.js';
+import { generatePDF, generatePDFFilename } from './exports/pdfGenerator.js';
+import { EXPORT_HEADERS } from './exports/constants.js';
 import { requirePermission, requireAnyPermission, requireRole, PERMISSIONS } from './permission-middleware.js';
 import {
   getCompanyInvitationTemplate,
@@ -6301,6 +6304,244 @@ function getErrorMessage(error: any, defaultMessage: string): string {
   return defaultMessage;
 }
 
+// ---------------------------------------------------------------------------
+// Export helpers (inlined to avoid extra api/* functions)
+// ---------------------------------------------------------------------------
+const EXPORT_TIMEZONE = "Europe/Prague";
+
+function exportGetStartOfDay(dateString: string): Date {
+  const date = new Date(dateString);
+  return new Date(date.toLocaleString('en-US', { timeZone: EXPORT_TIMEZONE }));
+}
+
+function exportGetEndOfDay(dateString: string): Date {
+  const date = new Date(exportGetStartOfDay(dateString));
+  date.setHours(23, 59, 59, 999);
+  return date;
+}
+
+async function getDailyRevenueExportInline(request: any) {
+  const dateConditions = [];
+  if (request.dateFrom) dateConditions.push(gte(sales.createdAt, exportGetStartOfDay(request.dateFrom)));
+  if (request.dateTo) dateConditions.push(lte(sales.createdAt, exportGetEndOfDay(request.dateTo)));
+  const whereConditions = [
+    eq(sales.isCancelled, false),
+    eq(stores.companyId, request.companyId),
+    request.storeId ? eq(sales.storeId, request.storeId) : undefined,
+    dateConditions.length ? and(...dateConditions) : undefined,
+  ].filter(Boolean) as any[];
+
+  const salesData = await db
+    .select({
+      id: sales.id,
+      createdAt: sales.createdAt,
+      storeId: sales.storeId,
+      storeName: stores.name,
+      userId: sales.userId,
+      userFirstName: users.firstName,
+      userLastName: users.lastName,
+      netAmount: sales.netAmount,
+      totalVAT: sales.totalVAT,
+      total: sales.total,
+    })
+    .from(sales)
+    .leftJoin(stores, eq(sales.storeId, stores.id))
+    .leftJoin(users, eq(sales.userId, users.id))
+    .where(and(...whereConditions))
+    .orderBy(sales.createdAt);
+
+  const aggregation: Record<string, any> = {};
+  for (const sale of salesData) {
+    const saleDate = new Date(sale.createdAt).toISOString().split('T')[0];
+    const storeId = sale.storeId;
+    const userId = sale.userId || 'unknown';
+    const key = `${saleDate}_${storeId}_${userId}`;
+    if (!aggregation[key]) {
+      aggregation[key] = {
+        date: saleDate,
+        storeId,
+        storeName: sale.storeName || `Store ${storeId}`,
+        userId: sale.userId,
+        userName: sale.userFirstName && sale.userLastName
+          ? `${sale.userFirstName} ${sale.userLastName}`
+          : sale.userFirstName || sale.userLastName || sale.userId || 'Neznámý',
+        receiptCount: 0,
+        revenueExclVAT: 0,
+        vatTotal: 0,
+        revenueInclVAT: 0,
+      };
+    }
+    const netAmount = sale.netAmount ? parseFloat(String(sale.netAmount)) : 0;
+    const totalVAT = sale.totalVAT ? parseFloat(String(sale.totalVAT)) : 0;
+    const total = parseFloat(String(sale.total));
+    aggregation[key].receiptCount += 1;
+    aggregation[key].revenueExclVAT += netAmount || (total - totalVAT);
+    aggregation[key].vatTotal += totalVAT;
+    aggregation[key].revenueInclVAT += total;
+  }
+
+  const rows = Object.values(aggregation)
+    .sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      if (a.storeName !== b.storeName) return a.storeName.localeCompare(b.storeName);
+      return a.userName.localeCompare(b.userName);
+    })
+    .map(item => ({
+      'Datum': item.date,
+      'Prodejna': item.storeName,
+      'Uživatel': item.userName,
+      'Počet dokladů': item.receiptCount,
+      'Tržba bez DPH': item.revenueExclVAT,
+      'DPH celkem': item.vatTotal,
+      'Tržba včetně DPH': item.revenueInclVAT,
+    }));
+
+  const totals = {
+    totalReceipts: rows.reduce((sum, row) => sum + row['Počet dokladů'], 0),
+    totalRevenueExclVAT: rows.reduce((sum, row) => sum + row['Tržba bez DPH'], 0),
+    totalVAT: rows.reduce((sum, row) => sum + row['DPH celkem'], 0),
+    totalRevenueInclVAT: rows.reduce((sum, row) => sum + row['Tržba včetně DPH'], 0),
+  };
+
+  return { headers: EXPORT_HEADERS['daily-revenue'], rows, totals };
+}
+
+async function getVATBreakdownExportInline(request: any) {
+  const dateConditions = [];
+  if (request.dateFrom) dateConditions.push(gte(sales.createdAt, exportGetStartOfDay(request.dateFrom)));
+  if (request.dateTo) dateConditions.push(lte(sales.createdAt, exportGetEndOfDay(request.dateTo)));
+  const whereConditions = [
+    eq(sales.isCancelled, false),
+    isNotNull(sales.vatBreakdown),
+    eq(stores.companyId, request.companyId),
+    request.storeId ? eq(sales.storeId, request.storeId) : undefined,
+    dateConditions.length ? and(...dateConditions) : undefined,
+  ].filter(Boolean) as any[];
+
+  const salesData = await db
+    .select({
+      vatBreakdown: sales.vatBreakdown,
+      total: sales.total,
+    })
+    .from(sales)
+    .leftJoin(stores, eq(sales.storeId, stores.id))
+    .where(and(...whereConditions));
+
+  const vatAggregation: Record<string, { rate: string; base: number; vat: number; revenueInclVAT: number }> = {};
+  for (const sale of salesData) {
+    const vatBreakdown = sale.vatBreakdown as Record<string, { base: number; vat: number }> | null;
+    if (!vatBreakdown) continue;
+    for (const [rate, data] of Object.entries(vatBreakdown)) {
+      if (!vatAggregation[rate]) {
+        vatAggregation[rate] = { rate, base: 0, vat: 0, revenueInclVAT: 0 };
+      }
+      const base = typeof data.base === 'number' ? data.base : parseFloat(String(data.base || 0));
+      const vat = typeof data.vat === 'number' ? data.vat : parseFloat(String(data.vat || 0));
+      vatAggregation[rate].base += base;
+      vatAggregation[rate].vat += vat;
+      vatAggregation[rate].revenueInclVAT += base + vat;
+    }
+  }
+
+  const rows = Object.values(vatAggregation)
+    .sort((a, b) => parseFloat(a.rate) - parseFloat(b.rate))
+    .map(item => ({
+      'Sazba DPH (%)': parseFloat(item.rate),
+      'Základ daně': item.base,
+      'Částka DPH': item.vat,
+      'Tržba včetně DPH': item.revenueInclVAT,
+    }));
+
+  const totals = {
+    totalTaxBase: rows.reduce((sum, row) => sum + row['Základ daně'], 0),
+    totalVAT: rows.reduce((sum, row) => sum + row['Částka DPH'], 0),
+    totalRevenueInclVAT: rows.reduce((sum, row) => sum + row['Tržba včetně DPH'], 0),
+  };
+
+  return { headers: EXPORT_HEADERS['vat-breakdown'], rows, totals };
+}
+
+async function getSoldProductsExportInline(request: any) {
+  const dateConditions = [];
+  if (request.dateFrom) dateConditions.push(gte(sales.createdAt, exportGetStartOfDay(request.dateFrom)));
+  if (request.dateTo) dateConditions.push(lte(sales.createdAt, exportGetEndOfDay(request.dateTo)));
+  const whereConditions = [
+    eq(sales.isCancelled, false),
+    eq(stores.companyId, request.companyId),
+    request.storeId ? eq(sales.storeId, request.storeId) : undefined,
+    dateConditions.length ? and(...dateConditions) : undefined,
+  ].filter(Boolean) as any[];
+
+  const itemsData = await db
+    .select({
+      saleItemId: salesItems.id,
+      productId: salesItems.productId,
+      productName: products.name,
+      batchId: salesItems.batchId,
+      batchNumber: productBatches.batchNumber,
+      quantity: salesItems.quantity,
+      unitPrice: salesItems.unitPrice,
+      vatRate: salesItems.vatRate,
+    })
+    .from(salesItems)
+    .innerJoin(sales, eq(salesItems.saleId, sales.id))
+    .innerJoin(stores, eq(sales.storeId, stores.id))
+    .innerJoin(products, eq(salesItems.productId, products.id))
+    .leftJoin(productBatches, eq(salesItems.batchId, productBatches.id))
+    .where(and(...whereConditions))
+    .orderBy(products.name, productBatches.batchNumber);
+
+  const productIds = [...new Set(itemsData.map(item => item.productId))];
+  const activeSubstancesData = productIds.length > 0 ? await db
+    .select({
+      productId: productActiveSubstance.productId,
+      substanceName: activeSubstances.name,
+    })
+    .from(productActiveSubstance)
+    .innerJoin(activeSubstances, eq(productActiveSubstance.substanceId, activeSubstances.id))
+    .where(inArray(productActiveSubstance.productId, productIds)) : [];
+
+  const substancesByProduct: Record<number, string[]> = {};
+  for (const sub of activeSubstancesData) {
+    if (!substancesByProduct[sub.productId]) {
+      substancesByProduct[sub.productId] = [];
+    }
+    substancesByProduct[sub.productId].push(sub.substanceName);
+  }
+
+  const rows = [];
+  for (const item of itemsData) {
+    const quantity = parseFloat(String(item.quantity));
+    const unitPrice = parseFloat(String(item.unitPrice));
+    const vatRate = parseFloat(String(item.vatRate));
+    const revenueInclVAT = quantity * unitPrice;
+    const vatAmount = (revenueInclVAT * vatRate) / (100 + vatRate);
+    const revenueExclVAT = revenueInclVAT - vatAmount;
+    const unitPriceExclVAT = unitPrice - (unitPrice * vatRate) / (100 + vatRate);
+    const substances = substancesByProduct[item.productId] || [];
+    const activeSubstance = substances.length > 0 ? substances.join(', ') : null;
+    rows.push({
+      'Název produktu': item.productName,
+      'Číslo šarže': item.batchNumber || '',
+      'Aktivní látka': activeSubstance || '',
+      'Prodané množství': quantity,
+      'Jednotková cena bez DPH': unitPriceExclVAT,
+      'Tržba bez DPH': revenueExclVAT,
+      'Částka DPH': vatAmount,
+      'Tržba včetně DPH': revenueInclVAT,
+    });
+  }
+
+  const totals = {
+    totalQuantitySold: rows.reduce((sum, row: any) => sum + row['Prodané množství'], 0),
+    totalRevenueExclVAT: rows.reduce((sum, row: any) => sum + row['Tržba bez DPH'], 0),
+    totalVAT: rows.reduce((sum, row: any) => sum + row['Částka DPH'], 0),
+    totalRevenueInclVAT: rows.reduce((sum, row: any) => sum + row['Tržba včetně DPH'], 0),
+  };
+
+  return { headers: EXPORT_HEADERS['sold-products'], rows, totals };
+}
+
 export async function registerRoutes(app: Express): Promise<void> {
   // Note: setupAuth is called in initializeApp() before registerRoutes()
   // This ensures session middleware is initialized before routes
@@ -6328,7 +6569,66 @@ export async function registerRoutes(app: Express): Promise<void> {
     }
   });
 
+  // Export endpoints (inlined)
+  app.get("/api/exports/:exportType", isAuthenticated, async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const { exportType } = req.params;
+      const format = (req.query.format as string) || "csv";
+      const dateFrom = req.query.date_from as string | undefined;
+      const dateTo = req.query.date_to as string | undefined;
+      const storeId = req.query.store_id ? parseInt(req.query.store_id as string) : undefined;
 
+      if (!user?.companyId) {
+        return res.status(403).json({ message: "Company ID is required" });
+      }
+
+      if (!["daily-revenue", "vat-breakdown", "sold-products"].includes(exportType)) {
+        return res.status(400).json({ message: "Invalid export type" });
+      }
+      if (format !== "csv" && format !== "pdf") {
+        return res.status(400).json({ message: "Invalid format. Must be csv or pdf" });
+      }
+
+      const exportRequest = {
+        exportType,
+        format: format as "csv" | "pdf",
+        dateFrom,
+        dateTo,
+        storeId,
+        companyId: user.companyId,
+      };
+
+      let exportData;
+      if (exportType === "daily-revenue") {
+        exportData = await getDailyRevenueExportInline(exportRequest);
+      } else if (exportType === "vat-breakdown") {
+        exportData = await getVATBreakdownExportInline(exportRequest);
+      } else {
+        exportData = await getSoldProductsExportInline(exportRequest);
+      }
+
+      let data: Buffer;
+      let filename: string;
+      let mimeType: string;
+      if (format === "csv") {
+        data = generateCSV(exportData);
+        filename = generateCSVFilename(exportType as any, dateFrom, dateTo);
+        mimeType = "text/csv; charset=utf-8";
+      } else {
+        data = await generatePDF(exportData, exportType as any, dateFrom, dateTo);
+        filename = generatePDFFilename(exportType as any, dateFrom, dateTo);
+        mimeType = "application/pdf";
+      }
+
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Content-Disposition", `attachment; filename=\"${filename}\"`);
+      res.send(data);
+    } catch (error: any) {
+      console.error("Error generating export:", error);
+      res.status(500).json({ message: error.message || "Failed to generate export" });
+    }
+  });
 
   // Dashboard analytics - NO AUTH REQUIRED FOR DASHBOARD
   app.get('/api/analytics', isAuthenticated, requireAnyPermission(PERMISSIONS.ANALYTICS_VIEW, PERMISSIONS.ANALYTICS_VIEW_ALL, PERMISSIONS.ANALYTICS_VIEW_OWN, PERMISSIONS.ANALYTICS_VIEW_ASSIGNED), async (req, res) => {
@@ -8686,7 +8986,10 @@ export async function registerRoutes(app: Express): Promise<void> {
         registerId: (sale as any).registerId || "POS-01",
       };
 
-      // Render receipt
+      // Check format parameter
+      const format = req.query.format as string;
+
+      // Render text receipt
       const receiptText = renderCashCardTaxReceipt(receiptData, {
         language,
         mode,
@@ -8694,7 +8997,6 @@ export async function registerRoutes(app: Express): Promise<void> {
       });
 
       // Check if client wants JSON format (for logo support)
-      const format = req.query.format as string;
       if (format === 'json') {
         return res.json({
           receipt: receiptText,

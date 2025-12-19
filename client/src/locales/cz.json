@@ -63,7 +63,8 @@
     "activeSubstances": "Aktivní látky",
     "salesHistory": "Historie prodeje",
     "returnsHistory": "Historie vrácení",
-    "stockTransactions": "Skladové transakce"
+    "stockTransactions": "Skladové transakce",
+    "exports": "Exporty"
   },
   "header": {
     "searchPlaceholder": "Hledat uživatele, prodejny, analytiku...",
@@ -94,9 +95,7 @@
       "totalUsers": "Celkem uživatelů",
       "activeStores": "Aktivní prodejny",
       "monthlyRevenue": "Měsíční tržby",
-      "systemUptime": "Dostupnost systému",
       "fromLastMonth": "oproti minulému měsíci",
-      "allSystemsOperational": "Všechny systémy fungují",
       "totalCompanies": "Celkem společností",
       "totalCompaniesDesc": "Registrované společnosti",
       "totalBranches": "Celkem poboček",
@@ -499,6 +498,7 @@
     "imageFormatHint": "JPG, PNG, GIF do 5MB",
     "companyInformation": "Informace o společnosti",
     "companyInformationDesc": "Nastavení a preference pro celou společnost",
+    "editCompanyProfile": "Upravit profil společnosti",
     "companyAccountNote": "Firemní účet: Tato nastavení platí pro všechny uživatele ve vaší společnosti. Jednotliví uživatelé mohou některé preference přepsat ve svých osobních nastaveních.",
     "regionalSettings": "Regionální nastavení",
     "regionalSettingsDesc": "Nakonfigurujte časové pásmo, měnu a jazykové preference",
@@ -707,6 +707,10 @@
       "centralizedPricingDesc": "Použít jednotné ceny ve všech prodejnách",
       "applyStoreSettings": "Použít nastavení prodejen",
       "securityAccess": "Zabezpečení a přístup",
+      "status": "Stav",
+      "maxBranches": "Maximální počet poboček",
+      "currentBranches": "Aktuální počet poboček",
+      "editCompanyProfile": "Upravit profil společnosti",
       "securityAccessDesc": "Spravujte nastavení zabezpečení a oprávnění uživatelů",
       "passwordPolicy": "Zásady hesel",
       "requireUppercase": "Vyžadovat velká písmena",
@@ -1298,7 +1302,9 @@
       "customerFallback": "Zákazník",
       "noContactInfo": "Bez kontaktních údajů",
       "walkInCustomer": "Neregistrovaný zákazník",
-      "itemsCount": "{{count}} položka{{count, plural, one {} other {y}}}",
+      "itemsCount_one": "{{count}} položka",
+      "itemsCount_few": "{{count}} položky",
+      "itemsCount_other": "{{count}} položek",
       "detailsButton": "Detaily"
     },
     "details": {
@@ -1532,7 +1538,9 @@
       "allCategories": "Všechny kategorie",
       "lowStock": "Nízký stav",
       "outOfStock": "Není skladem",
-      "inStockLabel": "{{count}} ks skladem"
+      "inStockLabel": "{{count}} ks skladem",
+      "barcode": "Čárový kód",
+      "batch": "Šarže"
     },
     "cart": {
       "title": "Košík ({{count}} položek)",
@@ -1892,7 +1900,48 @@
     "descriptionReceipt": "Popis",
     "englishReceipt": "Anglický doklad",
     "czechReceipt": "Český doklad",
+    "printNote": "Poznámka: V dialogu tisku vyberte tiskárnu z rozbalovacího menu 'Cíl' pro přímý tisk.",
     "print": "Tisknout",
     "close": "Zavřít"
+  },
+  "exports": {
+    "title": "Exporty",
+    "description": "Vygenerujte reporty tržeb, DPH a prodaných produktů pro zvolené období.",
+    "form": {
+      "title": "Vytvořit export",
+      "description": "Vyberte, co chcete exportovat, formát a období.",
+      "exportType": "Typ exportu",
+      "format": "Formát",
+      "dateFrom": "Datum od",
+      "dateTo": "Datum do"
+    },
+    "exportTypes": {
+      "daily-revenue": "Denní tržby",
+      "vat-breakdown": "Rozpis DPH",
+      "sold-products": "Prodané produkty"
+    },
+    "generating": "Generuji...",
+    "download": "Stáhnout",
+    "validation": {
+      "dateRangeRequired": "Vyberte období",
+      "dateRangeRequiredDesc": "Je potřeba zadat počáteční i koncové datum.",
+      "invalidDateRange": "Neplatné období",
+      "invalidDateRangeDesc": "Počáteční datum musí být před koncovým."
+    },
+    "success": {
+      "title": "Export vytvořen",
+      "description": "Export byl úspěšně vygenerován."
+    },
+    "error": {
+      "title": "Export se nezdařil",
+      "description": "Export se nepodařilo vygenerovat. Zkuste to prosím znovu."
+    },
+    "info": {
+      "title": "O exportech",
+      "csvFormat": "CSV je ideální pro tabulky a další analýzu.",
+      "pdfFormat": "PDF je vhodné pro tisk a sdílení.",
+      "dateRange": "Export využije období, které nastavíte výše.",
+      "totals": "Reporty obsahují souhrny pro rychlou kontrolu celkových částek."
+    }
   }
 }

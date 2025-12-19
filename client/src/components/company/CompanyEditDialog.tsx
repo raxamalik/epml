@@ -28,6 +28,7 @@ type CompanyEditDialogProps = {
   onOpenChange: (open: boolean) => void;
   company: EditableCompany | null;
   onUpdated?: (updatedCompany: any) => void;
+  mode?: "full" | "limited"; // limited = basic company admin profile edit
 };
 
 type EditFormData = {
@@ -59,6 +60,7 @@ export function CompanyEditDialog({
   onOpenChange,
   company,
   onUpdated,
+  mode = "full",
 }: CompanyEditDialogProps) {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -220,7 +222,7 @@ export function CompanyEditDialog({
           <DialogTitle>{t("companyEdit.title")}</DialogTitle>
         </DialogHeader>
         
-        {/* Logo Upload Section */}
+        {/* Logo Upload Section (always editable) */}
         <div className="space-y-2">
           <Label>{t("companyForm.companyLogo") || "Company Logo"}</Label>
           <div className="flex items-center gap-4">
@@ -277,6 +279,7 @@ export function CompanyEditDialog({
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          {/* Company name (editable in all modes) */}
           <div>
             <Label htmlFor="editName">{t("companyForm.companyName")}</Label>
             <Input
@@ -285,14 +288,20 @@ export function CompanyEditDialog({
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="editRegNumber">{t("companyForm.registrationNumber")}</Label>
-            <Input
-              id="editRegNumber"
-              value={formData.registrationNumber}
-              onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
-            />
-          </div>
+
+          {/* Registration number (super-admin / full mode only) */}
+          {mode === "full" && (
+            <div>
+              <Label htmlFor="editRegNumber">{t("companyForm.registrationNumber")}</Label>
+              <Input
+                id="editRegNumber"
+                value={formData.registrationNumber}
+                onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* VAT number (editable in all modes) */}
           <div>
             <Label htmlFor="editVatNumber">{t("companyForm.vatNumber")}</Label>
             <Input
@@ -301,15 +310,21 @@ export function CompanyEditDialog({
               onChange={(e) => setFormData({ ...formData, vatNumber: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="editEmail">{t("companyForm.email")}</Label>
-            <Input
-              id="editEmail"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            />
-          </div>
+
+          {/* Email (super-admin / full mode only) */}
+          {mode === "full" && (
+            <div>
+              <Label htmlFor="editEmail">{t("companyForm.email")}</Label>
+              <Input
+                id="editEmail"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* Address (editable in all modes) */}
           <div className="col-span-2">
             <Label htmlFor="editAddress">{t("companyForm.address")}</Label>
             <Textarea
@@ -318,6 +333,8 @@ export function CompanyEditDialog({
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
             />
           </div>
+
+          {/* Phone (editable in all modes) */}
           <div>
             <Label htmlFor="editPhone">{t("companyForm.phone")}</Label>
             <Input
@@ -326,34 +343,46 @@ export function CompanyEditDialog({
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="editContactPerson">{t("companyForm.contactPerson")}</Label>
-            <Input
-              id="editContactPerson"
-              value={formData.contactPerson}
-              onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label htmlFor="editPassword">{t("companyForm.password")}</Label>
-            <Input
-              id="editPassword"
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              placeholder={t("companyForm.passwordPlaceholder")}
-            />
-          </div>
-          <div>
-            <Label htmlFor="editMaxBranches">{t("companyForm.maxBranches")}</Label>
-            <Input
-              id="editMaxBranches"
-              type="number"
-              min="1"
-              value={formData.maxBranches}
-              onChange={(e) => setFormData({ ...formData, maxBranches: parseInt(e.target.value) || 1 })}
-            />
-          </div>
+
+          {/* Contact person (super-admin / full mode only) */}
+          {mode === "full" && (
+            <div>
+              <Label htmlFor="editContactPerson">{t("companyForm.contactPerson")}</Label>
+              <Input
+                id="editContactPerson"
+                value={formData.contactPerson}
+                onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+              />
+            </div>
+          )}
+
+          {/* Password change (super-admin / full mode only) */}
+          {mode === "full" && (
+            <div>
+              <Label htmlFor="editPassword">{t("companyForm.password")}</Label>
+              <Input
+                id="editPassword"
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder={t("companyForm.passwordPlaceholder")}
+              />
+            </div>
+          )}
+
+          {/* Max branches (super-admin / full mode only) */}
+          {mode === "full" && (
+            <div>
+              <Label htmlFor="editMaxBranches">{t("companyForm.maxBranches")}</Label>
+              <Input
+                id="editMaxBranches"
+                type="number"
+                min="1"
+                value={formData.maxBranches}
+                onChange={(e) => setFormData({ ...formData, maxBranches: parseInt(e.target.value) || 1 })}
+              />
+            </div>
+          )}
         </div>
         
         <div className="flex justify-end space-x-2 mt-4">

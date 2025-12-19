@@ -359,7 +359,7 @@ export default function BranchDetails() {
                   {t("storeDetail.stats.totalRevenue")}
                 </Label>
                 <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  €{totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Kč
                 </p>
               </div>
 
@@ -443,7 +443,7 @@ export default function BranchDetails() {
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
                       <TableCell>{product.category || t("common.notAvailable")}</TableCell>
-                      <TableCell>€{parseFloat(product.price).toFixed(2)}</TableCell>
+                      <TableCell>{parseFloat(product.price).toFixed(2)} Kč</TableCell>
                       <TableCell>{product.stock}</TableCell>
                     </TableRow>
                   ))}
@@ -486,7 +486,7 @@ export default function BranchDetails() {
                   {sales.slice(0, 10).map((sale) => (
                     <TableRow key={sale.id}>
                       <TableCell className="font-medium">{sale.id.slice(0, 8)}...</TableCell>
-                      <TableCell>€{parseFloat(sale.total).toFixed(2)}</TableCell>
+                      <TableCell>{parseFloat(sale.total).toFixed(2)} Kč</TableCell>
                       <TableCell>{sale.paymentMethod}</TableCell>
                       <TableCell>{formatDate(sale.createdAt)}</TableCell>
                     </TableRow>

@@ -290,7 +290,10 @@ export function renderCashCardTaxReceipt(
       const lineTotalFormatted = formatMoney(lineTotal, currency);
       lines.push(`${labels.vat}: ${vatRate} ${lineTotalFormatted}`);
     }
-    // No blank line between items - they flow directly
+    // Add spacing between items (except after the last item)
+    if (index < data.items.length - 1) {
+      lines.push("");
+    }
   });
 
   lines.push("----------------------------------------------");

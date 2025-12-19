@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,6 +43,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { ProfileAvatar } from "@/components/ui/profile-avatar";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { useTranslation } from "@/hooks/useTranslation";
+import { CompanyEditDialog } from "@/components/company/CompanyEditDialog";
 
 // Settings form schema
 const settingsSchema = z.object({
@@ -91,6 +93,7 @@ export default function DynamicSettings() {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCompanyEditDialogOpen, setIsCompanyEditDialogOpen] = useState(false);
   
   // 2FA States
   const [is2FAEnabled, setIs2FAEnabled] = useState(false);
@@ -282,7 +285,7 @@ export default function DynamicSettings() {
         return data || {
         timezone: "Europe/Prague",
         language: "en",
-        currency: "EUR",
+        currency: "CZK",
         emailNotifications: true,
         smsAlerts: false,
         weeklyReports: true,
@@ -301,7 +304,7 @@ export default function DynamicSettings() {
         return {
           timezone: "Europe/Prague",
           language: "en",
-          currency: "EUR",
+          currency: "CZK",
           emailNotifications: true,
           smsAlerts: false,
           weeklyReports: true,
@@ -325,7 +328,7 @@ export default function DynamicSettings() {
     defaultValues: {
       timezone: "Europe/Prague",
       language: "en",
-      currency: "EUR",
+      currency: "CZK",
       emailNotifications: true,
       smsAlerts: false,
       weeklyReports: true,
@@ -490,6 +493,28 @@ export default function DynamicSettings() {
       description: t("settings.imageRemovedDesc"),
     });
   };
+
+  // Load company information for company accounts so we can show it in the Company tab
+  // This hook must be called before any early returns to follow Rules of Hooks
+  const {
+    data: companyInfo,
+    isLoading: companyInfoLoading,
+    error: companyInfoError,
+    refetch: refetchCompanyInfo,
+  } = useQuery({
+    queryKey: ["/api/companies", userInfo?.companyId],
+    queryFn: async () => {
+      if (!userInfo?.companyId || userInfo.type !== "company") return null;
+      const response = await fetchWithAuth(`/api/companies/${userInfo.companyId}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: "" }));
+        throw new Error(errorData.message || errorData.error || "Failed to load company information");
+      }
+      return response.json();
+    },
+    enabled: !!userInfo?.companyId && userInfo?.type === "company",
+    retry: false,
+  });
 
   if (settingsLoading || !userInfo) {
     return (
@@ -705,9 +730,10 @@ export default function DynamicSettings() {
 
             {/* Company Info Tab (Companies Only) */}
             {userInfo.type === 'company' && (
-              <TabsContent value="company" className="space-y-6">
-                <Card>
-                  <CardHeader>
+            <TabsContent value="company" className="space-y-6">
+              <Card>
+                <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div>
                     <CardTitle className="flex items-center gap-2">
                       <Building className="h-5 w-5" />
                       {t("settings.companyInformation")}
@@ -715,8 +741,155 @@ export default function DynamicSettings() {
                     <CardDescription>
                       {t("settings.companyInformationDesc")}
                     </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
+                  </div>
+                  {companyInfo && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2 md:mt-0"
+                      onClick={() => setIsCompanyEditDialogOpen(true)}
+                    >
+                      <SettingsIcon className="h-4 w-4 mr-2" />
+                      {t("settings.editCompanyProfile") || "Edit company profile"}
+                    </Button>
+                  )}
+                </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Company information */}
+                    {companyInfoLoading && (
+                      <div className="flex items-center justify-center py-6">
+                        <div className="animate-spin w-6 h-6 border-4 border-primary border-t-transparent rounded-full" />
+                      </div>
+                    )}
+
+                    {companyInfoError && (
+                      <p className="text-sm text-red-600">
+                        {(companyInfoError as Error).message || t("errors.generic")}
+                      </p>
+                    )}
+
+                    {companyInfo && !companyInfoLoading && !companyInfoError && (
+                      <div className="space-y-6">
+                        {/* Logo + basic info header */}
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-lg border bg-white flex items-center justify-center overflow-hidden">
+                              {((companyInfo as any).companyLogo) ? (
+                                <img
+                                  src={companyInfo.companyLogo}
+                                  alt={companyInfo.name}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                  }}
+                                />
+                              ) : (
+                                <span className="text-xs text-slate-400 text-center px-2">
+                                  {t("companyForm.companyLogo") || "Company logo"}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-slate-500">
+                                {t("companyDashboard.settings.companyName") || "Company name"}
+                              </p>
+                              <p className="text-lg font-semibold text-slate-900">
+                                {companyInfo.name}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.registrationNumber") || "Registration number"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.registrationNumber}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.vatNumber") || "VAT number"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.vatNumber || "—"}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              Email
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.email}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.phone") || "Phone"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.phone}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyForm.contactPerson")}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.contactPerson}
+                            </p>
+                          </div>
+
+                          <div className="space-y-1 md:col-span-2">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.address") || "Address"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.address}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Company settings / license summary */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.status") || "Status"}
+                            </Label>
+                            <div className="flex items-center gap-2">
+                              <Badge variant={companyInfo.isActive ? "default" : "secondary"}>
+                                {companyInfo.licenseStatus || (companyInfo.isActive ? "Active" : "Inactive")}
+                              </Badge>
+                            </div>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.maxBranches") || "Max branches"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.maxBranches ?? "—"}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs font-medium text-slate-500">
+                              {t("companyDashboard.settings.currentBranches") || "Current branches"}
+                            </Label>
+                            <p className="text-base text-slate-900">
+                              {companyInfo.branchCount ?? "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Helper note for full company management */}
                     <div className="bg-blue-50 p-4 rounded-lg">
                       <p className="text-sm text-blue-800">
                         {t("settings.companyAccountNote")}
@@ -724,6 +897,29 @@ export default function DynamicSettings() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {companyInfo && (
+                  <CompanyEditDialog
+                    isOpen={isCompanyEditDialogOpen}
+                    onOpenChange={setIsCompanyEditDialogOpen}
+                    mode="limited"
+                    company={{
+                      id: companyInfo.id,
+                      name: companyInfo.name,
+                      registrationNumber: companyInfo.registrationNumber,
+                      vatNumber: companyInfo.vatNumber,
+                      address: companyInfo.address,
+                      email: companyInfo.email,
+                      phone: companyInfo.phone,
+                      contactPerson: companyInfo.contactPerson,
+                      maxBranches: companyInfo.maxBranches,
+                      companyLogo: (companyInfo as any).companyLogo,
+                    }}
+                    onUpdated={() => {
+                      refetchCompanyInfo();
+                    }}
+                  />
+                )}
               </TabsContent>
             )}
 

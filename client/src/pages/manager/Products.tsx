@@ -632,7 +632,7 @@ function Products() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">${totalValue.toFixed(2)}</div>
+              <div className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{totalValue.toFixed(2)} Kč</div>
               <p className="text-sm text-emerald-700 dark:text-emerald-300">{t("products.cards.inventoryValue")}</p>
             </CardContent>
           </Card>
@@ -803,7 +803,7 @@ function Products() {
                       
                       <div className="flex items-center justify-between">
                         <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                          ${parseFloat(product.price).toFixed(2)}
+                          {parseFloat(product.price).toFixed(2)} Kč
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-medium text-slate-900 dark:text-white">
@@ -914,7 +914,7 @@ function Products() {
                         </TableCell>
                         <TableCell>
                           <div className="font-bold text-purple-600 dark:text-purple-400">
-                            ${parseFloat(product.price).toFixed(2)}
+                            {parseFloat(product.price).toFixed(2)} Kč
                           </div>
                         </TableCell>
                         <TableCell>

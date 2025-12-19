@@ -2919,7 +2919,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         registerId: (sale as any).registerId || "POS-01",
       };
 
-      // Render receipt
+      // Check format parameter
+      const format = req.query.format as string;
+
+      // Render text receipt
       const receiptText = renderCashCardTaxReceipt(receiptData, {
         language,
         mode,
@@ -2927,7 +2930,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Check if client wants JSON format (for logo support)
-      const format = req.query.format as string;
       if (format === 'json') {
         return res.json({
           receipt: receiptText,
@@ -4689,7 +4691,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companyId: user.type === 'company' ? user.companyId : undefined,
           timezone: 'Europe/Prague',
           language: 'en',
-          currency: 'EUR',
+          currency: 'CZK',
           emailNotifications: true,
           smsAlerts: false,
           weeklyReports: true,

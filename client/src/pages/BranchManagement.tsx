@@ -295,7 +295,7 @@ export default function BranchManagement() {
                       </TableCell>
                       <TableCell className="py-4">
                         <span className="font-medium text-slate-900 dark:text-slate-100">
-                          €{branch.revenue.toLocaleString()}
+                          {branch.revenue.toLocaleString()} Kč
                         </span>
                       </TableCell>
                       <TableCell className="py-4">

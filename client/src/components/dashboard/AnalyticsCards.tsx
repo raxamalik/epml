@@ -40,20 +40,11 @@ export function AnalyticsCards() {
       bgColor: "bg-emerald-50",
       iconColor: "text-accent",
       change: t("dashboard.analytics.totalBranchesDesc"),
-    },
-    {
-      title: t("dashboard.analytics.systemUptime"),
-      value: "99.98%",
-      icon: Activity,
-      bgColor: "bg-green-50",
-      iconColor: "text-green-500",
-      change: t("dashboard.analytics.allSystemsOperational"),
-      isUptime: true,
-    },
+    }
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-8">
       {cards.map((card, index) => {
         const gradients = [
           "bg-gradient-to-br from-blue-500 to-blue-600",
